@@ -70,6 +70,21 @@ Antes de usar numa carreira importante, teste numa copia completa do diretorio d
 
 Veja `ANALISE.md` para o mapeamento e a origem das evidencias.
 
+## Validacao isolada e diagnostico
+
+`prepare-validation.ps1 -Preview` mostra a origem, destino e volume de uma copia
+isolada. Sem `-Preview`, cria um destino novo, verifica hashes e prepara launchers
+independentes do checkout. Nao abre o jogo nem restaura saves. A copia completa
+tem milhares de arquivos e pode demorar; somente a presenca de `baseline.json`
+apos o sucesso da preparacao identifica uma copia concluida. Destinos parciais
+nao sao apagados nem reutilizados automaticamente.
+
+Siga `roadmap/P0-VALIDACAO.md` para o teste real. Cada execucao do launcher registra
+metadados da JVM, etapas e stdout/stderr em `logs/session-*/`. Capturas por stream
+tem limite de 8 MiB e o log do loader tem rotacao; sessoes antigas sao preservadas.
+Revise caminhos e argumentos antes de compartilhar. Falhas anteriores ao launcher
+e erros gravados exclusivamente no arquivo legado `erros.log` nao sao consolidados.
+
 ## Testes
 
 `build.ps1` executa os testes unitarios sem interface. Para incluir a integracao Swing (janela sintetica + JAR real do inspetor) e o round-trip de uma copia do save:

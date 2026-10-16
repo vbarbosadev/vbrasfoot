@@ -1,0 +1,20 @@
+# Keep source and documentation consistent across Windows and other platforms.
+* text=auto
+*.java text eol=lf
+*.md text eol=lf
+*.ps1 text eol=lf
+*.properties text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Never normalize packaged artifacts, images, or private game/save files.
+*.jar binary
+*.zip binary
+*.exe binary
+*.png binary
+*.jpg binary
+*.pdf binary
+*.s22 binary
+*.sbck binary

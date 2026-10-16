@@ -254,3 +254,15 @@ Nao ha estimativa de prazo fechada: principalmente hooks e identidade de carreir
 3. Implementar o layout instalado e remover com seguranca o bloqueio de `home` interno, sem simplesmente permitir qualquer caminho dentro do jogo.
 4. Gerar e instalar o pacote em `Brasfoot22-23/vbrasfoot/`, mantendo o EXE e os saves intocados durante a instalacao.
 5. Publicar os resultados dessa primeira instalacao antes de iniciar a API de escrita.
+
+### Incremento de implementacao — 16/10/2026
+
+- Diagnostico por sessao, captura limitada e fechamento sem acesso a EDT
+  implementados; testes automatizados de retorno/System.exit aprovados.
+- Verificador offline ampliado com repeticao das mesmas raizes, segunda geracao,
+  tamanhos e primeiro byte divergente. Diferenca antiga reproduzida, causa aberta.
+- Preparacao de copia isolada e roteiro em `P0-VALIDACAO.md` adicionados.
+  Fixture reduzida aprovada; copia completa real ainda pendente apos timeout.
+- Evidencias e limitacoes atualizadas em `../VALIDACAO.md` (46 testes).
+
+Nenhum gate de fase foi marcado como aprovado: ainda falta a sessao real de P0.

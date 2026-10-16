@@ -8,16 +8,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.FileHandler;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 public final class Main {
     private Main() { }
 
     public static void main(String[] args) {
         try { run(args); }
-        catch (Exception failure) {
+        catch (Exception | LinkageError failure) {
             System.err.println("vbrasfoot: " + failure.getMessage());
             failure.printStackTrace(System.err);
             System.exit(1);
@@ -29,10 +27,30 @@ public final class Main {
         if (options.help) { help(); return; }
         Path game = options.game.toRealPath();
         Path home = options.home.toAbsolutePath().normalize();
+        // Reject original resources before creating anything in the supplied home.
+        if (home.startsWith(game)) throw new IllegalArgumentException("--home deve ficar fora da pasta do jogo");
+        Path ancestor = home;
+        while (!Files.exists(ancestor)) ancestor = ancestor.getParent();
+        if (ancestor.toRealPath().resolve(ancestor.relativize(home)).normalize().startsWith(game)) {
+            throw new IllegalArgumentException("--home aponta para a pasta do jogo atraves de link/junction");
+        }
         Files.createDirectories(home);
         home = home.toRealPath();
         if (home.startsWith(game)) throw new IllegalArgumentException("--home deve ficar fora da pasta do jogo");
+        try (SessionDiagnostics diagnostic = SessionDiagnostics.open(home, game, args)) {
+            try { launch(options, game, home, diagnostic.logger()); }
+            catch (Exception | LinkageError failure) {
+                diagnostic.logger().log(java.util.logging.Level.SEVERE, "stage=failed", failure);
+                failure.printStackTrace(System.err);
+                throw failure;
+            }
+        }
+    }
+
+    private static void launch(Options options, Path game, Path home, Logger logger) throws Exception {
+        logger.info("stage=profile-verification");
         Path executable = Profile.verify(game);
+        logger.info("stage=profile-verified sha256=" + Profile.SHA256);
         System.out.println("vbrasfoot 0.1.0 | " + Profile.ID + " | SHA-256 " + Profile.SHA256);
         // Safe mode and offline save checks deliberately ignore even malformed mod JARs.
         List<ModManifest> manifests = options.safe || options.checkSave != null ? List.of() : ModLoader.discover(home.resolve("mods"));
@@ -41,7 +59,9 @@ public final class Main {
         try (FileChannel lockChannel = FileChannel.open(home.resolve(".runtime.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
              FileLock lock = lockChannel.tryLock()) {
             if (lock == null) throw new IllegalStateException("Outra instancia do vbrasfoot esta usando este diretorio");
+            logger.info("stage=runtime-preparation");
             try (LegacyRuntime runtime = LegacyRuntime.prepare(executable, home)) {
+                logger.info("stage=runtime-verified");
                 if (options.validate) {
                     // Does not initialize plugin classes or any game class.
                     validateMods(manifests);
@@ -54,27 +74,23 @@ public final class Main {
                 }
                 Path backup = backup(game, home);
                 System.out.println("Backup antes de iniciar: " + backup);
-                Files.createDirectories(home.resolve("logs"));
-                Logger logger = Logger.getLogger("vbrasfoot");
-                FileHandler handler = new FileHandler(home.resolve("logs/vbrasfoot-%g.log").toString(), 1048576, 3, true);
-                try {
-                    handler.setFormatter(new SimpleFormatter());
-                    logger.addHandler(handler);
-                    try (ModUi ui = new ModUi(runtime, logger); ModLoader mods = new ModLoader(logger)) {
-                        if (!options.safe) {
-                            mods.load(manifests, new CareerBridge(runtime), ui, home.resolve("data"));
-                            ui.start();
-                        }
-                        Thread current = Thread.currentThread();
-                        ClassLoader previous = current.getContextClassLoader();
-                        current.setContextClassLoader(runtime);
-                        try {
-                            Class.forName(Profile.ENTRYPOINT, true, runtime).getMethod("main", String[].class)
-                                    .invoke(null, (Object) options.gameArguments.toArray(String[]::new));
-                            awaitWindows();
-                        } finally { current.setContextClassLoader(previous); }
-                    } finally { logger.removeHandler(handler); }
-                } finally { handler.close(); }
+                logger.info("stage=backup-verified directory=" + backup);
+                try (ModUi ui = new ModUi(runtime, logger); ModLoader mods = new ModLoader(logger)) {
+                    if (!options.safe) {
+                        mods.load(manifests, new CareerBridge(runtime), ui, home.resolve("data"));
+                        ui.start();
+                    }
+                    Thread current = Thread.currentThread();
+                    ClassLoader previous = current.getContextClassLoader();
+                    current.setContextClassLoader(runtime);
+                    try {
+                        logger.info("stage=game-entry safeMode=" + options.safe);
+                        Class.forName(Profile.ENTRYPOINT, true, runtime).getMethod("main", String[].class)
+                                .invoke(null, (Object) options.gameArguments.toArray(String[]::new));
+                        awaitWindows();
+                        logger.info("stage=game-windows-closed");
+                    } finally { current.setContextClassLoader(previous); }
+                }
             }
         }
     }

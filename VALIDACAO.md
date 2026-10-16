@@ -37,3 +37,54 @@ O primeiro teste Swing nao identificava a janela correta: registrava uma janela 
 ## Menu interno em vez de barra externa
 
 O usuario confirmou que o menu apareceu apos a correcao de `db()`, mas numa barra externa. A integracao foi substituida por um botao na JToolBar original de `a.eg` (`ve`), antes de Opcoes (`HX`). `test.ps1 -IncludeUi` passou novamente: 24 testes unitarios, validacao do perfil e regressao Swing com botao interno, sem criar menu externo, preservando os controles originais e evitando duplicacao. A fixture representa somente o painel/barra com os mesmos membros; o posicionamento visual e a disponibilidade de espaco na tela real ainda precisam da confirmacao do usuario.
+
+## Incremento P0 — diagnostico e investigacao (16/10/2026)
+
+Implementado diagnostico por sessao antes da verificacao do perfil, descoberta de
+mods e extracao do runtime. Inclui identidade esperada/verificada, JVM/argumentos,
+etapas, stdout/stderr limitados e log rotativo separado. O hook de fechamento nao
+consulta Swing nem executa callbacks de mods. Falhas anteriores a esse ponto e
+erros gravados somente pelo jogo em `erros.log` permanecem fora dessa consolidacao.
+
+Executado nesta rodada:
+
+- `test.ps1 -IncludeUi`: **46 testes aprovados**, validacao do perfil e integracao
+  Swing sintetica aprovadas. Inclui captura limitada, erros anteriores a extracao,
+  restauracao de streams e rejeicao de home interno antes de criar diretorios.
+- JVMs filhas encerradas por retorno, `System.exit` na thread principal e
+  `System.exit` na EDT: diagnostico fechado, sem timeout. Isso testa o hook do
+  loader, nao todas as rotinas de encerramento do jogo real.
+- `prepare-validation.ps1 -Preview`: inventariados 34.342 arquivos, 258.044.198
+  bytes. Fixture reduzida de copia aprovada com executavel correto, diretorio
+  vazio, caminhos com espacos/acentos e rejeicao de destino existente. Essa fixture
+  **nao e um jogo completo nem foi iniciada**.
+- Preparacao da copia real excedeu os limites de 240 e 600 segundos; destinos
+  parciais preservados no diretorio temporario do OpenCode. Houve tambem uma
+  tentativa inicial interrompida por conflito com a variavel PowerShell HOME,
+  corrigido no script. Nenhuma dessas tentativas aprova a copia real ou o P0.
+- Verificacao offline do save atual:
+  `verification/save-6138189412788400229/report.properties`.
+  8.395 clubes / 193.831 jogadores; round-trip, repeticao das mesmas raizes e
+  segunda geracao identicos em bytes. Snapshots publicos iguais nas duas geracoes.
+- Reproducao com o input preservado do teste antigo:
+  `verification/save-4251315688372723433/report.properties`.
+  Diferenca original reproduzida, primeiro offset 8.911.369, tamanho mantido
+  em 74.283.590 bytes, mesmo hash de round-trip do teste anterior. Repeticao das
+  mesmas raizes e segunda geracao estaveis em bytes; snapshots publicos iguais.
+  **Causa semantica da diferenca ainda nao determinada.**
+
+Hashes conferidos antes/depois desta rodada, inalterados:
+
+```text
+bf22-23.exe
+2fa65476a92611419ce28c0cfd158a0c7f741af235aa988b0bed00c44443bb1c
+
+sav/Flamengo.s22 e sav/Flamengo.sbck
+c645b7eaf7d5a04a60349fa98d8575092c9643515059854d55cf63ad230c19ef
+```
+
+O save atual ja diferia do hash historico antes desta implementacao. Nao houve
+restauracao, gravacao de saves originais nem lancamento do jogo real nesta rodada.
+
+P0 permanece aberto. Roteiro interativo em `roadmap/P0-VALIDACAO.md`; P1 a P6 nao
+foram implementadas nem aprovadas por este incremento.
