@@ -1,5 +1,9 @@
 # vbrasfoot 0.1.0
 
+Codigo e documentacao originais sob a [licenca MIT](LICENSE).
+O jogo Brasfoot, seus recursos e dependencias de terceiros nao sao abrangidos
+por essa concessao. Veja [como contribuir](CONTRIBUTING.md).
+
 Modloader experimental **exclusivo do Brasfoot22-23 fornecido neste diretorio**. Usa o Java embarcado em `../Brasfoot22-23/bf22-23.exe`, sem substituir o executavel, sem importar classes do RealBrasfoot26 e sem migrar saves.
 
 ## Usar

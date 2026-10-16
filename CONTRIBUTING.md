@@ -64,8 +64,10 @@ um checklist preenchido.
 
 ## Licenciamento
 
-A licenca do codigo do projeto ainda precisa ser definida pelo mantenedor.
-Um repositorio publico ou um modelo de PR nao concede, por si so, uma licenca
-open source. Nao remova avisos existentes nem inclua codigo de terceiros sem
-identificar sua origem e termos compativeis com a futura licenca do projeto.
-Nenhuma futura licenca do loader concede direitos sobre o jogo proprietario.
+O codigo e a documentacao originais do projeto sao disponibilizados sob a
+licenca MIT; veja `LICENSE`. Ao contribuir, disponibilize suas contribuicoes
+sob essa mesma licenca. Nao remova avisos existentes nem inclua codigo de
+terceiros sem identificar sua origem e termos compativeis com a licenca MIT.
+Dependencias de terceiros mantem suas proprias licencas.
+A licenca do loader nao concede direitos sobre o jogo proprietario, suas
+classes, recursos, executaveis ou saves, nem autoriza sua redistribuicao.
