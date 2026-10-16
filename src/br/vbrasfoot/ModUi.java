@@ -1,0 +1,138 @@
+package br.vbrasfoot;
+
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JFrame;
+import javax.swing.JButton;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JToolBar;
+import javax.swing.Timer;
+
+final class ModUi implements AutoCloseable {
+    private record Action(String label, Runnable callback) { }
+    private final Map<String, Action> actions = new LinkedHashMap<>();
+    private final ClassLoader runtime;
+    private final Logger logger;
+    private Timer timer;
+    ModUi(ClassLoader runtime, Logger logger) { this.runtime = runtime; this.logger = logger; }
+
+    synchronized void register(String id, String label, Runnable callback) {
+        if (id == null || label == null || callback == null || actions.containsKey(id)) {
+            throw new IllegalArgumentException("Acao invalida ou duplicada: " + id);
+        }
+        actions.put(id, new Action(label, callback));
+    }
+
+    void start() {
+        CareerBridge.onEdt(() -> {
+            timer = new Timer(800, event -> install());
+            timer.start();
+            return null;
+        });
+    }
+
+    private synchronized void install() {
+        try {
+            Object window = Class.forName("best.n", false, runtime).getMethod("db").invoke(null);
+            if (!(window instanceof JFrame frame) || !frame.isDisplayable()) return;
+            // Remove only the old loader menu, never any original menu bar entries.
+            JMenuBar bar = frame.getJMenuBar();
+            if (bar != null) {
+                for (int i = bar.getMenuCount() - 1; i >= 0; i--) {
+                    var candidate = bar.getMenu(i);
+                    if (candidate != null && Boolean.TRUE.equals(candidate.getClientProperty("vbrasfoot.menu"))) bar.remove(i);
+                }
+                if (bar.getMenuCount() == 0) frame.setJMenuBar(null);
+            }
+            JPanel panel = careerPanel(frame.getContentPane());
+            if (panel == null) return; // Wait for the squad screen; do not alter initial setup or dialogs.
+            var toolbarField = panel.getClass().getDeclaredField("ve");
+            toolbarField.setAccessible(true);
+            var optionsField = panel.getClass().getDeclaredField("HX");
+            optionsField.setAccessible(true);
+            JToolBar toolbar = (JToolBar) toolbarField.get(panel);
+            JButton options = (JButton) optionsField.get(panel);
+            if (toolbar == null || options == null || options.getParent() != toolbar) return;
+            JButton button = null;
+            for (Component component : toolbar.getComponents()) {
+                if (component instanceof JButton candidate && Boolean.TRUE.equals(candidate.getClientProperty("vbrasfoot.button"))) {
+                    button = candidate;
+                    break;
+                }
+            }
+            if (button == null) {
+                button = new JButton("vbrasfoot", options.getIcon());
+                button.putClientProperty("vbrasfoot.button", true);
+                button.setFont(options.getFont());
+                button.setForeground(options.getForeground());
+                button.setBackground(options.getBackground());
+                button.setBorder(options.getBorder());
+                button.setMargin(options.getMargin());
+                button.setOpaque(options.isOpaque());
+                button.setContentAreaFilled(options.isContentAreaFilled());
+                button.setFocusPainted(options.isFocusPainted());
+                button.setHorizontalTextPosition(options.getHorizontalTextPosition());
+                button.setVerticalTextPosition(options.getVerticalTextPosition());
+                button.setToolTipText("vbrasfoot — mods da carreira");
+                Dimension preferred = button.getPreferredSize();
+                Dimension size = new Dimension(Math.max(options.getPreferredSize().width, preferred.width),
+                        Math.max(options.getPreferredSize().height, preferred.height));
+                button.setPreferredSize(size);
+                button.setMinimumSize(size);
+                button.setMaximumSize(size);
+                JPopupMenu popup = new JPopupMenu();
+                button.putClientProperty("vbrasfoot.popup", popup);
+                JButton owner = button;
+                button.addActionListener(event -> popup.show(owner, 0, owner.getHeight()));
+                toolbar.add(button, toolbar.getComponentIndex(options));
+                logger.info("Menu vbrasfoot integrado na barra interna da carreira, ao lado de Opcoes.");
+            }
+            JPopupMenu menu = (JPopupMenu) button.getClientProperty("vbrasfoot.popup");
+            for (var entry : actions.entrySet()) {
+                String key = "vbrasfoot.action." + entry.getKey();
+                if (Boolean.TRUE.equals(menu.getClientProperty(key))) continue;
+                Action action = entry.getValue();
+                JMenuItem item = new JMenuItem(action.label());
+                item.addActionListener(event -> {
+                    try { action.callback().run(); }
+                    catch (RuntimeException failure) {
+                        logger.log(Level.WARNING, "Falha na acao " + entry.getKey(), failure);
+                        JOptionPane.showMessageDialog(frame, failure.getMessage(), "vbrasfoot", JOptionPane.ERROR_MESSAGE);
+                    }
+                });
+                menu.add(item);
+                menu.putClientProperty(key, true);
+            }
+            toolbar.revalidate();
+            toolbar.repaint();
+            frame.validate();
+        } catch (ReflectiveOperationException failure) {
+            logger.log(Level.SEVERE, "Menu incompativel com o runtime", failure);
+            timer.stop();
+        }
+    }
+
+    private static JPanel careerPanel(Container container) {
+        if (container instanceof JPanel panel && panel.getClass().getName().equals("a.eg")) return panel;
+        for (Component component : container.getComponents()) {
+            if (component instanceof Container child) {
+                JPanel found = careerPanel(child);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    @Override public void close() {
+        CareerBridge.onEdt(() -> { if (timer != null) timer.stop(); return null; });
+    }
+}
