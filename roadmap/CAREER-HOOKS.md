@@ -1,7 +1,8 @@
 # P4 — candidatos estaticos de hooks de carreira
 
 Este documento registra o **mapeamento estatico**. A entrega posterior de sonda
-opt-in e seus testes/limites estao em `CAREER-PROBE.md`; nao ha eventos publicos.
+ opt-in e seus testes/limites estao em `CAREER-PROBE.md`; observacoes publicas
+ limitadas posteriores estao em `CAREER-OBSERVATIONS.md`, nao eventos completos.
 Este inventario nao e corroboracao de runtime nem aceite de P4. A API continua bloqueada
 pelas evidencias/gates correspondentes; polling de tela nao substitui esses hooks.
 
@@ -124,6 +125,9 @@ Requer JDK 17+ e EXE local conhecido. Gera fingerprints e bytecode privado em
 Nenhuma rotina do jogo e executada; nao escreve em sav/options/recursos do jogo.
 
 ## Proxima entrega, antes de expor eventos
+
+Investigacao posterior de criacao/navegacao e roteiro de corroboracao em
+[LIFECYCLE-PATHS.md](LIFECYCLE-PATHS.md). Nenhum novo hook/evento habilitado.
 
 1. Completar cadeia dos callers e descarregamento, distinguindo carreira nova,
    troca e fallback (callers diretos identificados, sem corroboracao de runtime).

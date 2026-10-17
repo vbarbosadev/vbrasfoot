@@ -49,6 +49,8 @@ jobs:
           $sources = @(Get-ChildItem tools/hook-analysis -Filter '*.java' | ForEach-Object FullName)
           javac --release 17 -encoding UTF-8 -d build/hook-analysis @sources
           if ($LASTEXITCODE -ne 0) { throw 'Hook inventory compilation failed' }
+          java -cp build/hook-analysis FindCareerReferencesSelfTest
+          if ($LASTEXITCODE -ne 0) { throw 'Exact reference selector tests failed' }
       - name: Parse PowerShell scripts without executing game operations
         run: |
           $failures = @()
