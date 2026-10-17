@@ -86,6 +86,15 @@ public final class CareerHookRuntimeTest {
                 check(baseline.loaded(), "decoded career readable");
                 CareerBridge bridge = new CareerBridge(runtime);
                 var scoped = bridge.scopedClubs("", 0, 1);
+                var calendar = bridge.scopedCalendar();
+                check(calendar.scope().equals(scoped.scope()) && calendar.date().year() > 0 && calendar.date().month() >= 1 && calendar.date().month() <= 12, "original calendar scoped and valid");
+                Object primary = state.getField("SR").get(null);
+                check(calendar.dayIndex() == ((Number) CareerBridge.call(primary, "J")).intValue(), "calendar index matches original getter");
+                var calendarClone = (java.util.Calendar) ((java.util.Calendar) CareerBridge.call(primary, "bb")).clone();
+                check(calendar.date().equals(CalendarSnapshots.copy(calendarClone)), "calendar defensive view matches original clone");
+                var balance = bridge.scopedClubBalance(scoped.items().get(0).reference());
+                Object firstClub = ((java.util.List<?>) CareerBridge.call(primary, "P")).get(0);
+                check(balance.scope().equals(scoped.scope()) && balance.balance() == ((Number) CareerBridge.call(firstClub, "kb")).longValue(), "club balance matches original long getter");
                 var originalReference = scoped.items().get(0).reference();
                 check(bridge.scopedPlayers(originalReference, 0, 500).items().equals(bridge.playersAt(0, 0, 500).items()), "scoped player values agree with current legacy query");
                 check(scoped.scope().equals(bridge.scopedClubs("", 0, 1).scope()), "same roots keep query scope");
@@ -103,6 +112,9 @@ public final class CareerHookRuntimeTest {
                 boolean rejectedReference = false;
                 try { bridge.scopedPlayers(beforeReload, 0, 20); }
                 catch (br.vbrasfoot.api.GameQueryException expected) { rejectedReference = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE; }
+                boolean balanceRejected = false;
+                try { bridge.scopedClubBalance(beforeReload); } catch (br.vbrasfoot.api.GameQueryException expected) { balanceRejected = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE; }
+                check(balanceRejected, "old balance handle refused after original reload");
                 check(rejectedReference, "reference from previous decoded graph refused");
                 // Original save preconditions assign IDs. Compare values while allowing those original ID changes.
                 GameAccess.Snapshot restored = new CareerBridge(runtime).snapshot();
@@ -143,6 +155,9 @@ public final class CareerHookRuntimeTest {
                 try { bridge.scopedPlayers(beforeReset, 0, 20); }
                 catch (br.vbrasfoot.api.GameQueryException expected) { rejectedReference = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE; }
                 check(rejectedReference && !bridge.scopedClubs("", 0, 1).loaded(), "root reset invalidates prior query references");
+                boolean calendarRejected = false;
+                try { bridge.scopedCalendar(); } catch (br.vbrasfoot.api.GameQueryException expected) { calendarRejected = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.NO_CAREER; }
+                check(calendarRejected, "empty original reset has no calendar snapshot");
                 events.clear();
                 Object resetRoot = state.getField("SR").get(null);
                 CareerBridge.onEdt(() -> { state.getMethod("a", Class.forName("best.f", false, runtime)).invoke(null, resetRoot); return null; });

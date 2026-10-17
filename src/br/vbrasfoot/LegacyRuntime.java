@@ -102,6 +102,8 @@ final class LegacyRuntime extends URLClassLoader {
         }
         Class.forName("best.f", false, this).getMethod("P");
         Class.forName("best.f", false, this).getMethod("aN");
+        if (Class.forName("best.f", false, this).getMethod("bb").getReturnType() != java.util.Calendar.class
+                || Class.forName("best.f", false, this).getMethod("J").getReturnType() != int.class) throw new IOException("Calendario incompativel");
         Class.forName("best.n", false, this).getMethod("db");
         Class<?> careerPanel = Class.forName("a.eg", false, this);
         if (careerPanel.getDeclaredField("ve").getType() != javax.swing.JToolBar.class
@@ -110,6 +112,7 @@ final class LegacyRuntime extends URLClassLoader {
         }
         Class<?> club = Class.forName("best.ah", false, this);
         for (String method : List.of("getNome", "gD", "kc")) club.getMethod(method);
+        if (club.getMethod("kb").getReturnType() != long.class) throw new IOException("Saldo de clube incompativel");
         Class<?> player = Class.forName("best.F", false, this);
         for (String method : List.of("getNome", "gD", "getIdade", "getPosicao", "fi", "fk")) player.getMethod(method);
         Class.forName("com.esotericsoftware.kryo.Kryo", false, this);

@@ -153,6 +153,8 @@ final class ModLoader implements AutoCloseable {
                         public ScopedPlayerPage scopedPlayers(ClubRef club, int offset, int limit) {
                             require("game.read"); return game.scopedPlayers(club, offset, limit);
                         }
+                        public ScopedCalendar scopedCalendar() { require("game.read"); return game.scopedCalendar(); }
+                        public ScopedClubBalance scopedClubBalance(ClubRef club) { require("game.read"); return game.scopedClubBalance(club); }
                     };
                 }
                 public Logger logger() { return logger; }

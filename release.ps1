@@ -10,13 +10,14 @@ foreach ($name in @('install.ps1', 'uninstall.ps1', 'recover-update.ps1', 'launc
 }
 Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'app\LICENSE')
 [IO.Directory]::CreateDirectory((Join-Path $Output 'sdk')) | Out-Null
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.4.6.jar')
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.4.6.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.5.0.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.5.0.jar')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-QUICKSTART.md" -Destination (Join-Path $Output 'sdk\SDK-QUICKSTART.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-COMPATIBILITY.md" -Destination (Join-Path $Output 'sdk\SDK-COMPATIBILITY.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\QUERY-PERFORMANCE.md" -Destination (Join-Path $Output 'sdk\QUERY-PERFORMANCE.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-CONTRACT.md" -Destination (Join-Path $Output 'sdk\SDK-CONTRACT.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\AI-MOD-AUTHORING.md" -Destination (Join-Path $Output 'sdk\AI-MOD-AUTHORING.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CALENDAR-BALANCE.md" -Destination (Join-Path $Output 'sdk\CALENDAR-BALANCE.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SCOPED-QUERIES.md" -Destination (Join-Path $Output 'sdk\SCOPED-QUERIES.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CAREER-OBSERVATIONS.md" -Destination (Join-Path $Output 'sdk\CAREER-OBSERVATIONS.md')
 # This guide lives beside examples in SDK-only/docs, but beside their parent in portable/sdk.

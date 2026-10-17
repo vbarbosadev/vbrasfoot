@@ -1107,3 +1107,23 @@ nova sessao. 27 checks sinteticos aprovados; regressao46 I/O original aprovada
 em Temp/opencode/vbrasfoot-hook-io-261f504c1bce47c6a5dc6a9e564f260b.
 Logs build/creation-content-validation.log/creation-content-original-io.log privados.
 Conteudo do AB original ainda nao observado nesta versao; nao inferir retroativo.
+
+## SDK0.5.0 — calendario atual e saldo scoped
+
+Base apos #23 integrado2cfae93. APImajor1, defaults novos recusam implementacoes
+antigas; scopedCalendar/scopedClubBalance exigem game.read e capacidades/minimo
+documentados em CALENDAR-BALANCE.md. Calendar clone antes de get/getTime evita
+normalizacao do objeto vivo; GregorianAD/era valida, month1..12, origem/exibicao
+timezones explicitados. Saldo long inteiro inclusive negativos, unidades nao ISO.
+Nenhuma escrita/agenda/evento/identidade/selecionar humano primeiro silencioso.
+
+Mapeamento static liga bb/J/T ao JLabel da data e kb ao saldo/custo/debito/credito;
+relatorio/bytecode privado Temp/opencode/sdk-read-static-20261017, EXE conhecido.
+15 checks snapshots puros +61 context lifecycle (novos metodos revogados),
+demais suites aprovadas. **52 checks I/O original** aprovados na fixture privada
+Temp/opencode/vbrasfoot-hook-io-6f2998e1de634f84b8f79f670c8e0538: scope/data/indice
+e clone/saldo iguais ao original, stale balance apos reload, noCalendar apos reset.
+Log build/calendar-balance-original-io.log. Frame sintetico, nao confirmacao UI.
+Campos/in-place/multithread/locale/timezones e humanos selecionados amplos pendentes.
+Novas leituras nao desbloqueiam evento de dia nem P3/P4completo/P6. Nenhum save
+de usuario/EXE/arquivo de equipe alterado, sem publicacao/tag/release.

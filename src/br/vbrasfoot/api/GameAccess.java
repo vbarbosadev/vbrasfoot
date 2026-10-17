@@ -13,6 +13,26 @@ public interface GameAccess {
     default ScopedPlayerPage scopedPlayers(ClubRef club, int offset, int limit) {
         throw new UnsupportedOperationException("Consulta com escopo exige loader 0.3.0");
     }
+    /** Current calendar only, not a schedule/event stream. Requires loader 0.5.0 and game.read. */
+    default ScopedCalendar scopedCalendar() { throw new UnsupportedOperationException("Calendario atual exige loader 0.5.0"); }
+    /** Integer balance in unspecified game monetary units. No history or currency conversion. */
+    default ScopedClubBalance scopedClubBalance(ClubRef club) { throw new UnsupportedOperationException("Saldo do clube exige loader 0.5.0"); }
+    /** Copied Gregorian AD fields, month 1..12; displayedDate uses displayTimeZoneId. */
+    record CalendarDate(int year, int month, int day, String sourceTimeZoneId, String displayTimeZoneId, String displayedDate) {
+        public CalendarDate {
+            if (year < 1) throw new IllegalArgumentException("Gregorian AD year required");
+            java.time.LocalDate.of(year, month, day);
+            if (sourceTimeZoneId == null || sourceTimeZoneId.isBlank() || displayTimeZoneId == null || displayTimeZoneId.isBlank()) throw new IllegalArgumentException("Timezone IDs required");
+            java.util.Objects.requireNonNull(displayedDate);
+        }
+    }
+    /** dayIndex is the observed schedule-list index, not an identity or mutation revision. */
+    record ScopedCalendar(CareerScope scope, int dayIndex, CalendarDate date) {
+        public ScopedCalendar { java.util.Objects.requireNonNull(scope); java.util.Objects.requireNonNull(date); if (dayIndex < 0) throw new IllegalArgumentException("Invalid calendar index"); }
+    }
+    record ScopedClubBalance(CareerScope scope, ClubRef club, long balance) {
+        public ScopedClubBalance { java.util.Objects.requireNonNull(scope); java.util.Objects.requireNonNull(club); if (!scope.equals(club.scope())) throw new IllegalArgumentException("Scope mismatch"); }
+    }
     /** Query-session identity only. Not a persistent career ID or a gameplay mutation revision. */
     record CareerScope(String session, long generation) {
         public CareerScope { if (session == null || session.isBlank() || generation < 1) throw new IllegalArgumentException("Invalid query scope"); }

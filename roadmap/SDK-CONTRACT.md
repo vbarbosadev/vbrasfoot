@@ -1,7 +1,8 @@
-# SDK 0.4.6 — API major 1 (experimental)
+# SDK 0.5.0 — API major 1 (experimental)
 
 [Primeiro mod sem checkout](SDK-QUICKSTART.md) · [Compatibilidade](SDK-COMPATIBILITY.md).
 [Criacao assistida por IA e contrato JSON](AI-MOD-AUTHORING.md).
+[Calendario atual/saldo somente leitura](CALENDAR-BALANCE.md), loader0.5.0+.
 
 Contrato anterior preservado por compatibilidade. Novas consultas 0.3.0 em
 `SCOPED-QUERIES.md` adicionam handles com escopo; APIs por index abaixo continuam
@@ -41,7 +42,8 @@ Dependencias opcionais presentes tambem ordenam inicializacao e podem formar cic
 Dependencias sao IDs, nao ranges de versao de mods; nao compartilham classes privadas.
 
 Capacidades disponiveis: `game.read`, `ui.register`, `data.read`, `data.write`,
-`query.paged`, `query.scoped` e, somente com hooks opt-in, `events.career.observed`.
+`query.paged`, `query.scoped`, `query.calendar.current`, `query.club.balance` e,
+somente com hooks opt-in, `events.career.observed`.
 Permissoes sao as quatro primeiras mais `events.career.read`; capacidades de
 consulta nao concedem acesso sem `game.read`. Observacoes nao sao eventos completos,
 escrita de gameplay ou sandbox.
@@ -128,7 +130,8 @@ servicos entre mods; mantenha suas classes privadas isoladas.
 
 ## Ainda pendente de P2
 
-Leitura de calendario, competicoes, financas, historicos e partidas exige evidencias
-especificas do 22-23. Nao foi adicionada por suposicao. Identidade/geracao de carreira,
+Agenda completa, competicoes, historicos/operacoes financeiras e partidas exigem
+evidencias proprias; data atual/saldo delimitados estao em CALENDAR-BALANCE.md.
+Identidade/geracao de carreira,
 eventos completos e cancelamento de tarefas sao futuros; observacoes limitadas e
 politica de callback experimental documentadas em CAREER-OBSERVATIONS.md.
