@@ -12,6 +12,7 @@ public final class HookProbe {
     private static final AtomicReference<Consumer<Observation>> observer = new AtomicReference<>();
     private static final AtomicReference<CareerLifecycle> lifecycle = new AtomicReference<>();
     private static final AtomicLong sequence = new AtomicLong();
+    private static final CreationContentTracker creationContent = new CreationContentTracker();
     private static final ThreadLocal<ArrayDeque<Load>> loads = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Save>> saves = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Reset>> resets = ThreadLocal.withInitial(ArrayDeque::new);
@@ -34,6 +35,7 @@ public final class HookProbe {
 
     static AutoCloseable attach(Consumer<Observation> sink) {
         if (!observer.compareAndSet(null, sink)) throw new IllegalStateException("Uma sonda de carreira ja esta ativa nesta JVM");
+        creationContent.reset();
         return () -> observer.compareAndSet(sink, null);
     }
     static AutoCloseable attachLifecycle(CareerLifecycle state) {
@@ -63,13 +65,30 @@ public final class HookProbe {
                 Thread.currentThread().getName(), sequence.incrementAndGet()));
     }
     public static void creationPathStarted(String label) {
+        creationPathStarted(label, null, null);
+    }
+    private static long generation() { CareerLifecycle.Ticket value = ticket(); return value == null ? -1 : value.generation(); }
+    static java.util.List<CreationContentTracker.Report> creationContent() { return creationContent.snapshot(); }
+    public static void creationPathStarted(String label, Object primary, Object secondary) {
+        try { creationContent.enter(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
+                javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation()); } catch (Throwable ignored) { }
         try { emit("creation-candidate-start", label, false, false, false, false, false); } catch (Throwable ignored) { }
     }
     public static void creationPathReturned(String label) {
+        creationPathReturned(label, null, null);
+    }
+    public static void creationPathReturned(String label, Object primary, Object secondary) {
+        try { creationContent.finish(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
+                javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation(), true); } catch (Throwable ignored) { }
         // Return of a UI candidate is not proof that creation finished; do not touch the lifecycle guard.
         try { emit("creation-candidate-return", label, false, false, true, false, false); } catch (Throwable ignored) { }
     }
     public static void creationPathFailed(String label) {
+        creationPathFailed(label, null, null);
+    }
+    public static void creationPathFailed(String label, Object primary, Object secondary) {
+        try { creationContent.finish(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
+                javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation(), false); } catch (Throwable ignored) { }
         try { emit("creation-candidate-failed", label, false, false, false, false, true); } catch (Throwable ignored) { }
     }
     public static void enterLoad(String name, boolean backup) {

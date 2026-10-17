@@ -27,9 +27,12 @@ public final class CreationPathTransformer {
         String actual = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(original));
         if (!expected.equals(actual)) throw new IOException("Fingerprint do candidato incompativel: " + name);
         if (!new ClassReader(original).getClassName().equals(name.replace('.', '/'))) throw new IOException("Identidade de classe divergente");
-        return transformFixture(original, methods);
+        return transformFixture(original, methods, true);
     }
     static byte[] transformFixture(byte[] original, Map<String, Integer> selected) throws IOException {
+        return transformFixture(original, selected, false);
+    }
+    private static byte[] transformFixture(byte[] original, Map<String, Integer> selected, boolean captureRoots) throws IOException {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         Map<String, Integer> found = new HashMap<>(), returns = new HashMap<>();
@@ -44,7 +47,11 @@ public final class CreationPathTransformer {
                     final Label start = new Label(), end = new Label(), handler = new Label();
                     void marker(String called) {
                         super.visitLdcInsn(label);
-                        super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, called, "(Ljava/lang/String;)V", false);
+                        if (captureRoots) {
+                            super.visitFieldInsn(Opcodes.GETSTATIC, "c/a", "SR", "Lbest/f;");
+                            super.visitFieldInsn(Opcodes.GETSTATIC, "c/a", "afQ", "Lbest/ay;");
+                        } else { super.visitInsn(Opcodes.ACONST_NULL); super.visitInsn(Opcodes.ACONST_NULL); }
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, called, "(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V", false);
                     }
                     @Override public void visitCode() {
                         super.visitCode(); marker("creationPathStarted"); super.visitLabel(start);

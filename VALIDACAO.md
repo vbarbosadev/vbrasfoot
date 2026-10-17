@@ -1090,3 +1090,20 @@ Temp/opencode/vbrasfoot-sdk-author-b589ede13b1c46fa8b915dd434edf179.
 Novo installer exige loader existente, recusa links/JAR existente/sessao aberta,
 valida mod sem init, usa runtime.lock/staging e nao escreve configuracao/saves.
 Sem instalar por padrao nos mods do pacote e sem release/tag/upload.
+
+## P4 — confirmacao humana e conteudo do candidato
+
+Usuario confirmou comparador e criacao. Sessoes privadas07f45482 e3199941c na copia
+Documents corroboram comparador ACTIVE/load teste02 e AB start/return na EDT +
+save teste04, respectivamente. Guard UNKNOWN/unboundSaves1 permaneceu na criacao;
+nenhuma prova de cancelamento/amistoso/troca ou reabertura original de teste04.
+
+Novo CreationContentTracker: labels3/stack8, weak refs, contagens antes/depois,
+geracao/identidade raiz/lista e outcome da ultima tentativa pareada. Nao promove
+guard/eventos, nao registra nomes/dados de jogadores; getters somente na EDT e
+metadados copiados no shutdown sem entrar na EDT. Sem grafos/Throwable/classes
+retidos no Report. Overflow abandona pareamento e sessoes antigas nao alimentam
+nova sessao. 27 checks sinteticos aprovados; regressao46 I/O original aprovada
+em Temp/opencode/vbrasfoot-hook-io-261f504c1bce47c6a5dc6a9e564f260b.
+Logs build/creation-content-validation.log/creation-content-original-io.log privados.
+Conteudo do AB original ainda nao observado nesta versao; nao inferir retroativo.

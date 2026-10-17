@@ -140,3 +140,19 @@ no-completed, sink falho, shape/calls) e tres checks que guard UNKNOWN nao muda.
 I/O original com esses candidatos ligados sem inicializar UI: 46 checks,
 incluindo shape original/transformado de a.bV/a.cR. Nao executa AB/AC/pn originais
 nem prova pronta; nova rodada guiada curta deve corroborar esses limites.
+
+## Rodada humana da sonda/comparador e conteudo ainda nao capturado
+
+Usuario confirmou comparador e nova criacao OK. Sessao
+session-07f45482-107e-4b84-a9cd-8515a0411fd9 mostra comparador ACTIVE e load teste02.
+Sessao session-3199941c-a866-42a1-88ba-986f49149609 mostra roots-reset, AB start/
+return na EDT e escrita teste04 completa/backup em Thread-1. Guard UNKNOWN,
+loads0/saves0/unboundSaves1, healthy=true, nenhuma tentativa pendente ao fechar.
+Apesar do roteiro nao exigir save, houve gravacao observada; nao inferir reabertura
+de teste04 no EXE original ou escolha de amistoso nao relatada.
+
+Conteudo antes/depois nao estava nos logs daquela versao; nao retroativamente
+inventar identidade/contagens. Nova sonda captura metadados de conteudo/raizes/
+listas na EDT, com weak refs e tres reports primitivos, nunca CareerLoaded/ACTIVE.
+Reporte em creation-candidates.properties exige futura observacao original; tests
+de conteudo sintetico e shape/I/O nao substituem esse gate.

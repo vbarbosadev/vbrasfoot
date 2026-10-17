@@ -617,3 +617,12 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   por allowlist e compila tres projetos fora do checkout, sem instalar mod por padrao.
 - Proximo gate humano: consultar dois jogadores na copia de teste e corroborar
   fronteiras candidatas da criacao com sonda. P3/P6 nao liberados por exemplo de leitura.
+
+### P4 — rodada confirmada e metadados de conteudo
+
+- Usuario confirmou comparador/criacao; logs mostram AB start/return e save teste04,
+  mas guard UNKNOWN/unbound1. Sem inferir torneio/cancelamento/reabertura original.
+- Sonda captura conteudo/weak identities/geracao antes/depois somente na EDT,
+  metadados finais bounded3labels/stack8. Pareamento rejeitado em overflow/session
+  antiga; nenhum grafo/classe/Throwable retido no report e nenhum evento promovido.
+- P3 e eventos completos dependem de corroborar conclusao, nao apenas ter listas.
