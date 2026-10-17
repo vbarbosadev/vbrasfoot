@@ -31,7 +31,7 @@ record ModManifest(Path jar, String id, String name, String version, String main
         if (!values.getProperty("manifestVersion", "1").equals("1")) throw new IOException("manifestVersion nao suportada: " + id);
         String minimum = values.getProperty("minLoaderVersion", "0.1.0");
         if (compareVersions(minimum, br.vbrasfoot.api.Sdk.VERSION) > 0) throw new IOException("Atualize o loader para " + minimum + ": " + id);
-        Set<String> capabilities = Set.of("game.read", "ui.register", "data.read", "data.write", "query.paged");
+        Set<String> capabilities = Set.of("game.read", "ui.register", "data.read", "data.write", "query.paged", "query.scoped");
         if (!capabilities.containsAll(split(values.getProperty("requiredCapabilities", "")))) throw new IOException("Capacidade indisponivel: " + id);
         if (!id.matches("[a-z0-9]+(?:[.-][a-z0-9]+)*")) throw new IOException("ID de mod invalido: " + id);
         String api = required(values, "apiVersion");

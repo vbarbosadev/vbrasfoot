@@ -19,10 +19,26 @@ public final class UiSmokeTest {
     public static void main(String[] args) throws Exception {
         Path game = Path.of(args[0]).toRealPath(), home = Path.of(args[1]).toRealPath();
         AtomicInteger reads = new AtomicInteger();
-        GameAccess access = () -> {
+        java.util.concurrent.atomic.AtomicBoolean stale = new java.util.concurrent.atomic.AtomicBoolean();
+        GameAccess legacyFixture = () -> {
             reads.incrementAndGet();
             return new GameAccess.Snapshot(true, List.of(new GameAccess.Club(10, "Clube de teste", true,
                     List.of(new GameAccess.Player(20, "Jogador de teste", 22, 4, 50, 100000)))));
+        };
+        var scope = new GameAccess.CareerScope("ui-fixture", 1);
+        var reference = new GameAccess.ClubRef(scope, "club-10");
+        GameAccess access = new GameAccess() {
+            public Snapshot snapshot() { return legacyFixture.snapshot(); }
+            public ScopedClubPage scopedClubs(String filter, int offset, int limit) {
+                var page = legacyFixture.clubs(filter, offset, limit);
+                return new ScopedClubPage(page.loaded(), scope, page.items().stream().map(c -> new ClubView(reference, c)).toList(), offset, page.total());
+            }
+            public ScopedPlayerPage scopedPlayers(ClubRef club, int offset, int limit) {
+                if (stale.get()) throw new br.vbrasfoot.api.GameQueryException(br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE, "fixture stale scope");
+                if (!reference.equals(club)) throw new AssertionError("Wrong club scope");
+                var page = legacyFixture.playersAt(0, offset, limit);
+                return new ScopedPlayerPage(scope, page.items(), offset, page.total());
+            }
         };
         Logger logger = Logger.getLogger("vbrasfoot.test");
         try (LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home);
@@ -102,11 +118,38 @@ public final class UiSmokeTest {
                     }
                 }
                 if (!found) throw new AssertionError("Inspetor nao abriu tabela");
+                for (Window window : Window.getWindows()) {
+                    if (!(window instanceof JDialog dialog) || !dialog.getTitle().contains("Inspetor")) continue;
+                    var combo = find(dialog.getContentPane(), javax.swing.JComboBox.class);
+                    var table = find(dialog.getContentPane(), JTable.class);
+                    stale.set(true);
+                    combo.setSelectedIndex(-1);
+                    combo.setSelectedIndex(0);
+                    if (table.getRowCount() != 0) throw new AssertionError("Inspetor manteve dados apos referencia obsoleta");
+                    boolean message = false;
+                    for (var component : dialog.getContentPane().getComponents()) {
+                        if (component instanceof javax.swing.JLabel label && label.getText().contains("STALE_SCOPE")) message = true;
+                    }
+                    if (!message) throw new AssertionError("Inspetor nao pediu Atualizar apos scope obsoleto");
+                    stale.set(false);
+                    combo.setSelectedIndex(-1);
+                    combo.setSelectedIndex(0);
+                    if (table.getRowCount() != 1) throw new AssertionError("Consulta nao retomou apos referencia valida");
+                }
                 return null;
             });
             System.out.println("PASS: janela db() correta, botao interno junto a Opcoes, nenhum menu externo, acoes sem duplicacao, inspetor somente de leitura.");
         } finally {
             CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; });
         }
+    }
+    private static <T> T find(java.awt.Container root, Class<T> type) {
+        for (var component : root.getComponents()) {
+            if (type.isInstance(component)) return type.cast(component);
+            if (component instanceof java.awt.Container child) {
+                T value = find(child, type); if (value != null) return value;
+            }
+        }
+        return null;
     }
 }

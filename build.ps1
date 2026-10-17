@@ -31,6 +31,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes da sonda falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ProbeDispatcherSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da fila da sonda falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.QueryScopesSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de escopo de consulta falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.HookTransformerSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de bytecode sintetico falharam' }
     Write-Host 'Build e testes concluidos. Execute .\run.ps1 --validate-only'

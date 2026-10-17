@@ -6,6 +6,31 @@ import java.util.List;
 public interface GameAccess {
     Snapshot snapshot();
 
+    /** Added in loader 0.3.0. Default deliberately refuses to fabricate scoped guarantees. */
+    default ScopedClubPage scopedClubs(String filter, int offset, int limit) {
+        throw new UnsupportedOperationException("Consulta com escopo exige loader 0.3.0");
+    }
+    default ScopedPlayerPage scopedPlayers(ClubRef club, int offset, int limit) {
+        throw new UnsupportedOperationException("Consulta com escopo exige loader 0.3.0");
+    }
+    /** Query-session identity only. Not a persistent career ID or a gameplay mutation revision. */
+    record CareerScope(String session, long generation) {
+        public CareerScope { if (session == null || session.isBlank() || generation < 1) throw new IllegalArgumentException("Invalid query scope"); }
+    }
+    /** Opaque, bounded-lifetime handle issued by a scoped club query. Never persist to a sidecar. */
+    record ClubRef(CareerScope scope, String token) {
+        public ClubRef { java.util.Objects.requireNonNull(scope); if (token == null || token.isBlank()) throw new IllegalArgumentException("Invalid club reference"); }
+    }
+    record ClubView(ClubRef reference, ClubSummary club) {
+        public ClubView { java.util.Objects.requireNonNull(reference); java.util.Objects.requireNonNull(club); }
+    }
+    record ScopedClubPage(boolean loaded, CareerScope scope, List<ClubView> items, int offset, int total) {
+        public ScopedClubPage { java.util.Objects.requireNonNull(scope); items = List.copyOf(items); }
+    }
+    record ScopedPlayerPage(CareerScope scope, List<Player> items, int offset, int total) {
+        public ScopedPlayerPage { java.util.Objects.requireNonNull(scope); items = List.copyOf(items); }
+    }
+
     /** Bounded club query; override to avoid constructing a complete snapshot. */
     default ClubPage clubs(String filter, int offset, int limit) {
         validatePage(offset, limit);
