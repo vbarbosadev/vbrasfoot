@@ -616,3 +616,16 @@ testado em processos novos: normal --validate-only recusou capacidade sem flag
 privados `build/observations-{normal-refused,probe-validation,safe-validation}.log`.
 Esses comandos nao inicializam jogo/mods. Loader 0.4.0 instalado somente na copia
 completa, preservando mods existentes; observador nao instalado ali automaticamente.
+
+### Confirmacao guiada de abertura/consulta com 0.4.0
+
+Usuario confirmou abrir/consultar sem erro; nao testou outra carreira porque nao
+possui segundo save e nao encontrou botao para troca na tela usada. Isso nao prova
+ausencia de caminho de troca em todo o jogo nem fornece endpoint CareerUnloaded.
+Sessao privada `session-87421f49-5020-4596-8d2b-b00aaf60ae89`: hooks opt-in, mods
+consulta/inspetor ACTIVE, menu integrado, uma leitura completa de Flamengo na EDT,
+stderr vazio na inspecao. Mod observador nao instalado nessa copia: nao chamar
+esta confirmacao de teste real de callback do exemplo SDK 0.4.0.
+Processo Java PID 2436 ainda observado ativo; sem termination/report final nessa
+leitura. Nao afirmar fechamento, save, criacao ou troca. Hashes EXE/saves da origem
+e save corrente da copia novamente identicos aos anteriores.
