@@ -490,3 +490,65 @@ aprovada sem hooks. EXE/saves da origem e save atual da copia permaneceram nos
 hashes anteriores. UI real 0.3.0 ainda requer confirmacao; nao foi iniciada neste passo.
 Revisao final do pacote (tratamento tipado de listas alteradas) gerada em
 `dist/portable-0.3.0-scoped-reviewed`, instalada na mesma copia e validada sem hooks.
+
+### Confirmacao do inspetor 0.3.0 na UI real
+
+Usuario confirmou carregar Flamengo e consultar jogadores com o inspetor 0.3.0,
+sem erro relatado. Sessao `session-b0a6492f-1316-403a-8fc2-431cf3d9b4db`
+conferida: mod 0.3.0 ativo, menu integrado, `careerHookProbe=false`, stderr vazio
+na leitura. EXE/saves da origem e save corrente da copia mantem hashes anteriores.
+Nao houve pedido de avancar/salvar; esta confirmacao nao testa troca de carreira,
+invalidation na UI real ou todos os gates de P2/P4.
+
+## Template independente e validador individual — 0.3.1
+
+PR #4 foi aceito na branch da sonda, nao main. Incremento scoped aprovado foi
+reaplicado sem alteracoes na nova branch `feat/mod-template-readonly` baseada na
+main apos #3. Este passo leva scopes + template ao proximo PR para main.
+
+- Template em `templates/read-only-mod`, com fontes, manifesto minimo, testes,
+  build apenas contra SDK, instalacao com preview/lock sem overwrite e licenca MIT.
+- `--validate-mod JAR`: independente do jogo/home; le manifesto e liga/verifica
+  mainClass publica/concreta/construtor sem inicializar mod. Nao prova seguranca,
+  comportamento ou conjunto de dependencias. `--validate-only` continua validando
+  conjunto instalado/perfil separado.
+- Teste em JVM filha propria usa mod com inicializador/constructor que falhariam
+  se executados; validacao passou sem jogo e sem criar home/cache/logs.
+- Loader/SDK 0.3.1 para distinguir o novo comando da versao 0.3.0; API major 1
+  preservada. Template exige loader minimo 0.3.1, somente game.read/ui.register.
+- Pacote inclui JAR publico, Javadocs gerados e template por allowlist de fontes;
+  build/dist/lib de desenvolvimento nunca entram na distribuicao do template.
+
+Executado Windows/Java 21:
+
+- **75 gerais, 13 tracking, 11 dispatcher, 16 scope, 13 bytecode sintetico**
+  aprovados, mais **7 testes independentes do template**. Template compila/testa
+  com somente API e suas proprias classes, sem jogo/loader no classpath.
+- `test.ps1 -IncludeUi`: suites e inspetor sintetico aprovados.
+- `release.ps1 -Output dist/portable-0.3.1-template`: Javadocs/pacote gerados.
+- `test-mod-template.ps1`: projeto copiado para fora do checkout, compilado,
+  testado, empacotado, validado individualmente, instalado/validado na fixture.
+  Preview nao escreve; lock ativo e JAR existente recusados; EXE intacto.
+  Fixture privada: `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-author-template-941e605dfb06426d91429ec651ade32d`.
+- Regressao portable aprovada; log `build/portable-0.3.1-template.log`, fixture
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-641a605ee47c4111bdcb729fe9f1a524`.
+
+Nao e teste independente feito por terceiro humano nem UI real do mod novo;
+template nao oferece eventos/persistencia por carreira/gameplay. P5 permanece
+parcial, apesar de fluxo automatizado independente aprovado.
+
+Revisao final `dist/portable-0.3.1-author-final`: relatorio individual e do conjunto
+inclui dependencias/opcionais/conflitos/capacidades/permissoes; manifestos retêm
+capacidades requeridas. Testes gerais agora 75, template 7, demais suites mantidas.
+Projeto independente final em `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-author-template-1e9ede77253d47eaa9b070fdc24d2bc8`;
+log `build/template-final.log`. Javadocs tambem sao validados no CI Java 17/21.
+
+Pacote anterior da mesma entrega (`portable-0.3.1-template-reviewed`) instalado
+somente na copia completa existente e JAR do novo mod copiado pelo instalador do
+template; conjunto com **inspetor + mod de consulta** passou em --validate-only.
+Nao inicializou a interface/mods nesse comando. Report do template usa textarea
+com scroll/tamanho limitado para nao abrir dezenas de linhas fora da tela.
+UI real do novo mod e usabilidade por autor terceiro ainda precisam de confirmacao.
+Loader final 0.3.1 tambem instalado na copia; conjunto com os dois JARs validado
+com relatorio de capacidades/dependencias. EXE/saves da origem e save da copia
+novamente conferidos, sem mudancas pelos comandos de build/instalacao/validacao.

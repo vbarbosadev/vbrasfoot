@@ -185,9 +185,9 @@ Prioridade: alta. Dependencias: P0 e P2.
 Prioridade: alta para abrir a plataforma. Dependencias: P1 a P4 para o MVP completo.
 
 - [ ] Publicar SDK versionado, Javadocs, guia de compatibilidade e especificacao do manifesto.
-- [ ] Criar template com compilacao simples, manifesto, testes, empacotamento e instalacao na pasta escolhida do jogo.
+- [x] Criar template com compilacao simples, manifesto, testes, empacotamento e instalacao na pasta escolhida do jogo. (Starter leitura/interface; nao inclui eventos ou carreira.)
 - [ ] Entregar exemplos: consulta/interface; historico por carreira; reacao a uma partida finalizada. Exemplos devem declarar somente as permissoes utilizadas.
-- [ ] Criar comando de validacao que nao inicialize codigo de mods, com relatorio de dependencias, capacidades e erros.
+- [x] Criar comando de validacao que nao inicialize codigo de mods, com relatorio de dependencias, capacidades e erros. (--validate-mod individual + --validate-only conjunto; nao e auditoria/sandbox.)
 - [ ] Adicionar painel interno de mods: ID, versao, permissoes, estado, falhas recentes e local dos logs.
 - [ ] Implementar habilitar/desabilitar para a proxima inicializacao. Hot reload nao faz parte do primeiro release; so oferecer se lifecycle e descarregamento forem comprovados.
 - [ ] Fornecer exportacao de diagnostico revisavel pelo usuario, sem enviar automaticamente saves ou dados privados.
@@ -375,3 +375,17 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   anteriores. Leitura normal/offline e Swing testados; detalhes SCOPED-QUERIES.md.
 - Limites concorrentes/in-place declarados. Nao fecha identidade P3, lifecycle P4
   ou comandos P6. PR empilhado sobre a sonda enquanto PR #3 estiver aberto.
+
+### P5 — starter de leitura/interface (0.3.1)
+
+- Inspetor 0.3.0 confirmado pelo usuario na UI; logs e hashes conferidos. Sem
+  inferir teste real de troca/invalidation a partir disso.
+- PR #4 integrado na branch da sonda; scoped reaplicado na nova branch baseada
+  em main para incluir as mudancas aprovadas no proximo PR principal.
+- Template independente com build/testes/JAR/manifesto minimo/instalacao com
+  preview/lock/recusa de overwrite, compilado somente contra SDK publico.
+- SDK 0.3.1 empacotado com Javadocs e template de fontes por allowlist. Validador
+  individual --validate-mod sem jogo e sem inicializacao de codigo, testado.
+- Teste automatizado fora do checkout aprovado, mas usabilidade por terceiro,
+  eventos/carreira, painel, habilitar/desabilitar e exportacao diagnostica ainda
+  pendentes. Starter nao equivale ao MVP completo nem ao aceite integral de P5.

@@ -25,6 +25,7 @@ public final class Main {
     static void run(String[] args) throws Exception {
         Options options = Options.parse(args);
         if (options.help) { help(); return; }
+        if (options.validateMod != null) { ModValidator.inspect(options.validateMod); return; }
         InstallPaths paths = InstallPaths.resolve(options.game, options.home);
         Path game = paths.gameRoot(), home = paths.installRoot();
         if (Files.exists(home.resolve(".update-pending"))) {
@@ -48,7 +49,12 @@ public final class Main {
         System.out.println("vbrasfoot " + br.vbrasfoot.api.Sdk.VERSION + " | " + Profile.ID + " | SHA-256 " + Profile.SHA256);
         // Safe mode and offline save checks deliberately ignore even malformed mod JARs.
         List<ModManifest> manifests = options.safe || options.checkSave != null ? List.of() : ModLoader.discover(home.resolve("mods"));
-        for (ModManifest manifest : manifests) System.out.println("Mod: " + manifest.id() + " " + manifest.version());
+        for (ModManifest manifest : manifests) {
+            System.out.println("Mod: " + manifest.id() + " " + manifest.version());
+            if (options.validate || options.list) System.out.println("  dependencias=" + manifest.dependencies()
+                    + " opcionais=" + manifest.optionalDependencies() + " conflitos=" + manifest.conflicts()
+                    + " capacidades=" + manifest.requiredCapabilities() + " permissoes=" + manifest.permissions());
+        }
         if (options.list) return;
         try (FileChannel lockChannel = FileChannel.open(home.resolve(".runtime.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
              FileLock lock = lockChannel.tryLock()) {
@@ -92,9 +98,7 @@ public final class Main {
 
     private static void validateMods(List<ModManifest> manifests) throws Exception {
         for (ModManifest manifest : manifests) {
-            try (var loader = new java.net.URLClassLoader(new java.net.URL[] {manifest.jar().toUri().toURL()}, Main.class.getClassLoader())) {
-                Class.forName(manifest.mainClass(), false, loader).asSubclass(br.vbrasfoot.api.Mod.class).getConstructor();
-            }
+            ModValidator.validateClass(manifest);
         }
     }
 
@@ -145,11 +149,12 @@ public final class Main {
         System.out.println("--validate-only nao inicia o jogo nem inicializa mods; --safe-mode ignora todos os mods.");
         System.out.println("--check-save verifica uma copia privada com o Kryo original; nao inicia a interface do jogo.");
         System.out.println("--probe-career-hooks: sonda experimental opt-in de carregar/salvar (nao habilita eventos de mods).");
+        System.out.println("--validate-mod JAR: valida manifesto/mainClass sem inicializar codigo; nao precisa do jogo nem grava cache/logs.");
         System.out.println("Avancado: --home PASTA --game-dir PASTA; apos --, argumentos do jogo.");
     }
 
     static final class Options {
-        Path home = Path.of("vbrasfoot"), game = Path.of("Brasfoot22-23"), checkSave;
+        Path home = Path.of("vbrasfoot"), game = Path.of("Brasfoot22-23"), checkSave, validateMod;
         boolean validate, list, safe, help, probe;
         List<String> gameArguments = new ArrayList<>();
         static Options parse(String[] args) {
@@ -160,6 +165,7 @@ public final class Main {
                     case "--home" -> result.home = Path.of(value(args, ++i));
                     case "--game-dir" -> result.game = Path.of(value(args, ++i));
                     case "--check-save" -> { result.checkSave = Path.of(value(args, ++i)); modes++; }
+                    case "--validate-mod" -> { result.validateMod = Path.of(value(args, ++i)); modes++; }
                     case "--validate-only" -> { result.validate = true; modes++; }
                     case "--list-mods" -> { result.list = true; modes++; }
                     case "--safe-mode" -> result.safe = true;
@@ -171,6 +177,7 @@ public final class Main {
             }
             if (modes > 1) throw new IllegalArgumentException("Escolha somente um modo de verificacao/listagem");
             if (result.probe && (result.safe || result.list || result.checkSave != null)) throw new IllegalArgumentException("Sonda nao combina com modo seguro, listagem ou verificacao offline");
+            if (result.validateMod != null && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Validacao individual de mod nao aceita modo seguro/sonda/argumentos do jogo");
             return result;
         }
         private static String value(String[] args, int index) {
