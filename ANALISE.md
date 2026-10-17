@@ -37,4 +37,21 @@ Conceitos reaproveitados do kit local: launcher separado, classloader legado, ma
 
 ## Limites
 
+## Incremento estatico de lifecycle/diagnostico — 17/10/2026
+
+Inventario reproduzivel em `inspect-career-hooks.ps1`; identidade e fingerprints
+em `roadmap/CAREER-HOOKS.md`. Candidatos de carregar/salvar nao foram instrumentados.
+Callers diretos corroborados por javap, sem execucao desses metodos nesta analise.
+
+`best.h2.main` instala `components.ar` como DefaultUncaughtExceptionHandler.
+O bytecode de `components.ar.uncaughtException` escreve HTML por append em
+`erros.log` e depois chama `Throwable.printStackTrace()` (stderr). Assim, as
+excecoes que passam por esse handler chegam tambem ao stderr capturado pelo
+SessionDiagnostics durante a sessao. Isso nao incorpora automaticamente o arquivo
+legado inteiro/historico, nem mensagens escritas somente nele por outros caminhos.
+Parsing de argumentos/caminhos antes de abrir SessionDiagnostics e falhas de JVM
+anteriores ao main continuam fora do arquivo de sessao; sao limites pendentes.
+
+## Limites anteriores
+
 Ghidra nao estava configurado no servidor REA; nao houve decompilacao nativa profunda. O inventario PE nao estabelece comportamento Java. A assinatura dos getters nao comprova toda a semantica do jogo. Os resultados dos testes offline ficam em `verification/`; teste interativo de salvar/reabrir no executavel original deve ser registrado separadamente.

@@ -61,8 +61,9 @@ pessoal); push direto, force-push e exclusao continuam bloqueados.
 Prefira squash ou rebase ao integrar. Nao use force-push na `main`.
 
 O workflow `Build and unit tests` compila loader/SDK/exemplo e executa testes
-sinteticos no Windows com Temurin 17/21, sem jogo/saves. Checks obrigatorios na
-protecao da branch so devem ser adicionados apos a primeira execucao aprovada.
+sinteticos no Windows com Temurin 17/21, sem jogo/saves. Os checks `Windows / Java 17`
+e `Windows / Java 21` sao obrigatorios na main, vinculados ao GitHub Actions, com
+branch atualizada antes do merge. A excecao de revisao nao dispensa esses checks.
 Os comandos locais, resultados e gates reais devem constar no PR; CI nao aprova
 gameplay, interface real ou compatibilidade de saves. Nao declare testes executados
 apenas por existir um checklist preenchido.

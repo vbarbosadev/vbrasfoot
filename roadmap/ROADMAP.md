@@ -335,3 +335,5 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   resultado e descartado pela chamada externa. Retorno simples nao comprova evento.
 - Nenhum hook aplicado nem evento habilitado. Callers/descarregamento e execucao
   controlada ainda pendentes; esse mapeamento nao e aceite de P4 ou liberacao de P3.
+- CI da revisao e9ff212 aprovado com Actions v5 pinadas e Java 17/21; checks agora
+  obrigatorios na main, mantendo excecao somente de revisao para administrador.

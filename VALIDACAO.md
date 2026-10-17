@@ -328,3 +328,16 @@ Isso e somente evidencia estatica do artefato fornecido, nao observacao de execu
 Nenhuma transformacao aplicada, nenhum evento de carreira habilitado, nenhum
 schema/nome/campo do jogo alterado. Descarregamento e tecnica/runtime precisam
 de testes controlados antes de habilitar P3/P4; resultado nao fecha esses gates.
+
+Inspecao adicional: `best.h2` instala `components.ar`; seu handler de excecoes
+nao tratadas grava HTML em erros.log e imprime o mesmo Throwable no stderr.
+Portanto o caminho observado do handler chega a captura da sessao; nao se afirma
+consolidacao de todo o historico/mensagens exclusivas do arquivo legado nem captura
+de falhas da JVM/parsing anteriores ao diagnostico. Bytecode privado em
+`build/analysis/entrypoint-bytecode.txt` e `legacy-handler-bytecode.txt`.
+
+Revisao `e9ff212` com Actions v5 pinadas e compilacao do inventario de hooks:
+CI remoto **38997162116** (push) e **38997165762** (PR) aprovados, Windows/Temurin
+17 e 21. Os dois checks foram tornados obrigatorios na main (app GitHub Actions
+15368, strict/up-to-date); protecoes anteriores e excecao de review por PR mantidas.
+Nenhum PR integrado automaticamente. Revisoes seguintes tambem exigem checks.
