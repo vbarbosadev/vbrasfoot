@@ -3,6 +3,7 @@ package br.vbrasfoot.inspector;
 import br.vbrasfoot.api.GameAccess;
 import br.vbrasfoot.api.Mod;
 import br.vbrasfoot.api.ModContext;
+import br.vbrasfoot.api.GameQueryException;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Window;
@@ -26,7 +27,7 @@ public final class InspectorMod implements Mod {
     @Override public void initialize(ModContext context) {
         context.registerAction("inspect", "Consultar clubes e jogadores", () -> open(context.game()));
         context.registerAction("about", "Sobre o vbrasfoot", () -> JOptionPane.showMessageDialog(null,
-                "vbrasfoot 0.2.0 — Brasfoot 22-23\nConsulta somente de leitura.\nNenhum formato de save foi alterado."));
+                "vbrasfoot 0.3.0 — Brasfoot 22-23\nConsulta com escopo, somente de leitura.\nNenhum formato de save foi alterado."));
     }
 
     private void open(GameAccess game) {
@@ -57,15 +58,22 @@ public final class InspectorMod implements Mod {
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
         panel.add(status, BorderLayout.SOUTH);
         panel.setPreferredSize(new Dimension(800, 450));
-        final GameAccess.ClubPage[] current = {new GameAccess.ClubPage(false, java.util.List.of(), 0, 0)};
+        final GameAccess.ScopedClubPage[] current = {new GameAccess.ScopedClubPage(false,
+                new GameAccess.CareerScope("inspector-not-loaded", 1), java.util.List.of(), 0, 0)};
         final int[] offset = {0};
         clubs.addActionListener(event -> {
             model.setRowCount(0);
             int index = clubs.getSelectedIndex();
             if (index < 0 || index >= current[0].items().size()) return;
             String[] positions = {"Goleiro", "Lateral", "Zagueiro", "Meia", "Atacante"};
+            GameAccess.ScopedPlayerPage page;
+            try { page = game.scopedPlayers(current[0].items().get(index).reference(), 0, 500); }
+            catch (GameQueryException failure) {
+                status.setText(failure.reason() + ": " + failure.getMessage() + " — clique em Atualizar.");
+                return;
+            }
             // Bound each read and never materialize all players from the career.
-            for (GameAccess.Player player : game.playersAt(current[0].items().get(index).index(), 0, 500).items()) {
+            for (GameAccess.Player player : page.items()) {
                 String position = player.position() >= 0 && player.position() < positions.length
                         ? positions[player.position()] : Integer.toString(player.position());
                 model.addRow(new Object[] {player.id(), player.name(), player.age(), position, player.strength(),
@@ -74,8 +82,15 @@ public final class InspectorMod implements Mod {
         });
         Runnable reload = () -> {
             clubs.removeAllItems();
-            current[0] = game.clubs(filter.getText(), offset[0], 100);
-            for (GameAccess.ClubSummary club : current[0].items()) clubs.addItem(club.name() + (club.human() ? " (seu clube)" : ""));
+            try { current[0] = game.scopedClubs(filter.getText(), offset[0], 100); }
+            catch (GameQueryException failure) {
+                previous.setEnabled(false); next.setEnabled(false);
+                status.setText(failure.reason() + ": " + failure.getMessage() + " — clique em Atualizar.");
+                return;
+            }
+            for (GameAccess.ClubView view : current[0].items()) {
+                var club = view.club(); clubs.addItem(club.name() + (club.human() ? " (seu clube)" : ""));
+            }
             previous.setEnabled(offset[0] > 0);
             next.setEnabled(offset[0] + current[0].items().size() < current[0].total());
             status.setText(current[0].loaded() ? current[0].total() + " clubes; pagina " + (offset[0] / 100 + 1) + " — ate 500 jogadores do clube selecionado"

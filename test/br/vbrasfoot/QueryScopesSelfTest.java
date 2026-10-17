@@ -1,0 +1,56 @@
+package br.vbrasfoot;
+
+import br.vbrasfoot.api.GameAccess;
+import br.vbrasfoot.api.GameQueryException;
+import br.vbrasfoot.api.GameQueryException.Reason;
+import java.util.*;
+
+public final class QueryScopesSelfTest {
+    private static int checks;
+    private static void check(boolean condition, String label) { if (!condition) throw new AssertionError(label); checks++; }
+    private static void rejects(Runnable action, Reason reason) {
+        try { action.run(); } catch (GameQueryException failure) { check(failure.reason() == reason, "typed error " + reason); return; }
+        throw new AssertionError("Expected " + reason);
+    }
+    public static void main(String[] args) {
+        QueryScopes registry = new QueryScopes(2);
+        Object primary = new Object(), auxiliary = new Object(), first = new Object(), second = new Object();
+        List<Object> clubs = new ArrayList<>(List.of(first, second)), humans = new ArrayList<>(List.of(first));
+        var scope = registry.observe(primary, auxiliary, clubs, humans);
+        check(scope.equals(registry.observe(primary, auxiliary, clubs, humans)), "same graph stable scope");
+        var a = registry.issue(scope, 0, first);
+        var b = registry.issue(scope, 1, second);
+        check(registry.resolve(a, clubs) == 0 && registry.resolve(b, clubs) == 1, "same-ID clubs selected by opaque handles");
+        var c = registry.issue(scope, 0, first);
+        check(registry.retained() == 2, "bounded registry");
+        rejects(() -> registry.resolve(a, clubs), Reason.EXPIRED_REFERENCE);
+        Collections.swap(clubs, 0, 1);
+        rejects(() -> registry.resolve(c, clubs), Reason.CLUB_MOVED);
+        Collections.swap(clubs, 0, 1);
+        var old = registry.issue(scope, 0, first);
+        var next = registry.observe(new Object(), auxiliary, clubs, humans);
+        check(next.generation() > scope.generation(), "primary root replacement increments generation");
+        rejects(() -> registry.resolve(old, clubs), Reason.STALE_SCOPE);
+        var oldAux = registry.issue(next, 0, first);
+        var third = registry.observe(primary, new Object(), clubs, humans);
+        rejects(() -> registry.resolve(oldAux, clubs), Reason.STALE_SCOPE);
+        var previousList = registry.issue(third, 0, first);
+        registry.observe(primary, auxiliary, new ArrayList<>(clubs), humans);
+        rejects(() -> registry.resolve(previousList, clubs), Reason.STALE_SCOPE);
+        QueryScopes otherBridge = new QueryScopes(2);
+        otherBridge.observe(primary, auxiliary, clubs, humans);
+        rejects(() -> otherBridge.resolve(old, clubs), Reason.STALE_SCOPE);
+        var now = registry.observe(primary, auxiliary, clubs, humans);
+        rejects(() -> registry.resolve(new GameAccess.ClubRef(now, "forged-token"), clubs), Reason.EXPIRED_REFERENCE);
+        var beforeReset = registry.issue(now, 0, first);
+        registry.observe(null, null, null, null);
+        rejects(() -> registry.resolve(beforeReset, clubs), Reason.STALE_SCOPE);
+        rejects(() -> CareerBridge.onEdt(() -> { throw new GameQueryException(Reason.STATE_CHANGED, "fixture"); }), Reason.STATE_CHANGED);
+        rejects(() -> CareerBridge.scopedRead(() -> { throw new IndexOutOfBoundsException("fixture list shrink"); }), Reason.STATE_CHANGED);
+        rejects(() -> CareerBridge.scopedRead(() -> { throw new ConcurrentModificationException("fixture mutation"); }), Reason.STATE_CHANGED);
+        GameAccess oldApi = () -> new GameAccess.Snapshot(false, List.of());
+        try { oldApi.scopedClubs("", 0, 10); throw new AssertionError("unsupported scope fabricated"); }
+        catch (UnsupportedOperationException expected) { check(true, "old API does not invent scoped guarantees"); }
+        System.out.println("PASS: " + checks + " query scope tests (synthetic; no persistent career identity).");
+    }
+}

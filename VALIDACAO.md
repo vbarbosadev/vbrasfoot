@@ -448,3 +448,45 @@ Pacote `dist/portable-career-dispatch-20261017` gerado; matriz portable aprovada
 completa; `probe-delivery.properties` da validacao registrou workerAlive=false,
 sem aceites/drops/falhas (nenhuma operacao de jogo executada nessa validacao).
 EXE/saves da origem e save corrente da copia mantiveram seus hashes anteriores.
+
+## Proxima entrega P2 — consultas com escopo 0.3.0
+
+Branch `feat/career-scoped-queries`, baseada na branch do PR #3 (ainda aberto ao
+iniciar). Identidade somente da sessao/encarnacao observada; nao identifica save
+permanentemente nem exige hooks/dispatcher. API major 1 preservada; SDK/loader
+e inspetor 0.3.0. Capacidade query.scoped e loader minimo explicitamente declarados.
+
+Testes locais Java 21:
+
+- Suites anteriores: **69 gerais, 13 tracking, 11 dispatcher, 13 bytecode** aprovados.
+- **16 testes de escopo**: raizes/listas/bridge trocados, handles expirados/forjados,
+  clube movido, capacidade limitada, erro tipado atravessando EDT e default antigo
+  recusando consultas scoped sem fabricar garantias.
+  Erros de shrink/modificacao concorrente da lista traduzidos para STATE_CHANGED,
+  sem afirmar protecao contra toda mutacao in-place.
+- `test-career-hooks.ps1`: **30 checks** nos metodos originais, frame sintetico,
+  incluida recusa de handle anterior apos reload e roots-reset, valores scoped
+  iguais a consulta atual legada. Fixture privada:
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-hook-io-094cf9be5ded4fa39376adcc69830052`.
+- `test.ps1 -IncludeUi -Save ...`: aprovado. Inspetor 0.3.0 compilado apenas contra
+  SDK publico; UI sintetica mostra valores e esvazia tabela/pede Atualizar ao
+  receber erro STALE_SCOPE. Isso testa tratamento da UI, nao troca real de carreira.
+- Offline do save atual aprovado, 8.395 clubes / 193.831 jogadores, bytes iguais;
+  primeiro clube scoped igual e handle do grafo anterior recusado. Relatorio privado
+  `verification/save-16314565127216860410/report.properties`.
+
+Registro fraco/LRU nao segura grafos antigos; ate 4.096 handles. Escopo conferido
+nas leituras da EDT, nao por polling de tela ou diagnostico descartavel. Checks de
+identidade/tamanho nao sao lock nem snapshot transacional: mutacoes in-place,
+A->B->A entre observacoes e carga parcial podem escapar (SCOPED-QUERIES.md).
+Nenhum evento novo, persistencia por carreira, schema/save alterado ou escrita de
+gameplay foi introduzido. Gates de P0/P3/P4/P6 continuam explicitos.
+
+Pacote `dist/portable-0.3.0-scoped-20261017` gerado e regressao portable aprovada
+(`build/portable-0.3.0-scoped.log`); fixture privada
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-4998f0a1da974132a368bfaa511902fc`.
+Pacote e inspetor atualizados somente na copia completa isolada e validacao normal
+aprovada sem hooks. EXE/saves da origem e save atual da copia permaneceram nos
+hashes anteriores. UI real 0.3.0 ainda requer confirmacao; nao foi iniciada neste passo.
+Revisao final do pacote (tratamento tipado de listas alteradas) gerada em
+`dist/portable-0.3.0-scoped-reviewed`, instalada na mesma copia e validada sem hooks.
