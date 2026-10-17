@@ -1,6 +1,9 @@
 # Keep source and documentation consistent across Windows and other platforms.
 * text=auto
 *.java text eol=lf
+*.cs text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
 *.md text eol=lf
 *.ps1 text eol=lf
 *.properties text eol=lf

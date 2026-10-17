@@ -305,3 +305,26 @@ Log: `build/portable-gates-errors-20261017.log`. Build: 66 testes aprovados.
 P0/P1/P7 permanecem com cobertura incompleta de escalas, JVMs e falhas em todos os
 pontos. Os resultados acima fecham a investigacao delimitada da diferenca antiga
 e ampliam recuperacao; nao aprovam automaticamente todas as fases do roadmap.
+
+## Consolidacao publicada e CI remoto — 17/10/2026
+
+Incremento publicado em `feat/release-gates-hardening`, PR #2. Execucao remota
+GitHub Actions `38996623272`: Windows/Temurin 17 e 21 aprovados para build,
+66 testes sinteticos e parsing PowerShell. Sem jogo/saves ou upload privado.
+Isso confirma execucao sintetica nos dois JDKs, nao gameplay nos dois runtimes.
+Warnings de actions v4 obsoletas motivaram troca para v5 com SHA de commit
+resolvido no repositorio oficial; execucao dessa revisao deve ser conferida aparte.
+
+### P4 — inventario estatico inicial
+
+`inspect-career-hooks.ps1` aprovado: EXE conhecido, cinco membros candidatos com
+descriptor/Code/classe fingerprintados, artefato sintetico desconhecido recusado
+antes de publicar relatorio. Scanner percorreu 1.038 classes do ZIP principal e
+encontrou 11 referencias diretas selecionadas (quatro chamadas, sete putstatic).
+Callers e armadilhas em `roadmap/CAREER-HOOKS.md`; relatorios privados em
+`build/hook-analysis-e89d846f3cb54f2eb6fee66677841436/`.
+
+Isso e somente evidencia estatica do artefato fornecido, nao observacao de execucao.
+Nenhuma transformacao aplicada, nenhum evento de carreira habilitado, nenhum
+schema/nome/campo do jogo alterado. Descarregamento e tecnica/runtime precisam
+de testes controlados antes de habilitar P3/P4; resultado nao fecha esses gates.

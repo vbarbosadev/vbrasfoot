@@ -320,7 +320,18 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 
 - Workflow publico compila loader/SDK/inspetor e executa testes sinteticos no
   Windows com Temurin 17/21, sem jogo/saves e sem upload de artefatos privados.
-- Execucao local com Java 21: 66 testes e Swing aprovados. Resultados remotos
-  devem ser consultados antes de declarar matriz CI aprovada/ativar checks obrigatorios.
+- Execucao local com Java 21: 66 testes e Swing aprovados. CI remoto 38996623272
+  aprovado para Windows/Temurin 17 e 21 (sintetico); revisoes seguintes do workflow
+  devem ter seus checks conferidos antes de liberar o PR.
 - Este incremento consolida recuperacao, copia completa e evidencias guiadas;
   nao substitui gates ainda abertos nem implementa eventos por polling de tela.
+
+### P4 — inicio do mapeamento estatico (17/10/2026)
+
+- `inspect-career-hooks.ps1` le somente o EXE conhecido, gera fingerprints de
+  classe/Code/instrucoes e descriptors, recusando perfil sintetico desconhecido.
+- Candidatos de carregar/salvar e suas armadilhas documentados em CAREER-HOOKS.md:
+  salvar captura falhas e retorna void; carregar tem fallback recursivo cujo
+  resultado e descartado pela chamada externa. Retorno simples nao comprova evento.
+- Nenhum hook aplicado nem evento habilitado. Callers/descarregamento e execucao
+  controlada ainda pendentes; esse mapeamento nao e aceite de P4 ou liberacao de P3.
