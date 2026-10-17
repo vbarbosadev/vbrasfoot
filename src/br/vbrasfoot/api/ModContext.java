@@ -23,6 +23,10 @@ public interface ModContext {
     default AutoCloseable registerScopedAction(String id, String label, Runnable action) {
         throw new UnsupportedOperationException("Loader anterior a 0.2.0: use minLoaderVersion=0.2.0");
     }
+    /** Experimental embedded overlay in the career window; no original-screen injection. Requires ui.register and ui.panel.embedded. */
+    default AutoCloseable registerPanel(String id, String label, java.util.function.Function<UiTheme, ModPanel> factory) {
+        throw new UnsupportedOperationException("Painel integrado exige loader 0.6.0");
+    }
     byte[] readData(String file) throws java.io.IOException;
     void writeData(String file, byte[] bytes) throws java.io.IOException;
 }

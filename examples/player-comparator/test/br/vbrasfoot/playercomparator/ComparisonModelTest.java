@@ -143,6 +143,9 @@ public final class ComparisonModelTest {
             registered = true; action = callback;
             return () -> { closed = true; closeCount++; };
         }
+        @Override public AutoCloseable registerPanel(String id, String label, java.util.function.Function<br.vbrasfoot.api.UiTheme, br.vbrasfoot.api.ModPanel> factory) {
+            return () -> { };
+        }
         @Override public byte[] readData(String file) { throw new AssertionError("no persistence"); }
         @Override public void writeData(String file, byte[] data) { throw new AssertionError("no persistence"); }
     }

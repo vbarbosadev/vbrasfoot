@@ -1,8 +1,9 @@
-# SDK 0.5.0 — API major 1 (experimental)
+# SDK 0.6.0 — API major 1 (experimental)
 
 [Primeiro mod sem checkout](SDK-QUICKSTART.md) · [Compatibilidade](SDK-COMPATIBILITY.md).
 [Criacao assistida por IA e contrato JSON](AI-MOD-AUTHORING.md).
 [Calendario atual/saldo somente leitura](CALENDAR-BALANCE.md), loader0.5.0+.
+[Paineis dentro da janela do jogo](EMBEDDED-UI.md), loader0.6.0+.
 
 Contrato anterior preservado por compatibilidade. Novas consultas 0.3.0 em
 `SCOPED-QUERIES.md` adicionam handles com escopo; APIs por index abaixo continuam
@@ -42,7 +43,7 @@ Dependencias opcionais presentes tambem ordenam inicializacao e podem formar cic
 Dependencias sao IDs, nao ranges de versao de mods; nao compartilham classes privadas.
 
 Capacidades disponiveis: `game.read`, `ui.register`, `data.read`, `data.write`,
-`query.paged`, `query.scoped`, `query.calendar.current`, `query.club.balance` e,
+`ui.panel.embedded`, `query.paged`, `query.scoped`, `query.calendar.current`, `query.club.balance` e,
 somente com hooks opt-in, `events.career.observed`.
 Permissoes sao as quatro primeiras mais `events.career.read`; capacidades de
 consulta nao concedem acesso sem `game.read`. Observacoes nao sao eventos completos,

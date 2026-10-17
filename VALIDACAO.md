@@ -1163,3 +1163,32 @@ calendar e indice/contagens capturados somenteEDT, indisponibilidade declarada.
 33 testes content,12 bytecode candidate e52 I/O original aprovados (fixtureframe
 sintetico, nao execucao AB/AC/pn original). Log local creation-steps-original.log.
 Confirmacao das etapas originais e caminhos alternativos pendente; P3 segue gate.
+
+## Etapas reais e prototipo UI integrado0.6.0
+
+Report privado session-7398aa1c-1ff1-4144-95c0-887fbb74b07f mostra AB etapas4:
+beforeaz indice1/data02jan2022, afteraz4/05jan, beforeV4/05jan, afterV22/23jan,
+geracao4 e4153clubes/1humano estaveis. Calendario disponivel; AC/pn nao observados.
+Usuario confirma tudo bateu. Nao chamar esses avancos internos DayAdvanced/ready
+commit; cancels/variantes ainda nao corroborados e guard conservador.
+
+SDK0.6.0/APImajor1 introduz UI own ModPanel/UiTheme/registerPanel com capacidade
+ui.panel.embedded+ui.register, factory/component/closeEDT. Overlay dentro da
+careerWindow existente, nao substitui/reparenta contentPane/bounds/glass original;
+Voltar/Escape restaura camada, um owner ativo, registros ownerUUID separados,
+screen change fecha, glass visivel recusa. Nao pausa simulacao/atalhos globais,
+genericinjection/codigo hostil ou todos tipos de renderer/escala.
+
+Comparador refatorado em JPanel/model readonly reutilizado por janela anterior e
+overlay (integrado nao cria JDialog). Tema apenas Font/Color local copiados,
+sem recursos proprietarios compartilhados/distribuidos. Tres checks palette/EDT
+e smoke Swing com JAR real testam comparacao6campos/Voltar/identidade content/
+bounds/glass, substituicao entre owners/close idempotente/camada existente e
+screen recreation. Log local embedded-ui-validation.log, UI original pendente.
+Saves/EXE/equipe nao alterados; nenhum lifecycle/identidade ou evento promovido.
+
+SDK-only sdk-0.6.0-embedded-reviewed gerado/extraido/testado fora do checkout,
+quatro projetos compilados API-only e validados, no-init/JSON/namespace/allowlist/
+hash/negatives aprovados em fixture privada
+Temp/opencode/vbrasfoot-sdk-author-d4b3d3e0e2b24230b67c0cf1375d79f3.
+Logs embedded-sdk-test.log/embedded-ui-validation.log ignorados. Sem publicacao.

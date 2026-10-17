@@ -15,8 +15,9 @@ import javax.swing.table.DefaultTableModel;
 
 public final class PlayerComparatorMod implements Mod {
     private AutoCloseable registration;
+    private AutoCloseable panelRegistration;
     private volatile boolean stopped;
-    private ComparatorWindow window; // EDT only
+    private JDialog window; // EDT only
 
     @Override public void initialize(ModContext context) {
         registration = context.registerScopedAction("compare", "Comparar dois jogadores", () -> {
@@ -24,16 +25,28 @@ public final class PlayerComparatorMod implements Mod {
                 SwingUtilities.invokeLater(() -> open(context));
             } else open(context);
         });
+        panelRegistration = context.registerPanel("compare-integrated", "Comparador dentro do jogo", theme -> {
+            if (stopped) throw new IllegalStateException("Mod encerrado");
+            return new ComparatorView(context.game());
+        });
     }
     private void open(ModContext context) {
         if (stopped) return;
-        if (window == null || !window.isDisplayable()) window = new ComparatorWindow(context.game());
+        if (window == null || !window.isDisplayable()) {
+            ComparatorView view = new ComparatorView(context.game());
+            window = new JDialog((Window) null, "Comparador de jogadores — leitura SDK");
+            window.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            window.setContentPane(view);
+            window.addWindowListener(new WindowAdapter() { @Override public void windowClosed(WindowEvent event) { view.close(); } });
+            window.pack(); window.setLocationRelativeTo(null);
+        }
         window.setVisible(true); window.toFront();
     }
     @Override public void shutdown() throws Exception {
         stopped = true;
         try { if (registration != null) registration.close(); }
         finally {
+            if (panelRegistration != null) { panelRegistration.close(); panelRegistration = null; }
             registration = null;
             Runnable dispose = () -> { if (window != null) { window.dispose(); window = null; } };
             if (SwingUtilities.isEventDispatchThread()) dispose.run();
@@ -46,18 +59,14 @@ public final class PlayerComparatorMod implements Mod {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
     }
-    private static final class ComparatorWindow extends JDialog {
+    private static final class ComparatorView extends JPanel implements br.vbrasfoot.api.ModPanel {
         private final ComparisonModel model;
         private final Browser[] browsers = new Browser[2];
         private final JLabel status = new JLabel("Carregue uma carreira e clique em Atualizar tudo.");
         private final DefaultTableModel comparison = table("Campo publico", "Jogador A", "Jogador B");
-        ComparatorWindow(GameAccess game) {
-            super((Window) null, "Comparador de jogadores — leitura SDK");
+        ComparatorView(GameAccess game) {
+            super(new BorderLayout());
             model = new ComparisonModel(game);
-            setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-            addWindowListener(new WindowAdapter() {
-                @Override public void windowClosed(WindowEvent event) { model.clear(); }
-            });
             JPanel top = new JPanel(new BorderLayout());
             JButton refresh = new JButton("Atualizar tudo (limpa selecoes)");
             refresh.setName("player-comparator.refresh");
@@ -77,8 +86,10 @@ public final class PlayerComparatorMod implements Mod {
             JPanel bottom = new JPanel(new GridLayout(2, 1));
             bottom.add(new JLabel("Dados consultados, nao ranking oficial. Paginas nao sao snapshot atomico; sem salario/potencial."));
             bottom.add(status); add(bottom, BorderLayout.SOUTH);
-            setPreferredSize(new Dimension(1050, 650)); pack(); setLocationRelativeTo(null);
+            setPreferredSize(new Dimension(1050, 650));
         }
+        public JComponent component() { return this; }
+        public void close() { model.clear(); resetViews(); }
         private void resetViews() {
             for (Browser browser : browsers) browser.clear();
             comparison.setRowCount(0);

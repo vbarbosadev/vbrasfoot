@@ -20,7 +20,8 @@ Tem modelo/fakes e build API-only: bom ponto de partida para adaptar com IA.
 | Observador de leituras/escritas primarias | Experimental: events.career.read, opt-in | Nao CareerLoaded/Unloaded/Saved completos; criacao ainda UNKNOWN |
 | Historico persistente por carreira | Nao | Identidade/sidecars P3 pendentes; nao associar arquivo/hash por suposicao |
 | Alterar transferencias, saldo, atributos, calendario ou regras de partida | Nao | P6 bloqueado; nao usar reflexao para escrever no legado |
-| Inserir botoes em qualquer tela original | Nao | API oferece acao no menu e janelas do mod, nao injecao generica |
+| Painel dentro da janela da carreira com tema local | Sim, loader0.6.0: ui.panel.embedded | Overlay proprio/Voltar; nao substitui tela nem pausa simulacao |
+| Inserir botoes em qualquer tela original | Nao | Nao ha injecao generica; use registro de painel/menu |
 
 Interfaces diferentes podem combinar os mesmos dados publicos; "modloader completo"
 nao significa acesso irrestrito a todo o jogo. Se a ideia exige capacidade ausente,

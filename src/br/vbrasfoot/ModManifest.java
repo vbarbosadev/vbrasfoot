@@ -13,7 +13,7 @@ import java.util.jar.JarFile;
 record ModManifest(Path jar, String id, String name, String version, String mainClass,
                    List<String> dependencies, Set<String> permissions, List<String> optionalDependencies,
                     List<String> conflicts, Set<String> requiredCapabilities) {
-    static final Set<String> KNOWN_CAPABILITIES = Set.of("game.read", "ui.register", "data.read", "data.write", "query.paged", "query.scoped", "query.calendar.current", "query.club.balance", "events.career.observed");
+    static final Set<String> KNOWN_CAPABILITIES = Set.of("game.read", "ui.register", "ui.panel.embedded", "data.read", "data.write", "query.paged", "query.scoped", "query.calendar.current", "query.club.balance", "events.career.observed");
     static final Set<String> KNOWN_PERMISSIONS = Set.of("game.read", "ui.register", "data.read", "data.write", "events.career.read");
     ModManifest(Path jar, String id, String name, String version, String mainClass,
                 List<String> dependencies, Set<String> permissions) {

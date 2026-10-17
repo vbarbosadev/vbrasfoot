@@ -22,6 +22,7 @@ final class ModUi implements AutoCloseable {
     private final Map<String, Action> actions = new LinkedHashMap<>();
     private final ClassLoader runtime;
     private final Logger logger;
+    private final EmbeddedPanels panels;
     private Timer timer;
     private final java.util.Set<java.awt.Window> ownedWindows = new java.util.HashSet<>();
     void own(java.awt.Window window) {
@@ -31,7 +32,21 @@ final class ModUi implements AutoCloseable {
         });
     }
     private final java.util.Set<JButton> installed = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
-    ModUi(ClassLoader runtime, Logger logger) { this.runtime = runtime; this.logger = logger; }
+    ModUi(ClassLoader runtime, Logger logger) { this.runtime = runtime; this.logger = logger; this.panels = new EmbeddedPanels(logger); }
+    void closePanel(String id) { javax.swing.SwingUtilities.invokeLater(() -> panels.closeOwner(id)); }
+    void openPanel(String id, String title, java.util.function.Function<br.vbrasfoot.api.UiTheme, br.vbrasfoot.api.ModPanel> factory) {
+        CareerBridge.onEdt(() -> {
+            Object window = Class.forName("best.n", false, runtime).getMethod("db").invoke(null);
+            if (!(window instanceof JFrame frame)) throw new IllegalStateException("Janela da carreira indisponivel");
+            JPanel original = careerPanel(frame.getContentPane());
+            if (original == null) throw new IllegalStateException("Abra a tela de elenco antes do painel");
+            var field = original.getClass().getDeclaredField("HX"); field.setAccessible(true);
+            JButton options = (JButton) field.get(original);
+            var theme = new br.vbrasfoot.api.UiTheme(options.getFont(), original.getBackground(), original.getForeground(), options.getBackground(), options.getForeground());
+            panels.open(id, title, frame, theme, factory, () -> careerPanel(frame.getContentPane()) == original);
+            return null;
+        });
+    }
 
     synchronized void register(String id, String label, Runnable callback) {
         registerOwned(id, label, callback);
@@ -90,6 +105,7 @@ final class ModUi implements AutoCloseable {
 
     private synchronized void install() {
         try {
+            panels.check();
             Object window = Class.forName("best.n", false, runtime).getMethod("db").invoke(null);
             if (!(window instanceof JFrame frame) || !frame.isDisplayable()) return;
             // Remove only the old loader menu, never any original menu bar entries.
@@ -188,6 +204,7 @@ final class ModUi implements AutoCloseable {
     @Override public void close() {
         CareerBridge.onEdt(() -> {
             if (timer != null) timer.stop();
+            panels.close();
             for (var window : java.util.List.copyOf(ownedWindows)) window.dispose();
             ownedWindows.clear();
             for (JButton button : installed) {

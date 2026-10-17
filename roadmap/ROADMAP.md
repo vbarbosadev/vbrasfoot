@@ -656,3 +656,15 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 - Sonda marca sites internos az/V antes/depois e scalar index/date na EDT,
   bounded8steps/3labels, exatos por fingerprint/sites, sem transformar best.f,
   alterar schema/flag/guard ou publicar eventos. Candidatos ainda diagnosticos.
+
+### P2/P5 — UI integrada experimental0.6.0
+
+- SDK ModPanel/UiTheme/registerPanel: mod-owned overlay dentro da janela da
+  carreira, Voltar/Escape e paleta/font local. Preserva contentPane/bounds/controles,
+  nao compartilha objetos originais nem assets proprietarios no pacote.
+- Comparador adaptado oferece integrado e janela anterior; registro/owner/cleanup
+  e screen recreation tratados, camada original visivel recusada.
+- Smoke sintetico confirma comparar/voltar/owners/descarte; UI real/matriz inputs/
+  escalas/multimonitor pendentes. Nao generic injection ou simulacao pausada.
+- Nova evidencia criacao: az muda indice1->4 e V4->22 na mesma geracao, listas
+  estaveis. Isso mostra selecao/avanco interno, nao commit de lifecycle ou P3.

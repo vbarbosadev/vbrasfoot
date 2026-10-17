@@ -7,10 +7,10 @@ um humano revisa o codigo/instalacao. Nao enviar saves/EXE/dados privados a IA.
 
 ## Kit e ambiente
 
-- SDK-only revisado: API0.5.0, validador/Javadocs, template, guias IA/compatibilidade
+- SDK-only revisado: API0.6.0, validador/Javadocs, template, guias IA/compatibilidade
   e exemplos. Obter de canal confiavel; checksum nao autentica o autor.
 - JDK17 ou21, Windows, pasta nova para projeto fora do checkout/SDK.
-- Loader0.5.0 na copia local do Brasfoot22-23 conhecido para testar instalacao;
+- Loader0.6.0 na copia local do Brasfoot22-23 conhecido para testar instalacao;
   jogo/licenca fornecidos pelo usuario, nunca redistribuidos no kit.
 - Sem acesso ao fonte do loader/classes ofuscadas; exemplos sao fontes proprias.
 

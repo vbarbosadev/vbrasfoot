@@ -57,6 +57,7 @@ public final class ModContextLifecycleSelfTest {
         rejected(() -> retainedObservations.state(), "previously obtained observation facade revoked");
         rejected(() -> retainedObservations.subscribe(update -> { }), "retained observation subscribe revoked");
         rejected(() -> retained.registerAction("later", "Later", () -> calls++), "late action rejected");
+        rejected(() -> retained.registerPanel("later-panel", "Later", theme -> null), "panel registration revoked after cleanup");
         rejected(() -> {
             try { retained.writeData("later.txt", new byte[0]); } catch (java.io.IOException failure) { throw new AssertionError(failure); }
         }, "late data write rejected");
@@ -99,6 +100,10 @@ public final class ModContextLifecycleSelfTest {
             } finally { release.countDown(); executor.shutdownNow(); }
             var loader = new ModLoader(logger, hub);
             loader.load(List.of(manifest()), game, ui, data);
+            boolean capabilityRefused = false;
+            try { retained.registerPanel("missing-capability", "Panel", theme -> { throw new AssertionError("must not call factory"); }); }
+            catch (SecurityException expected) { capabilityRefused = true; }
+            check(capabilityRefused, "embedded capability must be explicitly declared");
             ui.invoke("context:legacy"); ui.invoke("context:scoped"); check(calls == 3, "both action APIs active");
             registration.close(); ui.invoke("context:scoped"); check(calls == 3, "scoped close immediate");
             loader.close(); ui.invoke("context:legacy"); check(calls == 3, "legacy action owned and removed on close");
