@@ -44,7 +44,7 @@ public final class FindCareerReferences {
         return 1;
     }
 
-    private static List<String> inspect(byte[] bytes) throws Exception {
+    static List<String> inspect(byte[] bytes, Set<String> selectedTargets) throws Exception {
         List<String> result = new ArrayList<>();
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes))) {
             if (in.readInt() != 0xcafebabe) throw new IOException("Invalid classfile");
@@ -98,7 +98,7 @@ public final class FindCareerReferences {
                                         || (op != 179 && targetName.equals("a") && targetDescriptor.equals("(Ljavax/swing/JFrame;)V")));
                                 boolean close = op != 179 && ((targetName.equals("dispose") && targetDescriptor.equals("()V"))
                                         || (targetOwner.equals("java/lang/System") && targetName.equals("exit") && targetDescriptor.equals("(I)V")));
-                                if (career || window || close) {
+                                 if (career || window || close || selectedTargets.contains(targetOwner + "." + targetName + targetDescriptor)) {
                                     result.add((op == 179 ? "putstatic" : "invoke") + "\t" + targetOwner + "." + targetName + targetDescriptor + "\t" + owner + "." + method + descriptor
                                             + "\t" + p + "\tpreviousOpcode=" + previous + "\tclass.sha256=" + hash(bytes) + "\tcode.sha256=" + hash(attribute));
                                 }
@@ -117,6 +117,12 @@ public final class FindCareerReferences {
         if (Files.exists(output)) throw new IOException("Output must be new");
         if (!hash(Files.readAllBytes(executable)).equals(GAME_SHA)) throw new IOException("Unknown executable");
         int classes = 0;
+        Set<String> selectedTargets = new LinkedHashSet<>();
+        for (int i = 2; i < args.length; i++) {
+            String target = args[i];
+            if (!target.matches("[A-Za-z0-9_$/]+\\.[A-Za-z0-9_$<>]+\\(.*\\).+")) throw new IOException("Use exact owner.member(descriptor): " + target);
+            selectedTargets.add(target);
+        }
         List<String> findings = new ArrayList<>();
         try (ZipFile zip = new ZipFile(executable.toFile())) {
             var entries = zip.entries();
@@ -124,7 +130,7 @@ public final class FindCareerReferences {
                 var entry = entries.nextElement();
                 if (!entry.getName().endsWith(".class")) continue;
                 if (entry.getSize() < 0 || entry.getSize() > 1024 * 1024) throw new IOException("Oversized class member");
-                try (var stream = zip.getInputStream(entry)) { findings.addAll(inspect(stream.readAllBytes())); }
+                try (var stream = zip.getInputStream(entry)) { findings.addAll(inspect(stream.readAllBytes(), selectedTargets)); }
                 classes++;
             }
         }
@@ -132,6 +138,7 @@ public final class FindCareerReferences {
         Collections.sort(findings);
         try (var writer = Files.newBufferedWriter(output, StandardOpenOption.CREATE_NEW)) {
             writer.write("# executable.sha256=" + GAME_SHA + "; classes=" + classes + "; static references only; no runtime corroboration\n");
+            writer.write("# selectedTargets=" + String.join(",", selectedTargets) + "\n");
             for (String finding : findings) { writer.write(finding); writer.newLine(); }
         }
         System.out.println("classes=" + classes + " references=" + findings.size());

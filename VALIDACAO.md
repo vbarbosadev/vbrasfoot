@@ -898,3 +898,26 @@ exportacao, 13 tracking, 11 dispatcher, 22 lifecycle, 33 observacoes, 16 scope,
 Hashes EXE/saves da origem e save corrente da copia novamente intactos. Leitura
 scoped otimizada nao fecha identidade P3, unload/eventos completos, gameplay ou
 memoria/latencia universal. Matriz Java17/UI real/multimods/mais carreiras segue pendente.
+
+## P4 parcial — rotas de criacao/navegacao apos #13
+
+#13 integrado ad9f6a8; reconciliacao de gates #14 integrada e87fad6 antes do novo
+incremento. REA abriu EXE PE/x86 com SHA esperado; inventario provider-neutral
+somente raiz, sem expandir ZIP JVM. Evidence/view IDs e limitacoes registrados
+em LIFECYCLE-PATHS.md. Sessao fechada; nenhuma configuracao/dependencia instalada.
+
+Scanner/javap local estendido com seletores exatos owner/member/descriptor:
+1.038 classes, 139 referencias anteriores e 166 no recorte ampliado. Dez sites
+diretos de best.f.V, incluindo best.f.aa; nao exclusivo de concluir criacao.
+Ligadas rotas forms.q/forms.s, a.hU.oq, a.bV.pl/AB e best.S.aY. Selecao de painel,
+liga ou tecnico nao prova carreira pronta/unload. UI de registro nao contornada.
+
+`inspect-career-hooks.ps1` aprovado; sete checks sinteticos de selecao/overload,
+fingerprints, classfile invalido e ausencia de inicializacao. Perfil desconhecido
+recusado; EXE original hashado antes/depois. Relatorios privados ignorados em
+`build/hook-analysis-67b80a6d1aee4791b0802955c1363c4a`, log local
+`build/lifecycle-paths-review-final.log`. Bytecode/classes nao redistribuidos.
+
+Nao houve execucao de criacao/gameplay nem novo hook. Roteiro com duas carreiras
+reais e variantes de amistoso em LIFECYCLE-PATHS.md permanece pendente; unload,
+save duravel, identidade/sidecars P3 e gameplay P6 continuam bloqueados.
