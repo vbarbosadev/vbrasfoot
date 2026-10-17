@@ -34,6 +34,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar testes' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ModSelectionSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de selecao de mods falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.HookProbeSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da sonda falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ProbeDispatcherSelfTest

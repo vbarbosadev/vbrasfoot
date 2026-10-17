@@ -23,6 +23,13 @@ final class ModUi implements AutoCloseable {
     private final ClassLoader runtime;
     private final Logger logger;
     private Timer timer;
+    private final java.util.Set<java.awt.Window> ownedWindows = new java.util.HashSet<>();
+    void own(java.awt.Window window) {
+        ownedWindows.add(window);
+        window.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowClosed(java.awt.event.WindowEvent event) { ownedWindows.remove(window); }
+        });
+    }
     private final java.util.Set<JButton> installed = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
     ModUi(ClassLoader runtime, Logger logger) { this.runtime = runtime; this.logger = logger; }
 
@@ -151,6 +158,8 @@ final class ModUi implements AutoCloseable {
     @Override public void close() {
         CareerBridge.onEdt(() -> {
             if (timer != null) timer.stop();
+            for (var window : java.util.List.copyOf(ownedWindows)) window.dispose();
+            ownedWindows.clear();
             for (JButton button : installed) {
                 Container parent = button.getParent();
                 if (parent != null) { parent.remove(button); parent.revalidate(); parent.repaint(); }

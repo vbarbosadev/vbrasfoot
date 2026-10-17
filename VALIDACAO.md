@@ -629,3 +629,36 @@ esta confirmacao de teste real de callback do exemplo SDK 0.4.0.
 Processo Java PID 2436 ainda observado ativo; sem termination/report final nessa
 leitura. Nao afirmar fechamento, save, criacao ou troca. Hashes EXE/saves da origem
 e save corrente da copia novamente identicos aos anteriores.
+
+## P5 parcial — gerenciador e selecao proximo inicio 0.4.1
+
+Branch `feat/mod-management-next-start`, baseada na main apos #5/#6/#7. SDK/loader
+0.4.1, API major 1 sem novos metodos. Contrato em roadmap/MOD-MANAGEMENT.md.
+Config versionada por nome exato de JAR, staging/force/ATOMIC_MOVE exigido; falha
+de grafo/corrupcao/snapshot obsoleto nao altera selecao. Nenhum JAR/save e editado
+ou removido. CLI usa runtime.lock, modo seguro/verificador ignoram config/mods.
+Painel separa estado atual por **arquivo carregado** de selecao futura, inclusive
+IDs duplicados em JAR desabilitado; leitura/escrita em SwingWorker, sem hot reload.
+
+Windows/Oracle Java 21.0.12:
+
+- **75 gerais + 35 selecao**, 13 tracking, 11 dispatcher, 22 lifecycle, 33
+  observacoes, 16 scope, 15 bytecode e 7 template aprovados.
+- `test.ps1 -IncludeUi` aprovado: painel real do loader na janela sintetica,
+  acao integrada, tabela correta, abrir nao grava, cleanup sem janela vazada.
+- `release.ps1 -Output dist/portable-0.4.1-management-reviewed`: pacote/Javadocs.
+- `test-mod-management.ps1`: processos novos validam JAR invalido ativo recusado,
+  disable/list/validate com JAR invalido desabilitado, enable invalido recusado
+  preservando bytes da config, sessao ativa bloqueando CLI, config corrompida
+  recusada e modo seguro aprovado. Nenhum jogo/mod inicializado; EXE/JAR intactos.
+  Fixture privada `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-mod-management-b17b55e0690d4ed481bf53a0225fc3df`.
+- Template independente aprovado com pacote final em fixture
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-author-template-d4319be4e9b44193a23ca665cd9fb87e`.
+- Regressao portable aprovada; fixture
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-67d864e8ec7f463a85bf72450233916e`.
+  Runner via powershell.exe exigiu GameDir explicito: default PSScriptRoot no
+  parametro falhou nesse modo; log privado build/portable-management-reviewed-explicit.log.
+
+Limites: testes nao substituem disable/reabrir/enable na UI real; historico de
+falhas recentes/exportacao diagnostica ainda pendentes. Sem identidade P3,
+persistencia por carreira, novos eventos de gameplay ou aceite integral de P5/P7.

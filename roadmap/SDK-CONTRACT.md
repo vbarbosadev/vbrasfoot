@@ -1,4 +1,4 @@
-# SDK 0.4.0 — API major 1 (experimental)
+# SDK 0.4.1 — API major 1 (experimental)
 
 Contrato anterior preservado por compatibilidade. Novas consultas 0.3.0 em
 `SCOPED-QUERIES.md` adicionam handles com escopo; APIs por index abaixo continuam
@@ -83,7 +83,8 @@ O loader registra `DISCOVERED -> VALIDATED -> INITIALIZED -> ACTIVE`. Inicializa
 e encerramento rodam na thread principal; acoes de UI na EDT. Falha de inicializacao
 marca `FAILED` e aborta o carregamento, sem iniciar dependentes. Encerramento normal
 ocorre em ordem inversa; falhas de shutdown sao registradas e os demais continuam.
-`DISABLED` esta reservado para a configuracao futura de mods; nao e emitido hoje.
+Selecao proximo inicio e por JAR em `MOD-MANAGEMENT.md`; nao muda estado da sessao.
+`DISABLED` nao e emitido como callback do SDK: JAR excluido nao e inicializado.
 `System.exit` nao garante `shutdown()` de mods. Hot reload nao e suportado.
 
 Use `registerScopedAction` e feche a assinatura para remover a acao (remocao

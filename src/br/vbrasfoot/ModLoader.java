@@ -24,6 +24,7 @@ final class ModLoader implements AutoCloseable {
     private final List<Mod> loaded = new ArrayList<>();
     private final Logger logger;
     private final Map<String, br.vbrasfoot.api.ModState> states = new LinkedHashMap<>();
+    private final Map<String, String> loadedFiles = new LinkedHashMap<>();
     private final Map<Mod, String> identities = new java.util.IdentityHashMap<>();
     private static final class SubscriptionOwner {
         final List<br.vbrasfoot.api.CareerObservations.Subscription> items = new ArrayList<>();
@@ -34,21 +35,30 @@ final class ModLoader implements AutoCloseable {
     private final br.vbrasfoot.api.CareerObservations observations;
     ModLoader(Logger logger) { this(logger, null); }
     ModLoader(Logger logger, br.vbrasfoot.api.CareerObservations observations) { this.logger = logger; this.observations = observations; }
-    private void state(String id, br.vbrasfoot.api.ModState state) {
+    private synchronized void state(String id, br.vbrasfoot.api.ModState state) {
         states.put(id, state);
         logger.info("mod=" + id + " state=" + state);
     }
 
     static List<ModManifest> discover(Path directory) throws IOException {
+        return discover(directory, Set.of());
+    }
+    static List<ModManifest> discover(Path directory, Set<String> disabledFiles) throws IOException {
         if (!Files.isDirectory(directory)) return List.of();
         Map<String, ModManifest> manifests = new LinkedHashMap<>();
         try (var files = Files.list(directory)) {
             for (Path path : files.filter(p -> p.getFileName().toString().endsWith(".jar")).sorted().toList()) {
+                if (disabledFiles.contains(path.getFileName().toString())) continue;
                 ModManifest manifest = ModManifest.read(path);
                 if (manifests.putIfAbsent(manifest.id(), manifest) != null) throw new IOException("ID de mod duplicado: " + manifest.id());
             }
         }
         return ordered(manifests);
+    }
+    synchronized Map<String, br.vbrasfoot.api.ModState> fileStates() {
+        Map<String, br.vbrasfoot.api.ModState> result = new LinkedHashMap<>();
+        loadedFiles.forEach((file, id) -> result.put(file, states.getOrDefault(id, br.vbrasfoot.api.ModState.DISCOVERED)));
+        return Map.copyOf(result);
     }
     static void requireObservationMode(List<ModManifest> manifests, boolean enabled) throws IOException {
         for (ModManifest manifest : manifests) if (!enabled && manifest.requiredCapabilities().contains("events.career.observed")) {
@@ -80,6 +90,7 @@ final class ModLoader implements AutoCloseable {
     void load(List<ModManifest> manifests, GameAccess game, ModUi ui, Path data) throws Exception {
         // Separate loaders; dependencies order initialization, not access to each other's private classes.
         for (ModManifest manifest : manifests) {
+            synchronized (this) { loadedFiles.put(manifest.jar().getFileName().toString(), manifest.id()); }
             state(manifest.id(), br.vbrasfoot.api.ModState.DISCOVERED);
             state(manifest.id(), br.vbrasfoot.api.ModState.VALIDATED);
             initializeMod(manifest, game, ui, data);

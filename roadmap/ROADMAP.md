@@ -188,8 +188,8 @@ Prioridade: alta para abrir a plataforma. Dependencias: P1 a P4 para o MVP compl
 - [x] Criar template com compilacao simples, manifesto, testes, empacotamento e instalacao na pasta escolhida do jogo. (Starter leitura/interface; nao inclui eventos ou carreira.)
 - [ ] Entregar exemplos: consulta/interface; historico por carreira; reacao a uma partida finalizada. Exemplos devem declarar somente as permissoes utilizadas.
 - [x] Criar comando de validacao que nao inicialize codigo de mods, com relatorio de dependencias, capacidades e erros. (--validate-mod individual + --validate-only conjunto; nao e auditoria/sandbox.)
-- [ ] Adicionar painel interno de mods: ID, versao, permissoes, estado, falhas recentes e local dos logs.
-- [ ] Implementar habilitar/desabilitar para a proxima inicializacao. Hot reload nao faz parte do primeiro release; so oferecer se lifecycle e descarregamento forem comprovados.
+- [ ] Adicionar painel interno de mods: ID, versao, permissoes, estado, falhas recentes e local dos logs. (0.4.1 implementa inventario/estado/selecao/logs; historico consolidado de falhas recentes pendente.)
+- [x] Implementar habilitar/desabilitar para a proxima inicializacao. (0.4.1: config atomica, grafo validado, CLI e painel; sem hot reload. UI real e usabilidade ainda pendentes.)
 - [ ] Fornecer exportacao de diagnostico revisavel pelo usuario, sem enviar automaticamente saves ou dados privados.
 - [ ] Fazer teste de usabilidade: criar e instalar um mod novo seguindo apenas o guia, sem editar o loader.
 
@@ -413,3 +413,14 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   original com esse JAR. Nao prova UI completa, save duravel ou identidade P3.
 - P3, eventos completos de lifecycle/gameplay e restante do roadmap permanecem
   pendentes. CAREER-OBSERVATIONS.md define contrato e cobertura, nao release estavel.
+
+### P5 — selecao proximo inicio e painel (0.4.1)
+
+- Nova branch baseada em main apos #5/#6/#7. API major 1 preservada; sem novos hooks.
+- Configuracao por nome exato do JAR, sem editar/remover saves ou mods. Modo seguro
+  ignora config/mods; JAR invalido desabilitado pode ser ignorado antes de carregar.
+- Dependencias/conflitos/ciclos/duplicatas validados antes de gravacao atomica.
+  CLI recusa sessao ativa; snapshot config obsoleto/corrompido falha conservadoramente.
+- Painel no menu interno separa estado agora de proximo inicio; I/O fora da EDT.
+- Testes sinteticos, Swing e processos novos em fixture; UI real e falhas recentes
+  consolidadas continuam pendentes. P3/P4 completos/P6 nao fechados por este passo.
