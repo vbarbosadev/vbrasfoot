@@ -56,8 +56,9 @@ categoria, com limites definidos a partir de uso medido, sem numeros arbitrarios
 Limpeza deve mostrar previa dos caminhos/bytes/efeitos, exigir revisao/confirmacao,
 validar caminhos/links e remover apenas alvos gerenciados reconhecidos; preservar
 evidencias de recuperacao e estados de atualizacao pendente ate revisao explicita.
-Nao ha ferramenta geral de retencao entregue nem autorizacao para executar limpeza
-nesta reconciliacao.
+Ha inventario somente leitura via `--storage-status`, agregado por categoria e
+limitado em entradas/tempo, com parcial explicito: [STORAGE-RETENTION.md](STORAGE-RETENTION.md).
+Nao ha ferramenta geral de limpeza/retencao nem autorizacao para executar limpeza.
 
 **Nunca apagar saves `.s22`/`.sbck`, dados de mods ou restaurar backups
 automaticamente.** Backups de saves tambem nao devem ser descartados por uma

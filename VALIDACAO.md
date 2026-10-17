@@ -934,3 +934,25 @@ Fixture build/jar-isolation-UUID preservada, propriedades process-local removida
 no finally. Build completo aprovado; sem jogo, rede ou saves.
 Nao e sandbox, isolamento contra codigo hostil/internals, prova de GC/leak ou UI
 real. P7 global e P4/P3/P6 permanecem abertos.
+
+## P1/P7 parcial — inventario somente leitura do home
+
+Base main ee2bcd5 apos #16 integrado. --storage-status retorna antes de perfil,
+runtime, mods, diagnostico e lock, sem criar arquivo. Sete categorias fixas,
+metadados/bytes logicos agregados sem conteudo/nomes privados; desconhecidos/sav
+original nao varridos. Parcial/recusa retorna erro; limites cooperativos 100mil
+entradas/10s, overflow protegido, no-follow/revalidacao de caminhos.
+
+`test.ps1 -IncludeUi` aprovado Windows/Java21: **34 checks** novos com junction
+Windows, CLI sem escrita inclusive erro, budget/overflow/tipos/home/ausencias;
+symlinks indisponiveis explicitamente SKIP, nao testados neste ambiente. Demais
+suites incluindo 31 JARs/53 context lifecycle e UI sintetica aprovadas.
+Fixture privada `%LOCALAPPDATA%\Temp\opencode\storage-inventory-12736365844648426654`.
+Log local build/storage-inventory-validation.log. Primeira fixture sob build foi
+recusada pela validacao normal devido a sua junction; link criado pelo proprio
+teste removido sem recursao/destino intacto e fixture movida para Temp privado.
+
+Nao e total do home/disco, snapshot atomico, quota/blocos alocados ou garantia
+contra TOCTOU hostil/todos reparse tags. Tempo nao interrompe I/O bloqueado.
+Nao implementa limpeza/retencao completa, nem autoriza apagar dados/backups/saves.
+Sem jogo, save, instalacao/tag/release/upload; matriz CI 17/21 conferida no PR.

@@ -553,3 +553,12 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   comportamento distinto e dependencia que ordena inicio sem expor classe privada.
 - 31 checks locais, no-init da validacao, callbacks independentes e shutdown reverso.
   Sem jogo/rede/saves. Nao comprova sandbox/internals/GC/leak/UI real nem P7 integral.
+
+### P1/P7 — inventario somente leitura de disco
+
+- CLI --storage-status retorna antes de iniciar jogo/mods/diagnostico; metadados
+  de sete categorias conhecidas, sem conteudo/nomes privados, exclusao ou restauracao.
+- Limite cooperativo 10s/100mil entradas; parcial/links/tipos invalidos explicitamente
+  recusados. Bytes logicos nao sao RSS/blocos alocados nem snapshot atomico.
+- Testes de CLI sem escrita, contagens, budgets, overflow e junction Windows;
+  symlink indisponivel e SKIP, nao sucesso. Politica de limpeza ainda pendente.
