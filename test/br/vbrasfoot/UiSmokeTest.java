@@ -171,15 +171,84 @@ public final class UiSmokeTest {
                 if (!managerReady) Thread.sleep(50);
             }
             if (java.nio.file.Files.exists(managerHome.resolve("mods-selection.properties"))) throw new AssertionError("Abrir painel alterou selecao");
-            ui.close();
             CareerBridge.onEdt(() -> {
-                for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().contains("Gerenciar mods") && dialog.isDisplayable()) throw new AssertionError("Painel vazou apos fechar UI");
+                for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().contains("Gerenciar mods")) {
+                    named(dialog.getContentPane(), "vbrasfoot.diagnostic.prepare", JButton.class).doClick();
+                }
                 return null;
             });
-            System.out.println("PASS: menu/inspetor scoped, gerenciador, resumo/aba de falhas read-only; abrir nao grava, cleanup sem janela vazada (UI sintetica).");
+            JDialog review = awaitReview();
+            CareerBridge.onEdt(() -> {
+                var preview = named(review.getContentPane(), "vbrasfoot.diagnostic.preview", javax.swing.JTextArea.class);
+                if (!preview.isEditable() || preview.getText().contains("fixture-history-only") || preview.getText().contains("inspector.jar") || !preview.getText().contains("format=1")) throw new AssertionError("Previa nao e editavel/privada por padrao");
+                named(review.getContentPane(), "vbrasfoot.diagnostic.close", JButton.class).doClick(); return null;
+            });
+            if (java.nio.file.Files.exists(managerHome.resolve("diagnostics"))) throw new AssertionError("Cancelar previa criou arquivo");
+            CareerBridge.onEdt(() -> {
+                for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().contains("Gerenciar mods")) {
+                    named(dialog.getContentPane(), "vbrasfoot.diagnostic.prepare", JButton.class).doClick();
+                }
+                return null;
+            });
+            JDialog saving = awaitReview();
+            String edited = CareerBridge.onEdt(() -> {
+                var preview = named(saving.getContentPane(), "vbrasfoot.diagnostic.preview", javax.swing.JTextArea.class);
+                var details = named(saving.getContentPane(), "vbrasfoot.diagnostic.details", javax.swing.JCheckBox.class);
+                var identities = named(saving.getContentPane(), "vbrasfoot.diagnostic.identity", javax.swing.JCheckBox.class);
+                if (details.isSelected() || identities.isSelected()) throw new AssertionError("Opt-ins ligados por padrao");
+                details.setSelected(true); named(saving.getContentPane(), "vbrasfoot.diagnostic.generate", JButton.class).doClick();
+                if (!preview.getText().contains("fixture-history-only") || preview.getText().contains("inspector.jar")) throw new AssertionError("Opt-in de mensagens indevido");
+                details.setSelected(false); named(saving.getContentPane(), "vbrasfoot.diagnostic.generate", JButton.class).doClick();
+                String text = preview.getText() + "\nuser.review=TEST_REVIEW_ONLY\n"; preview.setText(text);
+                // Accept only the owned local-export confirmation, never a game/save dialog.
+                long confirmationDeadline = System.nanoTime() + 3_000_000_000L;
+                javax.swing.Timer confirm = new javax.swing.Timer(50, null);
+                confirm.addActionListener(event -> {
+                    for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().equals("Confirmar exportacao local")) {
+                        var option = find(dialog.getContentPane(), javax.swing.JOptionPane.class);
+                        if (option != null) option.setValue(javax.swing.JOptionPane.OK_OPTION); else dialog.dispose();
+                        confirm.stop(); return;
+                    }
+                    if (System.nanoTime() > confirmationDeadline) { confirm.stop(); for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().equals("Confirmar exportacao local")) dialog.dispose(); }
+                });
+                confirm.start(); named(saving.getContentPane(), "vbrasfoot.diagnostic.save", JButton.class).doClick(); confirm.stop();
+                return text;
+            });
+            long savedDeadline = System.nanoTime() + 8_000_000_000L;
+            while (!CareerBridge.onEdt(() -> named(saving.getContentPane(), "vbrasfoot.diagnostic.status", javax.swing.JTextArea.class).getText().startsWith("Salvo localmente:"))) {
+                if (System.nanoTime() > savedDeadline) throw new AssertionError("Exportacao Swing nao concluiu"); Thread.sleep(50);
+            }
+            try (var files = java.nio.file.Files.list(managerHome.resolve("diagnostics"))) {
+                var outputs = files.toList();
+                if (outputs.size() != 1 || !java.nio.file.Files.readString(outputs.get(0)).equals(edited)) throw new AssertionError("Exportacao nao salvou exatamente revisao explicita");
+            }
+            ui.close();
+            CareerBridge.onEdt(() -> {
+                for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && (dialog.getTitle().contains("Gerenciar mods") || dialog.getTitle().contains("Revisar diagnostico")) && dialog.isDisplayable()) throw new AssertionError("Painel/previa vazou apos fechar UI");
+                return null;
+            });
+            System.out.println("PASS: menu/gerenciador/falhas, previa privada editavel, cancelar sem escrita, opt-in e exportacao exata confirmada; cleanup aprovado (UI sintetica).");
         } finally {
             CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; });
         }
+    }
+    private static JDialog awaitReview() throws Exception {
+        long deadline = System.nanoTime() + 8_000_000_000L;
+        while (true) {
+            JDialog result = CareerBridge.onEdt(() -> {
+                for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().contains("Revisar diagnostico") && dialog.isDisplayable()) return dialog;
+                return null;
+            });
+            if (result != null) return result;
+            if (System.nanoTime() > deadline) throw new AssertionError("Previa nao abriu"); Thread.sleep(50);
+        }
+    }
+    private static <T> T named(java.awt.Container root, String name, Class<T> type) {
+        for (var component : root.getComponents()) {
+            if (type.isInstance(component) && name.equals(component.getName())) return type.cast(component);
+            if (component instanceof java.awt.Container child) { T result = named(child, name, type); if (result != null) return result; }
+        }
+        return null;
     }
     private static <T> T find(java.awt.Container root, Class<T> type) {
         for (var component : root.getComponents()) {

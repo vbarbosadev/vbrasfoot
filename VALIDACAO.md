@@ -708,3 +708,52 @@ Executado Windows/Oracle Java 21.0.12:
 
 EXE/saves da origem e save corrente da copia novamente hashados, intactos.
 UI real 0.4.2, exportacao diagnostica revisavel e demais gates permanecem pendentes.
+
+## P5 — diagnostico local revisavel 0.4.3
+
+#9 integrado na main como c9563e1 antes da branch `feat/reviewable-diagnostic-export`;
+CI main Java 17/21 aprovado. Nao ha confirmacao humana nova de UI 0.4.2 inferida
+do merge ou de testes automatizados.
+
+Exportacao TXT por allowlist, previa editavel e confirmacao explicita. Padrao
+omite nomes/IDs/versoes/permissoes e mensagens; opt-ins independentes podem incluir
+dados privados. Sem coleta de logs brutos, dados de carreira, arquivos de sessao,
+argumentos, env, saves/backups/binarios/dados de mods. Nenhum envio automatico.
+Salva exatamente revisao em diagnostics/diagnostic-UUID.txt com CREATE_NEW, limite
+256 KiB e paths redirecionados recusados. Nao e escrita transacional/duravel em
+queda de energia, relatorio pode ficar parcial se processo for encerrado a forca.
+Contrato/privacidade em roadmap/DIAGNOSTIC-EXPORT.md.
+
+Windows/Oracle Java 21.0.12:
+
+- **41 checks novos**: default sem sentinelas privadas, opt-ins independentes,
+  snapshots imutaveis, enums/numeros em vez de propriedades brutas, controles/bidi
+  escapados, bytes UTF-8 revisados exatos, CREATE_NEW sem overwrite, limites de
+  chars/bytes/Unicode, limites de inventario/falhas e junction NTFS recusada sem
+  tocar destino protegido sintetico. Preparar/cancelar nao cria pasta ou arquivo.
+- Demais suites: 75 gerais, 35 selecao, 23 falhas, 13 tracking, 11 dispatcher,
+  22 lifecycle, 33 observacoes, 16 scope, 15 bytecode e 7 template aprovados.
+- `test.ps1 -IncludeUi` aprovado: prepara/cancela previa sem escrita, defaults
+  privados, opt-in de mensagens, edicao, confirmacao local e salvamento exato em
+  fixture propria, cleanup de janelas. Nenhum save ou erro em mod do usuario.
+  Fixture Swing `build/manager-ui-2906028408055779450`; fixture de exportacao pura
+  `build/diagnostic-export-12028262039393776455` (privadas/ignoradas pelo Git).
+- Teste inicial colocou junction em build e foi corretamente recusado no scan
+  recursivo do installRoot. Somente a junction criada por esse teste foi removida,
+  sem /S e sem apagar o destino/sentinela; fixture de junction agora fica no Temp
+  privado opencode, fora da instalacao de desenvolvimento. Rerun completo aprovado.
+- `release.ps1 -Output dist/portable-0.4.3-diagnostic-export`: pacote e Javadocs.
+- CLI/lock/config/safe aprovado na fixture privada
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-mod-management-8be0ce51fa134f6ba2aa1e7630f4f1a7`.
+- Template SDK-only fora do checkout/instalacao/validacao aprovado na fixture
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-author-template-ca3f389814114c689b05a942abb0fea5`.
+- Portable sequencial aprovado com GameDir explicito; fixture
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-1523ae27835845d8a43917a81307c649`,
+  log build/portable-0.4.3-diagnostic-export.log.
+
+EXE/saves da origem e save corrente da copia novamente hashados, intactos.
+UI humana/exportacao na copia real ainda pendentes; nao declara MVP completo,
+anonimato garantido, captura exaustiva ou progresso em identidade P3/gameplay P6.
+Revisao final `dist/portable-0.4.3-export-reviewed` gerada apos novo smoke Swing e
+todas as suites aprovadas; previa com area de status legivel/monoespacada e sem
+reescrita implicita do texto revisado.

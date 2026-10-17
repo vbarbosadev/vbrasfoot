@@ -16,7 +16,11 @@ final class ModManagerPanel {
         register(ui, home, logs, states, () -> new ModFailures.Snapshot(List.of(), 0));
     }
     static void register(ModUi ui, Path home, Path logs, Supplier<Map<String, br.vbrasfoot.api.ModState>> states, Supplier<ModFailures.Snapshot> failures) {
-        ui.register("vbrasfoot:manage", "Gerenciar mods (proxima inicializacao)", () -> show(ui, home, logs, states, failures));
+        register(ui, home, logs, states, failures, DiagnosticExport.Environment.current(false, false));
+    }
+    static void register(ModUi ui, Path home, Path logs, Supplier<Map<String, br.vbrasfoot.api.ModState>> states,
+                         Supplier<ModFailures.Snapshot> failures, DiagnosticExport.Environment environment) {
+        ui.register("vbrasfoot:manage", "Gerenciar mods (proxima inicializacao)", () -> show(ui, home, logs, states, failures, environment));
     }
     static JPanel content(List<ModSelection.Entry> entries, Map<String, br.vbrasfoot.api.ModState> states) {
         return content(entries, states, new ModFailures.Snapshot(List.of(), 0));
@@ -49,7 +53,8 @@ final class ModManagerPanel {
                 .append(entry.type()).append(": ").append(entry.message()).append("\n\n");
         return text.toString();
     }
-    private static void show(ModUi ui, Path home, Path logs, Supplier<Map<String, br.vbrasfoot.api.ModState>> states, Supplier<ModFailures.Snapshot> failures) {
+    private static void show(ModUi ui, Path home, Path logs, Supplier<Map<String, br.vbrasfoot.api.ModState>> states,
+                             Supplier<ModFailures.Snapshot> failures, DiagnosticExport.Environment environment) {
         JDialog dialog = new JDialog((java.awt.Frame) null, "vbrasfoot — Gerenciar mods", false);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         ui.own(dialog);
@@ -59,7 +64,8 @@ final class ModManagerPanel {
         info.setEditable(false); info.setLineWrap(true); info.setWrapStyleWord(true); body.add(info, BorderLayout.NORTH);
         JPanel center = new JPanel(new BorderLayout()); body.add(center, BorderLayout.CENTER);
         JButton enable = new JButton("Habilitar selecionado"), disable = new JButton("Desabilitar selecionado"), refresh = new JButton("Atualizar");
-        JPanel commands = new JPanel(); commands.add(enable); commands.add(disable); commands.add(refresh);
+        JButton export = new JButton("Preparar diagnostico"); export.setName("vbrasfoot.diagnostic.prepare");
+        JPanel commands = new JPanel(); commands.add(enable); commands.add(disable); commands.add(refresh); commands.add(export);
         JPanel footer = new JPanel(new BorderLayout()); footer.add(status, BorderLayout.NORTH); footer.add(commands, BorderLayout.SOUTH); body.add(footer, BorderLayout.SOUTH);
         dialog.setContentPane(body);
         var usable = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
@@ -106,6 +112,25 @@ final class ModManagerPanel {
         }
         Work work = new Work(); refresh.addActionListener(event -> work.run(null, false));
         enable.addActionListener(event -> work.change(true)); disable.addActionListener(event -> work.change(false));
+        export.addActionListener(event -> {
+            export.setEnabled(false);
+            new SwingWorker<DiagnosticExport.Snapshot, Void>() {
+                private String initial;
+                @Override protected DiagnosticExport.Snapshot doInBackground() throws Exception {
+                    var snapshot = DiagnosticExport.capture(ModSelection.read(home).inventory(), states.get(), failures.get(), environment);
+                    initial = DiagnosticExport.preview(snapshot, new DiagnosticExport.Options(false, false));
+                    return snapshot;
+                }
+                @Override protected void done() {
+                    if (!dialog.isDisplayable()) return;
+                    try { DiagnosticReview.show(ui, home, get(), initial); }
+                    catch (Exception failure) {
+                        Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+                        JOptionPane.showMessageDialog(dialog, cause.getMessage(), "Diagnostico recusado", JOptionPane.ERROR_MESSAGE);
+                    } finally { export.setEnabled(true); }
+                }
+            }.execute();
+        });
         dialog.setVisible(true); work.run(null, false);
     }
 }

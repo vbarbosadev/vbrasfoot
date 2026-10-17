@@ -1,4 +1,4 @@
-# vbrasfoot 0.4.2 (experimental)
+# vbrasfoot 0.4.3 (experimental)
 
 Codigo e documentacao originais sob a [licenca MIT](LICENSE).
 O jogo Brasfoot, seus recursos e dependencias de terceiros nao sao abrangidos
@@ -23,6 +23,7 @@ observadas nao significam unload, save duravel ou identidade persistente.
 Sem hot reload; permite desabilitar JAR invalido sem remove-lo ou alterar saves.
 O painel inclui falhas recentes capturadas nesta sessao, com memoria limitada;
 mensagens podem conter dados privados e nao sao enviadas automaticamente.
+Diagnostico local com previa editavel e opt-ins: [guia de exportacao](roadmap/DIAGNOSTIC-EXPORT.md).
 
 ```powershell
 .\templates\read-only-mod\build.ps1 -Sdk .\dist\vbrasfoot-api.jar
