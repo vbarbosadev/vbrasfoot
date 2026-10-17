@@ -64,14 +64,24 @@ public final class CareerHookRuntimeTest {
                 check(loaded && observation.completed() && !observation.backup() && observation.thread().startsWith("AWT-EventQueue"), "real primary load on EDT");
                 GameAccess.Snapshot baseline = new CareerBridge(runtime).snapshot();
                 check(baseline.loaded(), "decoded career readable");
+                CareerBridge bridge = new CareerBridge(runtime);
+                var scoped = bridge.scopedClubs("", 0, 1);
+                var originalReference = scoped.items().get(0).reference();
+                check(bridge.scopedPlayers(originalReference, 0, 500).items().equals(bridge.playersAt(0, 0, 500).items()), "scoped player values agree with current legacy query");
+                check(scoped.scope().equals(bridge.scopedClubs("", 0, 1).scope()), "same roots keep query scope");
                 events.clear();
                 CareerBridge.onEdt(() -> { save.invoke(null, "output"); return null; });
                 observation = only(events, "save");
                 check(observation.completed() && observation.backup(), "primary close and legacy backup completed");
                 check(Files.isRegularFile(saves.resolve("output.s22")) && Files.mismatch(saves.resolve("output.s22"), saves.resolve("output.sbck")) == -1, "save and backup bytes agree");
                 events.clear();
+                var beforeReload = bridge.scopedClubs("", 0, 1).items().get(0).reference();
                 check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "output", false)), "produced save reloads by original method");
                 check(only(events, "load").completed(), "reload observation");
+                boolean rejectedReference = false;
+                try { bridge.scopedPlayers(beforeReload, 0, 20); }
+                catch (br.vbrasfoot.api.GameQueryException expected) { rejectedReference = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE; }
+                check(rejectedReference, "reference from previous decoded graph refused");
                 // Original save preconditions assign IDs. Compare values while allowing those original ID changes.
                 GameAccess.Snapshot restored = new CareerBridge(runtime).snapshot();
                 check(baseline.clubs().size() == restored.clubs().size(), "club count preserved");
@@ -97,10 +107,15 @@ public final class CareerHookRuntimeTest {
                 CareerBridge.onEdt(() -> (boolean) load.invoke(null, null, false));
                 check(!only(events, "load").completed(), "null argument is not decoded save");
                 events.clear();
+                var beforeReset = bridge.scopedClubs("", 0, 1).items().get(0).reference();
                 Object previousRoot = state.getField("SR").get(null);
                 CareerBridge.onEdt(() -> { state.getConstructor().newInstance(); return null; });
                 check(only(events, "roots-reset").completed(), "actual root reallocation completed");
                 check(previousRoot != state.getField("SR").get(null) && !new CareerBridge(runtime).snapshot().loaded(), "new roots replace old career but do not imply loaded career");
+                rejectedReference = false;
+                try { bridge.scopedPlayers(beforeReset, 0, 20); }
+                catch (br.vbrasfoot.api.GameQueryException expected) { rejectedReference = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE; }
+                check(rejectedReference && !bridge.scopedClubs("", 0, 1).loaded(), "root reset invalidates prior query references");
                 check(callbackThreads.stream().allMatch("vbrasfoot-probe-dispatch"::equals), "actual I/O observations delivered off game thread");
                 check(dispatcher.stats().dropped() == 0 && dispatcher.stats().failed() == 0, "actual I/O dispatcher without losses or callback failures");
                 check(Profile.digest(original).equals(before) && Profile.digest(game.resolve("bf22-23.exe")).equals(executableBefore), "fixture input/exe unchanged");

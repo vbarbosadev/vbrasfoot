@@ -1,4 +1,4 @@
-# vbrasfoot 0.2.0 (experimental)
+# vbrasfoot 0.3.1 (experimental)
 
 Codigo e documentacao originais sob a [licenca MIT](LICENSE).
 O jogo Brasfoot, seus recursos e dependencias de terceiros nao sao abrangidos
@@ -10,6 +10,15 @@ Modloader experimental **exclusivo do Brasfoot22-23 fornecido neste diretorio**.
 
 Instalacao portable dentro da pasta do jogo: [guia](roadmap/PORTABLE.md).
 Contrato publico do SDK/API major 1: [especificacao](roadmap/SDK-CONTRACT.md).
+Consultas protegidas contra referencias obsoletas: [escopos 0.3.0](roadmap/SCOPED-QUERIES.md).
+Template independente de leitura/interface: [guia](templates/read-only-mod/README.md).
+O pacote inclui API, Javadocs e template em `sdk/`; `--validate-mod JAR` valida
+um JAR sem jogo ou inicializacao do mod. Eventos/dados por carreira ainda pendentes.
+
+```powershell
+.\templates\read-only-mod\build.ps1 -Sdk .\dist\vbrasfoot-api.jar
+java -jar .\dist\vbrasfoot.jar --validate-mod .\templates\read-only-mod\dist\meu-mod.jar
+```
 P0 e os gates reais de P1/P2 ainda nao estao aprovados.
 
 Sonda experimental opt-in de carregar/salvar: [guia e limites](roadmap/CAREER-PROBE.md).

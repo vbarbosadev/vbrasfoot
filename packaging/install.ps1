@@ -79,7 +79,7 @@ try {
         [IO.File]::Copy($manifestPath, (Join-Path $transaction 'manifest.before'), $false)
         $manifestBefore = (Get-FileHash -LiteralPath $manifestPath).Hash
     }
-    $nextManifest = [pscustomobject]@{ Version = '0.2.0'; Experimental = $true; Files = @($records | ForEach-Object { [pscustomobject]@{ Path = $_.Path; SHA256 = $_.After } }) }
+    $nextManifest = [pscustomobject]@{ Version = '0.3.1'; Experimental = $true; Files = @($records | ForEach-Object { [pscustomobject]@{ Path = $_.Path; SHA256 = $_.After } }) }
     $nextManifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $transaction 'manifest.after') -Encoding UTF8
     [pscustomobject]@{ Format = 1; Files = $records; ManifestBefore = $manifestBefore; ManifestAfter = (Get-FileHash -LiteralPath (Join-Path $transaction 'manifest.after')).Hash } |
         ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $transaction 'journal.json.tmp') -Encoding UTF8

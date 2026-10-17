@@ -1,5 +1,9 @@
 # SDK 0.2.0 — API major 1 (experimental)
 
+Contrato anterior preservado por compatibilidade. Novas consultas 0.3.0 em
+`SCOPED-QUERIES.md` adicionam handles com escopo; APIs por index abaixo continuam
+sem garantia entre carreiras. Eventos/persistencia por carreira ainda indisponiveis.
+
 Compile somente contra `vbrasfoot-api.jar`, com Java 17+. O build do inspetor usa
 somente esse JAR no classpath, sem classes do jogo/loader. API major 1 mantem os
 metodos anteriores; recursos novos exigem `minLoaderVersion=0.2.0`. A identidade

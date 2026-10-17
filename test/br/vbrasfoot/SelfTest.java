@@ -30,6 +30,24 @@ public final class SelfTest {
         rejects(() -> Main.Options.parse(new String[] {"--home"}), "missing option value");
         rejects(() -> Main.Options.parse(new String[] {"--check-save", "--safe-mode"}), "missing save path");
         rejects(() -> Main.Options.parse(new String[] {"--list-mods", "--validate-only"}), "conflicting modes");
+        check(Main.Options.parse(new String[] {"--validate-mod", "mod.jar"}).validateMod.equals(Path.of("mod.jar")), "individual mod validation");
+        rejects(() -> Main.Options.parse(new String[] {"--validate-mod", "mod.jar", "--safe-mode"}), "individual validation refuses safe mode");
+        rejects(() -> Main.Options.parse(new String[] {"--validate-mod", "mod.jar", "--probe-career-hooks"}), "individual validation refuses hooks");
+        Path modFixture = temp.resolve("uninitialized.jar");
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(modFixture))) {
+            jar.putNextEntry(new JarEntry("vbrasfoot.mod.properties"));
+            jar.write("id=fixture\nname=Fixture\nversion=1\napiVersion=1\ngameProfile=brasfoot22-23\nmainClass=br.vbrasfoot.UninitializedModFixture\n".getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+            jar.putNextEntry(new JarEntry("br/vbrasfoot/UninitializedModFixture.class"));
+            try (var bytes = SelfTest.class.getResourceAsStream("/br/vbrasfoot/UninitializedModFixture.class")) { bytes.transferTo(jar); }
+            jar.closeEntry();
+        }
+        var validator = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java.exe").toString(),
+                "-jar", Path.of("dist/vbrasfoot.jar").toAbsolutePath().toString(), "--validate-mod", modFixture.toAbsolutePath().toString())
+                .directory(temp.toFile()).redirectErrorStream(true).redirectOutput(temp.resolve("mod-validation.log").toFile()).start();
+        if (!validator.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)) { validator.destroyForcibly(); throw new AssertionError("validator fixture timed out"); }
+        check(validator.exitValue() == 0, "individual validator requires no game and never initializes mod");
+        check(!Files.exists(temp.resolve("vbrasfoot")), "individual validator writes no home/cache/session");
         Path good = manifest(temp.resolve("valid.jar"), "base", "", "game.read,ui.register", "brasfoot22-23");
         check(ModManifest.read(good).id().equals("base"), "manifest read");
         rejects(() -> ModManifest.read(manifest(temp.resolve("bad-profile.jar"), "bad", "", "game.read", "realbrasfoot26")), "profile mismatch");
@@ -116,6 +134,7 @@ public final class SelfTest {
         manifestText(evolved, evolvedText);
         check(ModManifest.read(evolved).optionalDependencies().equals(List.of("base")), "evolved manifest");
         ModManifest evolvedManifest = ModManifest.read(evolved);
+        check(evolvedManifest.requiredCapabilities().equals(Set.of("query.paged")), "required capabilities retained for validation report");
         check(ModLoader.ordered(Map.of("evolved", evolvedManifest)).size() == 1, "absent optional dependency accepted");
         check(ModLoader.ordered(Map.of("evolved", evolvedManifest, "base", entry("base", List.of()))).get(0).id().equals("base"), "optional dependency order");
         rejects(() -> ModLoader.ordered(Map.of("evolved", evolvedManifest, "other", entry("other", List.of()))), "explicit conflict");

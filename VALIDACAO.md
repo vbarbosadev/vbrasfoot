@@ -448,3 +448,107 @@ Pacote `dist/portable-career-dispatch-20261017` gerado; matriz portable aprovada
 completa; `probe-delivery.properties` da validacao registrou workerAlive=false,
 sem aceites/drops/falhas (nenhuma operacao de jogo executada nessa validacao).
 EXE/saves da origem e save corrente da copia mantiveram seus hashes anteriores.
+
+## Proxima entrega P2 — consultas com escopo 0.3.0
+
+Branch `feat/career-scoped-queries`, baseada na branch do PR #3 (ainda aberto ao
+iniciar). Identidade somente da sessao/encarnacao observada; nao identifica save
+permanentemente nem exige hooks/dispatcher. API major 1 preservada; SDK/loader
+e inspetor 0.3.0. Capacidade query.scoped e loader minimo explicitamente declarados.
+
+Testes locais Java 21:
+
+- Suites anteriores: **69 gerais, 13 tracking, 11 dispatcher, 13 bytecode** aprovados.
+- **16 testes de escopo**: raizes/listas/bridge trocados, handles expirados/forjados,
+  clube movido, capacidade limitada, erro tipado atravessando EDT e default antigo
+  recusando consultas scoped sem fabricar garantias.
+  Erros de shrink/modificacao concorrente da lista traduzidos para STATE_CHANGED,
+  sem afirmar protecao contra toda mutacao in-place.
+- `test-career-hooks.ps1`: **30 checks** nos metodos originais, frame sintetico,
+  incluida recusa de handle anterior apos reload e roots-reset, valores scoped
+  iguais a consulta atual legada. Fixture privada:
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-hook-io-094cf9be5ded4fa39376adcc69830052`.
+- `test.ps1 -IncludeUi -Save ...`: aprovado. Inspetor 0.3.0 compilado apenas contra
+  SDK publico; UI sintetica mostra valores e esvazia tabela/pede Atualizar ao
+  receber erro STALE_SCOPE. Isso testa tratamento da UI, nao troca real de carreira.
+- Offline do save atual aprovado, 8.395 clubes / 193.831 jogadores, bytes iguais;
+  primeiro clube scoped igual e handle do grafo anterior recusado. Relatorio privado
+  `verification/save-16314565127216860410/report.properties`.
+
+Registro fraco/LRU nao segura grafos antigos; ate 4.096 handles. Escopo conferido
+nas leituras da EDT, nao por polling de tela ou diagnostico descartavel. Checks de
+identidade/tamanho nao sao lock nem snapshot transacional: mutacoes in-place,
+A->B->A entre observacoes e carga parcial podem escapar (SCOPED-QUERIES.md).
+Nenhum evento novo, persistencia por carreira, schema/save alterado ou escrita de
+gameplay foi introduzido. Gates de P0/P3/P4/P6 continuam explicitos.
+
+Pacote `dist/portable-0.3.0-scoped-20261017` gerado e regressao portable aprovada
+(`build/portable-0.3.0-scoped.log`); fixture privada
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-4998f0a1da974132a368bfaa511902fc`.
+Pacote e inspetor atualizados somente na copia completa isolada e validacao normal
+aprovada sem hooks. EXE/saves da origem e save atual da copia permaneceram nos
+hashes anteriores. UI real 0.3.0 ainda requer confirmacao; nao foi iniciada neste passo.
+Revisao final do pacote (tratamento tipado de listas alteradas) gerada em
+`dist/portable-0.3.0-scoped-reviewed`, instalada na mesma copia e validada sem hooks.
+
+### Confirmacao do inspetor 0.3.0 na UI real
+
+Usuario confirmou carregar Flamengo e consultar jogadores com o inspetor 0.3.0,
+sem erro relatado. Sessao `session-b0a6492f-1316-403a-8fc2-431cf3d9b4db`
+conferida: mod 0.3.0 ativo, menu integrado, `careerHookProbe=false`, stderr vazio
+na leitura. EXE/saves da origem e save corrente da copia mantem hashes anteriores.
+Nao houve pedido de avancar/salvar; esta confirmacao nao testa troca de carreira,
+invalidation na UI real ou todos os gates de P2/P4.
+
+## Template independente e validador individual — 0.3.1
+
+PR #4 foi aceito na branch da sonda, nao main. Incremento scoped aprovado foi
+reaplicado sem alteracoes na nova branch `feat/mod-template-readonly` baseada na
+main apos #3. Este passo leva scopes + template ao proximo PR para main.
+
+- Template em `templates/read-only-mod`, com fontes, manifesto minimo, testes,
+  build apenas contra SDK, instalacao com preview/lock sem overwrite e licenca MIT.
+- `--validate-mod JAR`: independente do jogo/home; le manifesto e liga/verifica
+  mainClass publica/concreta/construtor sem inicializar mod. Nao prova seguranca,
+  comportamento ou conjunto de dependencias. `--validate-only` continua validando
+  conjunto instalado/perfil separado.
+- Teste em JVM filha propria usa mod com inicializador/constructor que falhariam
+  se executados; validacao passou sem jogo e sem criar home/cache/logs.
+- Loader/SDK 0.3.1 para distinguir o novo comando da versao 0.3.0; API major 1
+  preservada. Template exige loader minimo 0.3.1, somente game.read/ui.register.
+- Pacote inclui JAR publico, Javadocs gerados e template por allowlist de fontes;
+  build/dist/lib de desenvolvimento nunca entram na distribuicao do template.
+
+Executado Windows/Java 21:
+
+- **75 gerais, 13 tracking, 11 dispatcher, 16 scope, 13 bytecode sintetico**
+  aprovados, mais **7 testes independentes do template**. Template compila/testa
+  com somente API e suas proprias classes, sem jogo/loader no classpath.
+- `test.ps1 -IncludeUi`: suites e inspetor sintetico aprovados.
+- `release.ps1 -Output dist/portable-0.3.1-template`: Javadocs/pacote gerados.
+- `test-mod-template.ps1`: projeto copiado para fora do checkout, compilado,
+  testado, empacotado, validado individualmente, instalado/validado na fixture.
+  Preview nao escreve; lock ativo e JAR existente recusados; EXE intacto.
+  Fixture privada: `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-author-template-941e605dfb06426d91429ec651ade32d`.
+- Regressao portable aprovada; log `build/portable-0.3.1-template.log`, fixture
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-641a605ee47c4111bdcb729fe9f1a524`.
+
+Nao e teste independente feito por terceiro humano nem UI real do mod novo;
+template nao oferece eventos/persistencia por carreira/gameplay. P5 permanece
+parcial, apesar de fluxo automatizado independente aprovado.
+
+Revisao final `dist/portable-0.3.1-author-final`: relatorio individual e do conjunto
+inclui dependencias/opcionais/conflitos/capacidades/permissoes; manifestos retêm
+capacidades requeridas. Testes gerais agora 75, template 7, demais suites mantidas.
+Projeto independente final em `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-author-template-1e9ede77253d47eaa9b070fdc24d2bc8`;
+log `build/template-final.log`. Javadocs tambem sao validados no CI Java 17/21.
+
+Pacote anterior da mesma entrega (`portable-0.3.1-template-reviewed`) instalado
+somente na copia completa existente e JAR do novo mod copiado pelo instalador do
+template; conjunto com **inspetor + mod de consulta** passou em --validate-only.
+Nao inicializou a interface/mods nesse comando. Report do template usa textarea
+com scroll/tamanho limitado para nao abrir dezenas de linhas fora da tela.
+UI real do novo mod e usabilidade por autor terceiro ainda precisam de confirmacao.
+Loader final 0.3.1 tambem instalado na copia; conjunto com os dois JARs validado
+com relatorio de capacidades/dependencias. EXE/saves da origem e save da copia
+novamente conferidos, sem mudancas pelos comandos de build/instalacao/validacao.

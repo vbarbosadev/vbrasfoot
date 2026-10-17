@@ -1,4 +1,4 @@
-# Instalacao portable experimental — 0.2.0
+# Instalacao portable experimental — 0.3.1
 
 P0 ainda nao aprovado: primeiro use uma copia completa isolada do jogo. Os testes
 automatizados de instalacao nao substituem carregar/jogar/salvar/reabrir no original.
@@ -8,11 +8,14 @@ automatizados de instalacao nao substituem carregar/jogar/salvar/reabrir no orig
 Desenvolvedor (JDK 17+):
 
 ```powershell
-.\release.ps1 -Output .\dist\portable-0.2.0
+.\release.ps1 -Output .\dist\portable-0.3.1
 ```
 
 O destino deve ser novo. O pacote inclui loader, scripts, licenca MIT, hashes e
 JAR publico do SDK, sem classes/recursos do jogo, saves ou Java redistribuido.
+`sdk/javadoc/index.html` documenta a API; `sdk/template-read-only/` e um projeto
+independente para copiar, compilar/testar e empacotar um mod (leitura/interface).
+Teste reproduzivel: `test-mod-template.ps1 -Package <pacote>`, sem gameplay.
 Nao inclui mods automaticamente. Copie somente JARs confiaveis para
 `<jogo>\vbrasfoot\mods\` depois da instalacao.
 
@@ -86,7 +89,7 @@ do usuario permanecem. Nao faz remocao recursiva nem restaura saves.
 ## Testar o pacote
 
 ```powershell
-.\test-portable.ps1 -Package .\dist\portable-0.2.0
+.\test-portable.ps1 -Package .\dist\portable-0.3.1
 ```
 
 Usa fixture privada apenas com EXE correto; nao representa jogo completo nem testa

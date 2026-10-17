@@ -1,6 +1,7 @@
 package br.vbrasfoot;
 
 import br.vbrasfoot.api.GameAccess;
+import br.vbrasfoot.api.GameQueryException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,77 @@ import javax.swing.SwingUtilities;
 
 final class CareerBridge implements GameAccess {
     private final ClassLoader runtime;
+    private final QueryScopes scopes = new QueryScopes(4096);
     CareerBridge(ClassLoader runtime) { this.runtime = runtime; }
+
+    private record ReadState(Object primary, Object secondary, List<?> clubs, List<?> humans, CareerScope scope) {
+        boolean loaded() { return primary != null && secondary != null && !clubs.isEmpty() && !humans.isEmpty(); }
+    }
+    private ReadState readState() throws Exception {
+        Class<?> type = Class.forName("c.a", false, runtime);
+        Object primary = type.getField("SR").get(null), aux = type.getField("afQ").get(null);
+        List<?> clubs = primary == null ? null : (List<?>) call(primary, "P");
+        List<?> humans = primary == null ? null : (List<?>) call(primary, "aN");
+        CareerScope scope = scopes.observe(primary, aux, clubs, humans);
+        return new ReadState(primary, aux, clubs == null ? List.of() : clubs, humans == null ? List.of() : humans, scope);
+    }
+    private void unchanged(ReadState before) throws Exception {
+        if (!readState().scope().equals(before.scope())) throw new GameQueryException(GameQueryException.Reason.STATE_CHANGED, "Raizes/listas mudaram durante leitura; consulte novamente");
+    }
+    static <T> T scopedRead(Callable<T> action) {
+        return onEdt(() -> {
+            try { return action.call(); }
+            catch (IndexOutOfBoundsException | java.util.ConcurrentModificationException changed) {
+                throw new GameQueryException(GameQueryException.Reason.STATE_CHANGED, "Lista mudou durante leitura; consulte novamente");
+            }
+        });
+    }
+    @Override public ScopedClubPage scopedClubs(String filter, int offset, int limit) {
+        GameAccess.validatePage(offset, limit);
+        String query = filter == null ? "" : filter.toLowerCase(java.util.Locale.ROOT);
+        return scopedRead(() -> {
+            ReadState state = readState();
+            if (!state.loaded()) return new ScopedClubPage(false, state.scope(), List.of(), offset, 0);
+            int count = state.clubs().size(), total = 0;
+            List<ClubView> result = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                Object club = state.clubs().get(i);
+                String name = (String) call(club, "getNome");
+                if (!name.toLowerCase(java.util.Locale.ROOT).contains(query)) continue;
+                if (total++ >= offset && result.size() < limit) {
+                    ClubSummary summary = new ClubSummary(i, number(club, "gD"), name,
+                            state.humans().stream().anyMatch(h -> h == club), ((List<?>) call(club, "kc")).size());
+                    result.add(new ClubView(scopes.issue(state.scope(), i, club), summary));
+                }
+            }
+            unchanged(state);
+            if (state.clubs().size() != count) throw new GameQueryException(GameQueryException.Reason.STATE_CHANGED, "Lista de clubes mudou durante consulta");
+            return new ScopedClubPage(true, state.scope(), result, offset, total);
+        });
+    }
+    @Override public ScopedPlayerPage scopedPlayers(ClubRef reference, int offset, int limit) {
+        GameAccess.validatePage(offset, limit);
+        java.util.Objects.requireNonNull(reference, "club reference");
+        return scopedRead(() -> {
+            ReadState state = readState();
+            scopes.requireScope(reference.scope());
+            if (!state.loaded()) throw new GameQueryException(GameQueryException.Reason.NO_CAREER, "Nenhuma carreira ativa identificada pelo bridge");
+            int index = scopes.resolve(reference, state.clubs());
+            Object club = state.clubs().get(index);
+            List<?> players = (List<?>) call(club, "kc");
+            int count = players.size();
+            List<Player> result = new ArrayList<>();
+            for (int i = offset; i < count && result.size() < limit; i++) {
+                Object p = players.get(i);
+                result.add(new Player(number(p, "gD"), (String) call(p, "getNome"), number(p, "getIdade"),
+                        number(p, "getPosicao"), number(p, "fi"), number(p, "fk")));
+            }
+            unchanged(state);
+            scopes.resolve(reference, state.clubs());
+            if (call(club, "kc") != players || players.size() != count) throw new GameQueryException(GameQueryException.Reason.STATE_CHANGED, "Lista de jogadores mudou durante leitura");
+            return new ScopedPlayerPage(state.scope(), result, offset, count);
+        });
+    }
 
     private List<?> activeClubs() throws Exception {
         Object game = Class.forName("c.a", false, runtime).getField("SR").get(null);
@@ -113,6 +184,11 @@ final class CareerBridge implements GameAccess {
             FutureTask<T> task = new FutureTask<>(action);
             SwingUtilities.invokeAndWait(task);
             return task.get();
+        } catch (RuntimeException failure) { throw failure; }
+        catch (java.util.concurrent.ExecutionException failure) {
+            if (failure.getCause() instanceof RuntimeException runtimeFailure) throw runtimeFailure;
+            if (failure.getCause() instanceof Error error) throw error;
+            throw new IllegalStateException("Nao foi possivel consultar a carreira", failure.getCause());
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Consulta interrompida", interrupted);
