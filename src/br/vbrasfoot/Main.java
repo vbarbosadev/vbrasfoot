@@ -26,6 +26,12 @@ public final class Main {
         Options options = Options.parse(args);
         if (options.help) { help(); return; }
         if (options.validateMod != null) { ModValidator.inspect(options.validateMod); return; }
+        if (options.storageStatus) {
+            StorageInventory.Report report = StorageInventory.inspect(options.game, options.home);
+            report.print(System.out);
+            if (!report.complete()) throw new IllegalStateException("Inventario incompleto/recusado; consulte as acoes por categoria acima. Nenhum arquivo alterado.");
+            return;
+        }
         InstallPaths paths = InstallPaths.resolve(options.game, options.home);
         Path game = paths.gameRoot(), home = paths.installRoot();
         if (Files.exists(home.resolve(".update-pending"))) {
@@ -168,13 +174,14 @@ public final class Main {
         System.out.println("--check-save verifica uma copia privada com o Kryo original; nao inicia a interface do jogo.");
         System.out.println("--probe-career-hooks: sonda experimental opt-in de carregar/salvar (nao habilita eventos de mods).");
         System.out.println("--validate-mod JAR: valida manifesto/mainClass sem inicializar codigo; nao precisa do jogo nem grava cache/logs.");
+        System.out.println("--storage-status: inventario somente leitura do home existente; sem jogo/mods, logs/cache/backup ou limpeza.");
         System.out.println("--disable-mod nome.jar | --enable-mod nome.jar: selecao para proximo inicio, com jogo fechado; sem hot reload.");
         System.out.println("Avancado: --home PASTA --game-dir PASTA; apos --, argumentos do jogo.");
     }
 
     static final class Options {
         Path home = Path.of("vbrasfoot"), game = Path.of("Brasfoot22-23"), checkSave, validateMod;
-        boolean validate, list, safe, help, probe;
+        boolean validate, list, safe, help, probe, storageStatus;
         String manageMod;
         boolean enableMod;
         List<String> gameArguments = new ArrayList<>();
@@ -187,6 +194,7 @@ public final class Main {
                     case "--game-dir" -> result.game = Path.of(value(args, ++i));
                     case "--check-save" -> { result.checkSave = Path.of(value(args, ++i)); modes++; }
                     case "--validate-mod" -> { result.validateMod = Path.of(value(args, ++i)); modes++; }
+                    case "--storage-status" -> { result.storageStatus = true; modes++; }
                     case "--validate-only" -> { result.validate = true; modes++; }
                     case "--list-mods" -> { result.list = true; modes++; }
                     case "--disable-mod" -> { result.manageMod = value(args, ++i); result.enableMod = false; modes++; }
@@ -202,6 +210,7 @@ public final class Main {
             if (result.probe && (result.safe || result.list || result.checkSave != null)) throw new IllegalArgumentException("Sonda nao combina com modo seguro, listagem ou verificacao offline");
             if (result.validateMod != null && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Validacao individual de mod nao aceita modo seguro/sonda/argumentos do jogo");
             if (result.manageMod != null && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Selecao de mods nao aceita modo seguro/sonda/argumentos do jogo");
+            if (result.storageStatus && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Inventario nao aceita modo seguro/sonda/argumentos do jogo");
             return result;
         }
         private static String value(String[] args, int index) {

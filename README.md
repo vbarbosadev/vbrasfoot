@@ -1,5 +1,9 @@
 # vbrasfoot 0.4.5 (experimental)
 
+Inventario local sem iniciar jogo/mods ou criar logs: `java -jar dist/vbrasfoot.jar
+--storage-status --game-dir "C:\Jogo" --home "C:\Jogo\vbrasfoot"`.
+Somente categorias conhecidas, sem limpeza; [limites](roadmap/STORAGE-RETENTION.md).
+
 Codigo e documentacao originais sob a [licenca MIT](LICENSE).
 O jogo Brasfoot, seus recursos e dependencias de terceiros nao sao abrangidos
 por essa concessao. Veja [como contribuir](CONTRIBUTING.md).
