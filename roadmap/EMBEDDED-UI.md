@@ -1,4 +1,4 @@
-# SDK0.6.0 — painel dentro da janela do jogo (experimental)
+# SDK0.7.0 — painel dentro da janela do jogo (experimental)
 
 Declare minLoaderVersion=0.6.0, permissions=ui.register e
 requiredCapabilities=ui.panel.embedded. Para consultar dados, game.read e capacidades
@@ -48,6 +48,31 @@ de todo widget original ou garantia de todos renderers Swing/escala/acessibilida
 Mods podem configurar layout/renderers proprios respeitando dados da paleta.
 SDK/ZIP nao inclui nenhuma imagem/fonte/recurso binario do jogo. Original local
 e necessario so para jogar, nao compilar o exemplo. Tema e local a cada abertura.
+
+### Composicao visual por papeis (0.7.0)
+
+UiTheme.style(component, Role) distingue BODY/HEADER/TITLE/SECTION, botoes primario/
+secundario, INPUT/TABLE/STATUS. Composicao original sem assets: preto/carvao no
+cabecalho e rodape, branco no corpo, verde nas secoes/acoes e amarelo na selecao
+de tabela/status. Fonte deriva da fonte local, com hierarquia de tamanhos/peso.
+Paleta inspirada no jogo, nao amostragem pixel-perfect de todos controles originais.
+
+apply nao sobrescreve cores/fontes explicitas nao-UIResource e reaplica papeis
+marcados, preservando renderers/cabecalhos de tabela/selection colors. Use style em
+componentes proprios antes de montar painel; aplicar ao mesmo painel nao apaga
+estilos de titulo/secao/botao. Nao chama updateComponentTreeUI ou altera UIManager
+global, preferencias do jogo, bordas originais ou dados. Mod pode continuar usando
+estilos proprios; quem depende dessa preservacao deve exigir loader0.7.0.
+
+Comparador1.1.0 organiza filtro/clube/navegacao em linhas separadas por lado para
+evitar FlowLayout esconder filtros em telas menores. Resultado readonly separado
+e rodape de status. Preview/smoke sintetico inclui1920x1080 e1280x720; UI real,
+escala150% e demais layouts precisam confirmacao antes de anunciar suporte amplo.
+
+Referencia autorizada para consulta foi realbrasfoot-mods/PlayerSwapPanel.java:
+apenas principios visuais de header/corpo/secoes/rodape, sem copiar codigo, recursos,
+APIs/regras de transferencia ou nomes ofuscados de outro perfil. Licenca explicita
+nao encontrada nessa arvore; nenhuma incorporacao de fonte dela neste projeto.
 
 ## Exemplo e evidencias
 

@@ -1192,3 +1192,35 @@ quatro projetos compilados API-only e validados, no-init/JSON/namespace/allowlis
 hash/negatives aprovados em fixture privada
 Temp/opencode/vbrasfoot-sdk-author-d4b3d3e0e2b24230b67c0cf1375d79f3.
 Logs embedded-sdk-test.log/embedded-ui-validation.log ignorados. Sem publicacao.
+
+## UI0.7.0 — revisao visual, nao so paleta global
+
+Usuario confirmou UI0.6 integrada/voltar funcionando e pediu visual mais proximo.
+Consulta read-only da referencia realbrasfoot-mods revelou composicao de header/
+body/secoes/footer; nenhuma licenca explicita localizada. Nao copiar codigo,
+assets ou logica de transferencia; nova implementacao original com Swing padrao.
+
+UiTheme.Role/style distingue9papeis. apply preserva cores/fontes nao-UIResource
+explicitas, nao apaga roles e configura JTable header/rowHeight/selection, sem
+alterar UIManager/global/gamecomponents. Comparador1.1.0/loader0.7.0 reorganiza
+dois lados/busca/clube/navegacao, resultado e rodape. Modelo/consultas inalterados.
+
+Cinco checks puros roles/thread/style preservation; smoke integrado compara,
+preserva content/bounds/glass/voltar e verifica controles principais dentro da
+area1280x720. Capturas PNG originais fake-only em build/embedded-style-preview-UUID
+e embedded-style-small-UUID, nao screenshots do jogo/save. A causa estetica e
+avaliacao humana, nao prometer pixel-perfect ou matriz completa a partir do smoke.
+Primeira compilacao detectou chave final extra, corrigida antes dos testes.
+Logs locais style-roles-validation.log ignorados; jogo do usuario observado aberto,
+nenhum processo encerrado e instalacao adiada enquanto houver sessao ativa.
+
+Regressao final: test.ps1 -IncludeUi aprovado, previews sinteticos gerados e
+inspecionados, controles de voltar/atualizar/escolher dentro da area1280x720.
+Tabela resultado mantem espaco minimo e navegacao/rotulos compactados para essa
+altura. Source/consulta nao mudou para atingir visual.
+Portable dist/portable-0.7.0-style-final gerado/regressao aprovada em fixture
+Temp/opencode/vbrasfoot-install-87be4ff9cc254348808391eb7bf6240b.
+SDK dist/sdk-0.7.0-style-final.zip extraido fora do checkout com quatro projetos
+API-only aprovados em Temp/opencode/vbrasfoot-sdk-author-7bde158169ab436c8964453851edc318.
+Sem publicacao/tag/upload; jogo posteriormente observado fechado, instalacao
+requer novo preflight e backup do comparador anterior conhecido.
