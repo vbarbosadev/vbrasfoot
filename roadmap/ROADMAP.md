@@ -463,3 +463,15 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   incluindo fixture que falharia se inicializada. CI Java 17/21 sem jogo ampliado.
 - Publicacao revisada e autor terceiro humano continuam gates separados. Detalhes
   SDK-DISTRIBUTION.md; nao fechar MVP/roadmap por resultados sinteticos.
+
+### P2/P7 — consultas medidas e cache de getters (0.4.5)
+
+- #11 integrado antes da nova branch. Runner read-only em copia privada, decode
+  original com frame sintetico, sem save/simulacao ou hooks habilitados.
+- Baseline 8.395 clubes/193.831 jogadores: paginas de clubes alocavam 1,8–2,3 MB
+  por chamada. Cache ClassValue de getters reduziu pagina100 de ~1,92 MB para
+  ~0,55 MB; p95 local 5,938 ms -> 2,366/3,089 ms em duas execucoes.
+- Elenco maximo observado 52 jogadores; limite500 nao equivale a retorno500.
+  Orcamento de referencia local e limites/outliers em QUERY-PERFORMANCE.md.
+- Testes de estatisticas/cache e schemas/queries originais; memoria amostrada nao
+  e memoria retida/leak proof, fixture nao e UI completa. P7 permanece parcial.

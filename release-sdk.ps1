@@ -39,7 +39,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar validador sem loader/jogo' }
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar validador isolado' }
 Copy-Source (Join-Path $PSScriptRoot 'LICENSE') 'LICENSE'
 Copy-Source (Join-Path $PSScriptRoot 'sdk-tools\verify-sdk.ps1') 'verify.ps1'
-foreach ($name in @('SDK-QUICKSTART.md','SDK-COMPATIBILITY.md','SDK-DISTRIBUTION.md','SDK-CONTRACT.md','SCOPED-QUERIES.md','CAREER-OBSERVATIONS.md','MOD-MANAGEMENT.md','DIAGNOSTIC-EXPORT.md')) { Copy-Source (Join-Path $PSScriptRoot "roadmap\$name") "docs\$name" }
+foreach ($name in @('SDK-QUICKSTART.md','SDK-COMPATIBILITY.md','SDK-DISTRIBUTION.md','SDK-CONTRACT.md','QUERY-PERFORMANCE.md','SCOPED-QUERIES.md','CAREER-OBSERVATIONS.md','MOD-MANAGEMENT.md','DIAGNOSTIC-EXPORT.md')) { Copy-Source (Join-Path $PSScriptRoot "roadmap\$name") "docs\$name" }
 foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src\br\exemplo\consulta\ReadOnlyMod.java','test\br\exemplo\consulta\ReadOnlyModTest.java')) { Copy-Source (Join-Path $PSScriptRoot "templates\read-only-mod\$relative") "template-read-only\$relative" }
 foreach ($relative in @('README.md','LICENSE','build.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\observer\CareerObserverMod.java','test\br\vbrasfoot\observer\CareerObserverModTest.java')) { Copy-Source (Join-Path $PSScriptRoot "examples\career-observer\$relative") "examples\career-observer\$relative" }
 & javadoc --release 17 -encoding UTF-8 -quiet '-Xdoclint:all,-missing' -d (Join-Path $root 'javadoc') -sourcepath (Join-Path $PSScriptRoot 'src') br.vbrasfoot.api

@@ -1,4 +1,4 @@
-# vbrasfoot 0.4.4 (experimental)
+# vbrasfoot 0.4.5 (experimental)
 
 Codigo e documentacao originais sob a [licenca MIT](LICENSE).
 O jogo Brasfoot, seus recursos e dependencias de terceiros nao sao abrangidos
@@ -30,6 +30,8 @@ Diagnostico local com previa editavel e opt-ins: [guia de exportacao](roadmap/DI
 e [geracao/verificacao do ZIP](roadmap/SDK-DISTRIBUTION.md).
 `release-sdk.ps1` gera pacote/API/validador/Javadocs; `test-sdk-package.ps1` verifica
 e compila os exemplos fora do checkout. Nao publica release ou baixa dependencias.
+Medicao read-only numa carreira grande e cache de getters 0.4.5:
+[metodo/resultados/limites](roadmap/QUERY-PERFORMANCE.md). Sem prometer latencia universal.
 
 ```powershell
 .\templates\read-only-mod\build.ps1 -Sdk .\dist\vbrasfoot-api.jar

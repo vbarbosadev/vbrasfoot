@@ -1,4 +1,4 @@
-# SDK 0.4.4 — API major 1 (experimental)
+# SDK 0.4.5 — API major 1 (experimental)
 
 [Primeiro mod sem checkout](SDK-QUICKSTART.md) · [Compatibilidade](SDK-COMPATIBILITY.md).
 
@@ -78,7 +78,9 @@ seu uso em novas interfaces. O inspetor 0.2.0 usa filtro/paginas de 100 clubes e
 mostra ate 500 jogadores do clube selecionado, com limite informado na interface.
 Consultas paginadas tambem executam leitura na EDT,
 para nao ler objetos legados concorrentemente; a varredura de clubes ainda e linear.
-Nao ha orcamento de desempenho aprovado sem medicao em sessao real.
+Ha medicao local de queries com decode original/frame sintetico e orcamento de
+referencia em [QUERY-PERFORMANCE.md](QUERY-PERFORMANCE.md), nao aprovado para toda
+UI/hardware. Varredura de clubes continua linear; alocacao nao equivale a heap retido.
 
 ## Lifecycle e threads
 

@@ -812,3 +812,59 @@ nao promessa de ZIP identico entre horarios/JDKs. Javadocs preservam avisos lega
 EXE/saves da origem e save corrente da copia hashados e intactos. Publicacao revisada
 do SDK e usabilidade por autor terceiro humano ainda pendentes; API experimental
 nao e aceite integral P5/P7 nem avanco de identidade P3/lifecycle completo/P6.
+
+## P2/P7 parcial — benchmark read-only e cache de getters 0.4.5
+
+#11 integrado na main como c2b524c antes da nova branch `feat/scoped-query-performance`;
+CI main Java 17/21 aprovado. SDK/loader 0.4.5, API major 1/formatos de save inalterados.
+Runner `benchmark-queries.ps1` usa EXE/save conhecidos em copia privada nova, sem
+hooks/simulacao/gravar carreira. Decode original usa frame sintetico, nao UI completa.
+
+Fixture de baseline 0.4.4:
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-query-benchmark-b96ef05ec6744b498b3abb367c975987`.
+Runs cache A/B 0.4.5:
+`vbrasfoot-query-benchmark-4f35a5ba80634b9e8baeafa405b34bd0` e
+`vbrasfoot-query-benchmark-2b3f215156c44ebd8b2ba084b9156d12` no mesmo Temp/opencode.
+Cada cenario tem 20 aquecimentos e 100 amostras; Java21.0.12, Xmx1536m, 12 CPUs
+logicas, **8.395 clubes / 193.831 jogadores**. Input/exe da fixture e origem intactos.
+Reports privados query-benchmark.properties/log nao redistribuidos; nomes de clube,
+jogador e filtro nao serializados no report.
+
+- Pagina100 clubes p95 EDT baseline **5,938 ms**, A **2,366**, B **3,089**;
+  alocacao EDT p95 **1.918.688 -> 546.048 bytes** (~72% menor na cobertura local).
+- Filtrada com 1 resultado: p95 **4,506 -> 1,669/2,024 ms**, alocacao
+  **1.816.000 -> 471.872 bytes**. Pagina500 com 500 resultados: p95
+  **5,048 -> 2,008/2,402 ms**, alocacao **2.333.632 -> 829.696 bytes**.
+- Outlier pagina100 baseline 9,912 ms vs A12,323/B4,023; nao concluir maximo garantido.
+- Baseline jogadores retornava25, runs novos escolhem maior elenco observado52;
+  nao comparar percentual entre esses grupos nem tratar limit500 como500 retornos.
+- Tempos de preparo/decode nao sao startup completo, heap amostrado nao e RSS ou
+  memoria retida; contador de alocacao e so EDT. Nao houve forced GC.
+- Orcamentos locais propostos (nao enforce/CI universal): p95 EDT <=8ms clubes,
+  <=1ms para elenco52 observado e alocacao EDT <=1MiB clubes. Metodo/limites e
+  tabela completa em QUERY-PERFORMANCE.md; gate P7 global continua aberto.
+
+Cache por ClassValue e mapa concorrente de getters publicos evita getMethod a cada
+campo, sem cache de objetos da carreira/mapa global forte de classloaders. Teste
+cobre classes distintas, mesmo nome em dois loaders, falha/missing e concorrencia;
+nao e prova exaustiva de ausencia de leak. Cinco checks de percentis/estatisticas
+sem mutar amostras aprovados. Demais suites 78 gerais, 35 selecao, 23 falhas, 41
+exportacao, 13 tracking, 11 dispatcher, 22 lifecycle, 33 observacoes, 16 scope,
+15 bytecode, 7 template e fake SDK-only do observador aprovados.
+
+- `test.ps1 -IncludeUi` aprovado (UI sintetica, sem nova confirmacao humana).
+- `test-career-hooks.ps1`: **44 checks originais** com cache/schema/ref stale/I/O
+  e observador SDK-only aprovados na fixture privada
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-hook-io-099c0a51e93a412a8390dafdfbe20dc4`.
+- SDK-only 0.4.5 gerado/testado fora do checkout; fixture
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-sdk-author-026f681ba34a413ab365637b817cbe4b`.
+  Pacote dist/sdk-0.4.5-query-reviewed.zip; sem tag/release/upload.
+- Portable dist/portable-0.4.5-query-reviewed gerado; template e CLI instalados em
+  fixtures privadas `vbrasfoot-author-template-c724490371f9494c83355cd721c20df8` e
+  `vbrasfoot-mod-management-9c6afadbdab44441b3830f43fb2c06ea` (Temp/opencode).
+- Regressao portable sequencial aprovada em `vbrasfoot-install-f4c6878670e4492cb33b57b23cfc791b`;
+  log build/portable-0.4.5-query-reviewed.log, GameDir explicito.
+
+Hashes EXE/saves da origem e save corrente da copia novamente intactos. Leitura
+scoped otimizada nao fecha identidade P3, unload/eventos completos, gameplay ou
+memoria/latencia universal. Matriz Java17/UI real/multimods/mais carreiras segue pendente.
