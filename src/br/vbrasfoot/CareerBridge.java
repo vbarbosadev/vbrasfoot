@@ -10,6 +10,12 @@ import java.util.concurrent.FutureTask;
 import javax.swing.SwingUtilities;
 
 final class CareerBridge implements GameAccess {
+    // ClassValue associates public getter caches with the defining class, without a global strong classloader map.
+    private static final ClassValue<java.util.concurrent.ConcurrentHashMap<String, java.lang.reflect.Method>> getters = new ClassValue<>() {
+        @Override protected java.util.concurrent.ConcurrentHashMap<String, java.lang.reflect.Method> computeValue(Class<?> type) {
+            return new java.util.concurrent.ConcurrentHashMap<>();
+        }
+    };
     private final ClassLoader runtime;
     private final QueryScopes scopes = new QueryScopes(4096);
     CareerBridge(ClassLoader runtime) { this.runtime = runtime; }
@@ -171,7 +177,15 @@ final class CareerBridge implements GameAccess {
     }
 
     static Object call(Object target, String name) throws Exception {
-        try { return target.getClass().getMethod(name).invoke(target); }
+        Class<?> type = target.getClass();
+        var cache = getters.get(type);
+        java.lang.reflect.Method method = cache.get(name);
+        if (method == null) {
+            method = type.getMethod(name);
+            java.lang.reflect.Method existing = cache.putIfAbsent(name, method);
+            if (existing != null) method = existing;
+        }
+        try { return method.invoke(target); }
         catch (InvocationTargetException failure) {
             throw new IllegalStateException("Falha no acesso legado " + name, failure.getCause());
         }
