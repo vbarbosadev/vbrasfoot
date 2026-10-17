@@ -1,8 +1,22 @@
 # Roadmap — vbrasfoot como plataforma de mods do Brasfoot22-23
 
-Data: 16/10/2026  
-Estado: planejamento; os itens abaixo nao estao implementados, exceto quando identificados como existentes.  
+Data: reconciliado em 17/10/2026 (historico iniciado em 16/10/2026).
+
+Estado: implementacao experimental parcial; nenhuma fase integralmente aceita.
+
 Documento do projeto: `vbrasfoot/roadmap/ROADMAP.md`.
+
+**Como ler:** `[x]` indica a entrega delimitada descrita no item, nao aceite da fase.
+`[ ]` indica trabalho ou cobertura ainda pendente; pode haver implementacao parcial.
+Codigo implementado, teste automatizado, confirmacao humana na UI real e aceite
+de release sao evidencias diferentes. A matriz abaixo e o estado atual; os
+incrementos da secao 6 preservam o estado historico de cada rodada, inclusive
+pendencias depois resolvidas. Nao somar checkboxes em percentual global.
+
+Fontes: `../VALIDACAO.md`, contratos/guias desta pasta e fontes do loader/packaging.
+PR #13 integrado como `ad9f6a8`, conforme informado pelo usuario; o incremento de
+contexto foi inspecionado no checkout. Integracao nao significa nova release,
+instalacao na copia isolada ou teste real desse incremento.
 
 ## 1. Objetivo e definicao de pronto
 
@@ -18,8 +32,9 @@ O usuario deve conseguir:
 6. Voltar ao executavel original sem precisar desfazer patches no jogo.
 7. Desenvolver mods usando um SDK documentado, exemplos e testes reproduziveis.
 
-**Dois marcos de prontidao:**
+**Tres marcos de prontidao** (criterios e pendencias em [RELEASE-GATES.md](RELEASE-GATES.md)):
 
+- **Experimental de leitura/interface:** pacote/SDK e menu para consultas delimitadas, com limitacoes e evidencia real identificadas. Nao exige antecipar P3/P4/P6 nem equivale ao MVP; publicacao revisada ainda pendente.
 - **MVP para criar mods de leitura/interface/eventos:** fases P0 a P5, mais os gates correspondentes de P7.
 - **Plataforma pronta para mods que alteram gameplay:** inclui P6 e todos os gates de P7. Nao anunciar suporte a escrita antes disso.
 
@@ -35,6 +50,16 @@ O usuario deve conseguir:
 - Tratar mods Java como codigo confiavel: permissoes da API nao sao uma sandbox.
 - Nunca encerrar uma sessao do usuario para atualizar o JAR. Solicitar fechamento e respeitar progresso nao salvo.
 - Toda conclusao sobre compatibilidade deve dizer quais testes realmente foram executados.
+- Hashes comprovam integridade em relacao a uma referencia, nao autenticidade da origem nem seguranca de scripts/JARs. Distribuicao exige origem confiavel e revisao de supply-chain.
+- Limites por sessao nao sao retencao total de disco. Limpeza exige previa revisada e escopo gerenciado; nunca apagar saves ou restaurar backups automaticamente.
+
+### Escopo do menu e das extensoes
+
+O menu interno de mods/diagnostico e parte do loader, nao uma reescrita dos menus
+originais. Consultas e observacoes experimentais nao prometem transferencias,
+contrapropostas, leiloes ou outras extensoes de gameplay. Essas extensoes originais
+opcionais sao projetos posteriores por capacidade de P6, com evidencias proprias
+do Brasfoot22-23; nao sao gates novos para o marco experimental nem para o MVP.
 
 ## 3. Base existente e lacunas confirmadas
 
@@ -54,16 +79,29 @@ O usuario deve conseguir:
 
 - O launcher agora aceita exclusivamente `gameRoot/vbrasfoot` como home interno; o pacote experimental ainda depende dos gates reais de P0/P1.
 - Os scripts de desenvolvimento dependem de diretorios irmaos; os launchers do pacote portable usam a propria localizacao.
-- O menu interno foi implementado em `a.eg.ve`, junto a `HX`/Opcoes, mas a versao mais recente ainda precisa de confirmacao visual na sessao real.
+- Menu/inspetor foram confirmados na UI real; painel/selecao 0.4.1 e exportacao 0.4.3 tambem tiveram confirmacao humana. Nao extrapolar isso para toda UI 0.4.5 ou para o incremento de contexto apos 0.4.5.
 - O teste antigo encontrou 8.395 clubes e 193.831 jogadores com snapshots iguais,
   mas bytes diferentes. A primeira diferenca foi localizada na normalizacao de
   referencias de String vazia pelo Kryo; comparacao dos campos serializados dos
   dois grafos nao encontrou divergencias na cobertura implementada. As demais
   diferencas nao foram atribuidas byte a byte (ver `SAVE-ANALYSIS.md`).
 - O round-trip offline nao equivale a jogar, salvar e reabrir pelo executavel original.
-- Nao ha eventos reais de partida/temporada, dados vinculados a carreira, API de escrita nem politica completa de conflitos.
+- Ha observacoes publicas experimentais opt-in de leitura/escrita primaria/invalidation; nao equivalem a CareerLoaded/Unloaded/Saved completos. Nao ha eventos de partida/temporada, dados vinculados a carreira, API de escrita de gameplay nem politica completa de conflitos de mutacao.
 - Dependencias ordenam inicializacao; nao fornecem importacao de classes privadas entre mods.
-- Logs iniciais e erros nao tratados do jogo ainda nao estao consolidados em um diagnostico unico por sessao.
+- Diagnostico por sessao captura streams a partir de sua abertura e o handler legado observado imprime no stderr. Falhas anteriores, mensagens exclusivas de erros.log e threads arbitrarias nao sao consolidadas exaustivamente.
+
+### Matriz de evidencia atual (nao aceite de fase)
+
+| Fase | Implementado | Automatizado / artefato original | UI real / humano | Aceite e lacunas |
+|---|---|---|---|---|
+| P0 | Menu, diagnostico limitado, fechamento sem EDT, verificador | Swing/JVMs filhas; round-trip e comparador delimitado | Usuario confirmou normal/seguro, avancar/salvar/reabrir original, 1280x720; captura 1920x1080 | Parcial: escalas, comparacao semantica ampla e encerramentos completos |
+| P1 | Paths, portable, preflight, manifesto, journal/recuperacao, uninstall | Fixtures com espacos/acentos/mover/ACL/locks/junctions; interrupcao sintetica | Launcher instalado usado na copia completa | Parcial: dependencia do checkout indisponivel na sessao real, JVMs anunciadas e falhas durante escrita |
+| P2 | Manifesto, estados, ownership/contexto, paginas/scopes | SDK-only, falhas/cleanup sinteticos; benchmark read-only com frame sintetico | Inspetor scoped 0.3.0 confirmado | Parcial: leitura ampliada, cancelamento e limites de lifecycle; benchmark nao mede toda UI/leak |
+| P3 | Somente dados globais; scope nao e identidade persistente | Nenhuma suite de sidecars por carreira | Nenhum teste de duas carreiras/sidecars | Bloqueado por lifecycle confiavel de P4; identidade/migracoes/recuperacao pendentes |
+| P4 | Mapeamento, hooks/guard e observacoes opt-in limitados | Bytecode + 44 checks de I/O original com frame sintetico | Load/save da sonda e abertura/consulta do guard confirmados; observador SDK nao testado nessa UI | Parcial: criar/trocar/descarregar, eventos completos, durabilidade/entrega para P3 |
+| P5 | Starter, validador, painel, selecao, falhas, exportacao, ZIP SDK-only | Fluxo independente fora do checkout/CI, Swing e fixtures | Painel disable/reinicio/enable 0.4.1 e exportacao 0.4.3 confirmados | Terceiro humano e publicacao revisada pendentes; exemplos de carreira/partida dependem de P3/P4 |
+| P6 | Nenhuma API de mutacao de gameplay | Nenhum teste de capacidade de escrita | Nenhum | Bloqueado por P0-P5 aceitas, especialmente P4 -> P3 |
+| P7 | CI Java 17/21 sintetico, artefatos locais, validacoes parciais | Recuperacao/SDK/performance com cobertura declarada | Sessoes anteriores delimitadas acima | Matriz/release nao aceitas; autenticidade, retencao e manutencao devem ser fechadas para distribuicao anunciada |
 
 ## 4. Layout de instalacao proposto
 
@@ -90,7 +128,7 @@ Brasfoot22-23/
     install-manifest.json       # arquivos gerenciados, versoes e hashes
 ```
 
-O projeto-fonte continua em `realfoot-descompacted/vbrasfoot/`. A pasta instalada em `Brasfoot22-23/vbrasfoot/` e uma distribuicao, nao uma copia do repositorio inteiro. Os nomes exatos dos arquivos de configuracao podem ser fechados em P1; a separacao entre recursos gerenciados e dados do usuario e obrigatoria.
+O projeto-fonte continua em `realfoot-descompacted/vbrasfoot/`. A pasta instalada em `Brasfoot22-23/vbrasfoot/` e uma distribuicao, nao uma copia do repositorio inteiro. O layout acima permanece alvo: hoje dados globais ficam em `data/<mod-id>/` por compatibilidade; `careers/` depende de P3 e `diagnostics/` guarda exportacoes locais. Nao confundir diretorios propostos com funcionalidades entregues.
 
 Duplo clique em `bf22-23.exe` continua abrindo o jogo original, sem mods. O usuario abre `vbrasfoot.cmd` para carregar os mods; nao prometer carregamento pelo EXE original sem um mecanismo adicional explicitamente aprovado.
 
@@ -100,8 +138,8 @@ Prioridade: bloqueante. Dependencias: nenhuma.
 
 - [x] Confirmar o botao vbrasfoot na barra interna da tela do elenco, sem barra externa adicional. (Captura real teste02-inspetor.png; outras resolucoes/escala ainda pendentes.)
 - [ ] Testar resolucoes menores/maiores, escala do Windows, troca de telas e recriacao do painel. (1920x1080 em captura; 1280x720 e troca de tela confirmados pelo usuario; escala nao informada e matriz completa ainda pendente.)
-- [ ] Garantir que nenhum botao original seja ocultado, deslocado para fora da area util ou sobrescrito. Definir alternativa integrada se faltar espaco.
-- [ ] Registrar no diagnostico Java utilizado, argumentos, perfil, etapas da inicializacao e instalacao do menu.
+- [ ] Garantir que nenhum botao original seja ocultado, deslocado para fora da area util ou sobrescrito. Definir alternativa integrada se faltar espaco. (Usuario confirmou acessibilidade em 1280x720; nao fecha escalas/matriz completa.)
+- [x] Registrar no diagnostico Java utilizado, argumentos, perfil, etapas da inicializacao e instalacao do menu. (SessionDiagnostics e logs reais; nao captura falhas anteriores a abertura.)
 - [ ] Capturar stdout/stderr desde o inicio, inclusive falhas anteriores ao FileHandler e excecoes tratadas pelo handler legado, sem duplicar logs indefinidamente.
 - [ ] Verificar encerramento por fechar janela e por `System.exit`; evitar hooks que esperem pela EDT enquanto ela encerra a JVM.
 - [x] Executar uma sessao em **copia completa e isolada** do jogo: carregar carreira existente, consultar, avancar, salvar, fechar e reabrir no EXE original. (Sucesso confirmado pelo usuario; hashes/logs e verificacao offline conferidos. Capturas finais/dados numericos nao fornecidos.)
@@ -116,14 +154,14 @@ Prioridade: bloqueante. Dependencias: nenhuma.
 Prioridade: bloqueante para distribuicao. Dependencias: P0.
 
 - [x] Separar explicitamente `gameRoot`, `installRoot` e caminhos de dados.
-- [ ] Substituir a proibicao geral de `home` interno por validacao especifica: aceitar `gameRoot/vbrasfoot`, rejeitar sobreposicao com `sav`, `teams`, executavel e demais recursos originais; verificar caminhos canonicos, junctions e links antes de escrita.
+- [x] Substituir a proibicao geral de `home` interno por validacao especifica: aceitar `gameRoot/vbrasfoot`, rejeitar sobreposicao com `sav`, `teams`, executavel e demais recursos originais; verificar caminhos canonicos, junctions e links antes de escrita. (InstallPaths/packaging; testes de redirects delimitados, sem sandbox contra troca concorrente de caminhos.)
 - [x] Criar pacote de release que contenha somente arquivos do vbrasfoot e licencas de dependencias redistribuiveis.
 - [x] Criar instalador portable, por exemplo `install.ps1 -GameDir <pasta>`, com modo de previsualizacao.
 - [x] Instalar launchers que resolvam os caminhos pela propria localizacao e iniciem com o diretorio de trabalho real do jogo.
 - [x] Centralizar os argumentos JVM necessarios para que modo normal, seguro e diagnostico usem a mesma compatibilidade.
 - [ ] Definir runtime Java suportado. Usuario final precisa apenas do runtime; JDK fica para desenvolvedores. Se empacotar Java, revisar licenca, fornecedor, versao e atualizacoes de seguranca.
-- [ ] Verificar espaco livre, permissao de escrita, versao do jogo e existencia de sessao aberta antes de instalar/atualizar.
-- [ ] Registrar arquivos gerenciados em manifesto. Atualizar apenas esses arquivos; preservar mods, configuracoes, backups e dados do usuario.
+- [x] Verificar espaco livre, permissao de escrita, versao do jogo e existencia de sessao aberta antes de instalar/atualizar. (Preflight/reserva, locks/processos conservadores e falha ACL testados; ENOSPC durante escrita pendente.)
+- [x] Registrar arquivos gerenciados em manifesto. Atualizar apenas esses arquivos; preservar mods, configuracoes, backups e dados do usuario. (Journal/staging e recuperacao explicita implementados; atomicidade por arquivo, nao por release.)
 - [x] Implementar desinstalacao com previsualizacao, preservando dados por padrao e sem remocao recursiva ampla da pasta do jogo.
 - [x] Manter modo seguro acessivel mesmo quando um mod/JAR esta quebrado.
 - [ ] Testar instalacao, atualizacao, reinstalacao e mudanca de local com caminhos contendo espacos e acentos, sem privilegios administrativos.
@@ -135,15 +173,17 @@ Prioridade: bloqueante para distribuicao. Dependencias: P0.
 Prioridade: alta. Dependencias: P0; pode ser projetada enquanto P1 e implementada.
 
 - [x] Versionar API/SDK e definir compatibilidade entre loader, perfil do jogo e mods.
-- [ ] Evoluir o manifesto com versao/range da API, versao minima do loader, dependencias obrigatorias/opcionais, conflitos e capacidades requeridas.
+- [x] Evoluir o manifesto com versao/range da API, versao minima do loader, dependencias obrigatorias/opcionais, conflitos e capacidades requeridas. (Intervalo de major inteiro, nao range SemVer; dependencias por ID, nao por versao.)
 - [x] Preservar ou migrar explicitamente o formato atual; rejeitar campos/versoes incompatíveis com mensagens acionaveis.
-- [ ] Definir estados do ciclo de vida: descoberto, validado, inicializado, ativo, falhou, desativado e encerrado.
-- [ ] Definir threads permitidas, descarte de assinaturas, cancelamento e remocao de componentes da interface.
+- [x] Definir estados do ciclo de vida: descoberto, validado, inicializado, ativo, falhou, desativado e encerrado. (Estados do loader documentados; desativado e selecao para proximo inicio, nao callback DISABLED/hot reload.)
+- [ ] Definir threads permitidas, descarte de assinaturas, cancelamento e remocao de componentes da interface. (Threads/ownership/revogacao/cleanup implementados e testados; cancelamento de operacoes ja iniciadas e threads do mod nao garantidos; System.exit nao garante shutdown de mods.)
 - [x] Nao expor nomes ofuscados, referencias mutaveis do jogo ou classloaders internos na API publica.
 - [x] Documentar estabilidade dos IDs de clubes/jogadores e como identifica-los em snapshots de carreiras diferentes.
-- [x] Adicionar consultas paginadas/filtradas; evitar copiar os quase 194 mil jogadores a cada acao na EDT. (API/bridge e inspetor usam paginas; falta medicao do orcamento real.)
+- [x] Adicionar consultas paginadas/filtradas; evitar copiar os quase 194 mil jogadores a cada acao na EDT. (Paginas/scopes e benchmark local 0.4.5; orcamento de referencia em QUERY-PERFORMANCE.md, nao aceite universal de UI/memoria.)
 - [ ] Ampliar leitura conforme evidencias: carreira, clube humano, calendario, competicoes, partidas, financas e historicos.
 - [ ] Introduzir registro de servicos publicos entre mods, se necessario, em vez de compartilhar suas classes privadas indiscriminadamente.
+
+Registro de servicos e condicional a necessidade demonstrada, nao gate obrigatorio novo.
 
 **Aceite:** mod compilado apenas contra o SDK consegue consultar e apresentar dados, sem dependencia das classes do jogo nem do codigo-fonte do loader.
 
@@ -169,8 +209,8 @@ Prioridade: alta. Dependencias: P0 e P2.
 
 - [ ] Mapear com REA e inspecao de bytecode as rotinas de carregar, salvar, simular partida, avancar calendario, concluir transferencia e mudar temporada.
 - [ ] Corroborar os pontos escolhidos com execucao controlada numa copia do jogo. Registrar identidade do artefato e evidencias de cada hook.
-- [ ] Definir a tecnica de integracao de forma explicita. Preferir hooks em corpos de metodos, somente em memoria, sem alterar nomes, campos, hierarquia ou schemas serializados.
-- [ ] Validar assinaturas/fingerprints antes de aplicar qualquer hook. Se o perfil divergir, recusar a capacidade e informar o motivo; nao executar hook por tentativa.
+- [x] Definir a tecnica de integracao de forma explicita. Preferir hooks em corpos de metodos, somente em memoria, sem alterar nomes, campos, hierarquia ou schemas serializados. (Sonda opt-in de c.a; nao contrato estavel de producao para qualquer JDK.)
+- [x] Validar assinaturas/fingerprints antes de aplicar qualquer hook. Se o perfil divergir, recusar a capacidade e informar o motivo; nao executar hook por tentativa. (Sites/hash exatos da sonda atual; novos hooks exigem validacao propria.)
 - [ ] Implementar primeiro `CareerLoaded`, `CareerUnloaded` e `CareerSaved`.
 - [ ] Implementar depois `MatchFinished`, `DayAdvanced`, `TransferCompleted` e `SeasonFinished`, apenas onde houver evidencias e testes suficientes.
 - [ ] Documentar semantica de cada evento: inicio/conclusao, thread, IDs, ordem, excecoes e dados disponiveis.
@@ -189,8 +229,8 @@ Prioridade: alta para abrir a plataforma. Dependencias: P1 a P4 para o MVP compl
 - [ ] Entregar exemplos: consulta/interface; historico por carreira; reacao a uma partida finalizada. Exemplos devem declarar somente as permissoes utilizadas.
 - [x] Criar comando de validacao que nao inicialize codigo de mods, com relatorio de dependencias, capacidades e erros. (--validate-mod individual + --validate-only conjunto; nao e auditoria/sandbox.)
 - [x] Adicionar painel interno de mods: ID, versao, permissoes, estado, falhas recentes e local dos logs. (0.4.2: 128 resumos da sessao nas fronteiras do loader, sem alegar captura de todo erro do jogo/mod.)
-- [x] Implementar habilitar/desabilitar para a proxima inicializacao. (0.4.1: config atomica, grafo validado, CLI e painel; sem hot reload. UI real e usabilidade ainda pendentes.)
-- [x] Fornecer exportacao de diagnostico revisavel pelo usuario, sem enviar automaticamente saves ou dados privados. (0.4.3: resumo TXT com previa editavel, identidade/detalhes opt-in, save local explicito; sem logs brutos/upload. UI real ainda pendente.)
+- [x] Implementar habilitar/desabilitar para a proxima inicializacao. (0.4.1: config atomica, grafo validado, CLI e painel; UI real disable/reinicio/enable confirmada pelo usuario e logs. Sem hot reload; terceiro autor ainda pendente.)
+- [x] Fornecer exportacao de diagnostico revisavel pelo usuario, sem enviar automaticamente saves ou dados privados. (0.4.3: resumo TXT/previa editavel/opt-ins/save local explicito, sem logs brutos/upload. Usuario confirmou exportacao; apenas metadados do arquivo conferidos, sem ler conteudo privado ou provar todos os opt-ins.)
 - [ ] Fazer teste de usabilidade: criar e instalar um mod novo seguindo apenas o guia, sem editar o loader.
 
 **Aceite do MVP:** um desenvolvedor cria um JAR a partir do template, instala na copia do Brasfoot com vbrasfoot ja instalado e usa consultas/eventos/dados por carreira sem conhecer `best.*` ou `a.*`.
@@ -237,6 +277,12 @@ Prioridade: transversal. Cada fase adiciona seus testes; esta fase consolida a l
 - [ ] Changelog e lista de limitacoes conhecidas.
 - [ ] Relatorio de testes com ambiente, passos, cobertura e resultados reais.
 
+Pacotes portable/SDK-only, hashes, guias e Javadocs ja foram gerados/testados
+localmente e em CI na cobertura registrada; os itens acima continuam abertos
+**como artefatos de publicacao revisada**, nao como ausencia de implementacao.
+Autenticidade/supply-chain, retencao de disco e manutencao do SDK estao explicitadas
+em [RELEASE-GATES.md](RELEASE-GATES.md), sem inventar aceite por CI sintetico.
+
 **Gate final:** nao ha pendencia bloqueante dos marcos anunciados; instalar/copiar mods e continuar saves existentes foi demonstrado na pasta original; o pacote funciona sem o projeto de desenvolvimento.
 
 ## 5. Sequencia recomendada de entregas
@@ -253,6 +299,17 @@ Nao ha estimativa de prazo fechada: principalmente hooks e identidade de carreir
 
 ## 6. Proximas tarefas de implementacao
 
+### Estado atual e proxima sequencia — reconciliacao 17/10/2026
+
+1. Reconciliar roadmap e evidencias (este documento); nao reabrir como ausentes entregas ja implementadas.
+2. Fechar cobertura real/operacional pendente de P0/P1/P7 para o marco experimental e revisar sua publicacao; nao exigir P3/P6 para leitura/interface.
+3. Corroborar lifecycle P4 de criar/trocar/descarregar e entrega confiavel antes de P3. Falta segundo save na sessao relatada; ausencia de botao observado nao prova ausencia de rota no jogo.
+4. Implementar identidade/sidecars/migracoes/recuperacao P3 somente apos evidencia suficiente de P4; depois concluir eventos/exemplos e teste por terceiro de P5 para o MVP.
+5. Iniciar capacidades P6 somente apos aceite P0-P5; provar cada mutacao e reabertura no original com P7.
+
+**Cadeia bloqueante: P4 -> P3 -> P6.** Observacoes opt-in e scopes nao a fecham.
+Autor terceiro humano e tag/release/publicacao revisada permanecem pendentes.
+
 ### Incremento P2/P7 — propriedade e encerramento do contexto
 
 - Acoes legacy/scoped removidas pelo proprietario em falha de inicializacao e
@@ -264,6 +321,8 @@ Nao ha estimativa de prazo fechada: principalmente hooks e identidade de carreir
 - Testes sinteticos nas fronteiras reais do loader, inclusive dois mods com ID
   local de acao igual, ordem inversa e falha de shutdown sem bloquear o outro.
   Sem jogo/save. Nao fecha gates de UI real, System.exit, leak ou lifecycle da carreira.
+
+### Sequencia original (historico, nao fila atual)
 
 1. [x] Salvar este documento em `vbrasfoot/roadmap/ROADMAP.md`.
 2. Fechar a verificacao visual do menu interno e a sessao de salvar/reabrir em copia isolada.
