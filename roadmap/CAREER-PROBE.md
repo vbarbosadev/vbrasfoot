@@ -34,6 +34,16 @@ elenco e se candidato ainda rodava/retornou. Cancelar etapas nao deve virar pron
 Nao jogar partidas/sobrescrever saves apenas para testar. Instalacao/validate-only
 sem jogo verifica classes transformadas, nao executa os caminhos originais.
 
+Confirmacao posterior do usuario e log registraram start/return de a.bV.AB e
+escrita de teste04, mas guard continuou UNKNOWN. Incremento de conteudo gera
+creation-candidates.properties com tres labels fixos, counters e ultima tentativa
+pareada: identidade fraca de raizes/listas, geracao e contagens antes/depois.
+Somente captura getters P/aN na EDT; outras threads nao fornecem conteudo.
+Sem nomes de arquivo/clubes/jogadores/objetos persistidos, sem consulta Swing no
+shutdown; o report final copia apenas metadados. Stack por thread limitada8,
+overflow descarta pareamento em vez de atribuir retorno interno a inicio externo.
+Conteudo consultavel nao prova inicializacao completa; nao promove fase ou evento.
+
 Tecnica: ASM interno do JDK, explicitamente exportado **somente para a sonda**.
 Nao e dependencia publica do SDK, nem contrato estavel entre versoes Java. Sonda
 restrita a Java 17/21; modos normais nao precisam desse export. Sua substituicao

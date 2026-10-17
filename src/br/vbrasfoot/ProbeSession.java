@@ -45,6 +45,27 @@ final class ProbeSession implements AutoCloseable {
         closed = true;
         try { subscription.close(); } catch (Exception failure) { logger.warning("Could not detach probe subscription"); }
         try { lifecycleSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach lifecycle guard"); }
+        Properties candidates = new Properties();
+        candidates.setProperty("format", "1");
+        candidates.setProperty("coverage", "Candidate path/content observations only; not CareerLoaded, commit, persistent identity or proof of initialization");
+        for (var entry : HookProbe.creationContent()) {
+            String prefix = entry.label() + ".";
+            candidates.setProperty(prefix + "starts", Long.toString(entry.starts()));
+            candidates.setProperty(prefix + "returns", Long.toString(entry.returns()));
+            candidates.setProperty(prefix + "failures", Long.toString(entry.failures()));
+            candidates.setProperty(prefix + "rejected", Long.toString(entry.rejected()));
+            candidates.setProperty(prefix + "rootsStable", Boolean.toString(entry.rootsStable()));
+            candidates.setProperty(prefix + "listsStable", Boolean.toString(entry.listsStable()));
+            candidates.setProperty(prefix + "generationStable", Boolean.toString(entry.generationStable()));
+            candidates.setProperty(prefix + "clubsBefore", Integer.toString(entry.clubsBefore()));
+            candidates.setProperty(prefix + "clubsAfter", Integer.toString(entry.clubsAfter()));
+            candidates.setProperty(prefix + "humansBefore", Integer.toString(entry.humansBefore()));
+            candidates.setProperty(prefix + "humansAfter", Integer.toString(entry.humansAfter()));
+            candidates.setProperty(prefix + "readableAfter", Boolean.toString(entry.readableAfter()));
+            candidates.setProperty(prefix + "outcome", entry.outcome());
+        }
+        try (var writer = Files.newBufferedWriter(report.resolveSibling("creation-candidates.properties"))) { candidates.store(writer, "Bounded creation content metadata, no game objects or filenames"); }
+        catch (Exception failure) { System.err.println("Falha ao registrar candidatos de criacao: " + failure); }
         // Internal session disposal, NOT CareerUnloaded delivered to a mod.
         CareerLifecycle.Snapshot finalState = lifecycle.closeAndSnapshot();
         observations.close();
