@@ -87,19 +87,22 @@ public final class FindCareerReferences {
                         for (int p = 0; p < instructions.length;) {
                             int op = instructions[p] & 255, step = length(instructions, p);
                             if (p + step > instructions.length) throw new IOException("Truncated instruction");
-                            if (op == 179 || (op >= 182 && op <= 185)) {
+                             if (op == 179 || op == 181 || (op >= 182 && op <= 185)) {
                                 int index = ((instructions[p+1] & 255) << 8) | (instructions[p+2] & 255);
                                 int[] ref = (int[])pool[index], signature = (int[])pool[ref[1]];
                                 String targetOwner = (String)pool[(Integer)pool[ref[0]]];
                                 String targetName = (String)pool[signature[0]], targetDescriptor = (String)pool[signature[1]];
-                                boolean career = targetOwner.equals("c/a") && ((op == 179 && (targetName.equals("SR") || targetName.equals("afQ")))
-                                        || (op != 179 && (targetName.equals("c") || targetName.equals("ae") || targetName.equals("a") || targetName.equals("<init>"))));
+                                 boolean invocation = op >= 182;
+                                 boolean career = targetOwner.equals("c/a") && ((op == 179 && (targetName.equals("SR") || targetName.equals("afQ")))
+                                         || (invocation && (targetName.equals("c") || targetName.equals("ae") || targetName.equals("a") || targetName.equals("<init>"))));
                                 boolean window = targetOwner.equals("best/n") && ((op == 179 && targetName.equals("cC"))
-                                        || (op != 179 && targetName.equals("a") && targetDescriptor.equals("(Ljavax/swing/JFrame;)V")));
-                                boolean close = op != 179 && ((targetName.equals("dispose") && targetDescriptor.equals("()V"))
+                                         || (invocation && targetName.equals("a") && targetDescriptor.equals("(Ljavax/swing/JFrame;)V")));
+                                 boolean close = invocation && ((targetName.equals("dispose") && targetDescriptor.equals("()V"))
                                         || (targetOwner.equals("java/lang/System") && targetName.equals("exit") && targetDescriptor.equals("(I)V")));
-                                 if (career || window || close || selectedTargets.contains(targetOwner + "." + targetName + targetDescriptor)) {
-                                    result.add((op == 179 ? "putstatic" : "invoke") + "\t" + targetOwner + "." + targetName + targetDescriptor + "\t" + owner + "." + method + descriptor
+                                 boolean selected = invocation ? selectedTargets.contains(targetOwner + "." + targetName + targetDescriptor)
+                                         : selectedTargets.contains("field:" + targetOwner + "." + targetName + ":" + targetDescriptor);
+                                 if (career || window || close || selected) {
+                                     result.add((op == 179 ? "putstatic" : op == 181 ? "putfield" : "invoke") + "\t" + targetOwner + "." + targetName + targetDescriptor + "\t" + owner + "." + method + descriptor
                                             + "\t" + p + "\tpreviousOpcode=" + previous + "\tclass.sha256=" + hash(bytes) + "\tcode.sha256=" + hash(attribute));
                                 }
                             }
@@ -120,7 +123,10 @@ public final class FindCareerReferences {
         Set<String> selectedTargets = new LinkedHashSet<>();
         for (int i = 2; i < args.length; i++) {
             String target = args[i];
-            if (!target.matches("[A-Za-z0-9_$/]+\\.[A-Za-z0-9_$<>]+\\(.*\\).+")) throw new IOException("Use exact owner.member(descriptor): " + target);
+            if (!target.matches("[A-Za-z0-9_$/]+\\.[A-Za-z0-9_$<>]+\\(.*\\).+")
+                    && !target.matches("field:[A-Za-z0-9_$/]+\\.[A-Za-z0-9_$]+:(?:[ZBCSIJFD]|L[A-Za-z0-9_$/]+;|\\[+[ZBCSIJFD]|\\[+L[A-Za-z0-9_$/]+;)")) {
+                throw new IOException("Use exact owner.member(descriptor) or field:owner.member:descriptor: " + target);
+            }
             selectedTargets.add(target);
         }
         List<String> findings = new ArrayList<>();

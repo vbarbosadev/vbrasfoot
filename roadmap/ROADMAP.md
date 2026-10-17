@@ -574,3 +574,12 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 - Acao explicita de recuperar bounds e diagnostico adicionados, sem reposicionar
   automaticamente ou tocar dados. Causa raiz/UI real da nova acao pendentes;
   detalhes e limites em CREATION-VALIDATION.md. Nenhuma fase integral fechada.
+
+### P4 — candidatos de conclusao e instalacao da mitigacao
+
+- Nova acao de recovery instalada na copia Documents, saves/mods/selecao/EXE
+  intactos e validate-only com sonda aprovado; confirmacao humana da acao pendente.
+- Scanner admite escritas exatas PUTSTATIC/PUTFIELD, sem confundir GETFIELD;
+  11 testes sinteticos e inventario 1.038 classes/158 referencias no novo recorte.
+- Ap/az/bs rejeitados como marker exclusivo de pronta: caminhos reutilizados ou
+  flag ja true no construtor. UNKNOWN na criacao permanece conservador, sem P3.
