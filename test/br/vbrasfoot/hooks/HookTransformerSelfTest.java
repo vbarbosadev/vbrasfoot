@@ -56,6 +56,14 @@ public final class HookTransformerSelfTest {
             check(events.get(5).completed());
             instrumented.getConstructor().newInstance();
             check(events.get(6).operation().equals("roots-reset"));
+            instrumented.getField("failReset").set(null, true);
+            propagated = false;
+            try { instrumented.getConstructor().newInstance(); }
+            catch (java.lang.reflect.InvocationTargetException expected) { propagated = expected.getCause() instanceof IllegalStateException; }
+            check(propagated && events.get(7).operation().equals("root-reset-failed") && events.get(7).aborted());
+            instrumented.getField("failReset").set(null, false);
+            instrumented.getConstructor().newInstance();
+            check(events.get(8).operation().equals("roots-reset"));
         }
         System.out.println("PASS: " + checks + " transformed synthetic bytecode tests; no game execution.");
     }

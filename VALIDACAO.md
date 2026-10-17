@@ -552,3 +552,28 @@ UI real do novo mod e usabilidade por autor terceiro ainda precisam de confirmac
 Loader final 0.3.1 tambem instalado na copia; conjunto com os dois JARs validado
 com relatorio de capacidades/dependencias. EXE/saves da origem e save da copia
 novamente conferidos, sem mudancas pelos comandos de build/instalacao/validacao.
+
+## P4 parcial — guard interno de lifecycle
+
+Branch `feat/career-lifecycle-guard`, baseada no starter do PR #5 ainda aberto.
+Nao modifica SDK publico/versao; somente sonda opt-in recebe estado interno.
+Contrato/limites em `roadmap/CAREER-LIFECYCLE.md`.
+
+Windows/Java 21: 75 gerais, 13 tracking, 11 dispatcher, **22 lifecycle**, 16 scope,
+**15 bytecode** e 7 template aprovados; `test.ps1 -IncludeUi` aprovado.
+`test-career-hooks.ps1`: **41 checks originais** aprovados na fixture privada
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-hook-io-daacb145eb21408b8cd653825b5a3c08`.
+EXE/save de entrada da fixture e origem conferidos pelo runner, sem mudanca.
+Stack traces esperados das falhas induzidas sao privados em runtime-test.log.
+
+Guard acompanha decode/fallback/reload, primaria fechada vs falha, reset e setter
+originais sem alterar schema. Testes sinteticos corroboram recusa de save atrasado,
+concorrencia, overflow e independencia de callback falho/fila saturada. Report
+testado com fechamento explicito, sem consultas Swing ou unload sintetizado.
+Shutdown real/System.exit com este guard, UI completa de criar/trocar/descarregar
+e novo mod na UI **ainda nao corroborados**; nenhum evento publico/P3 habilitado.
+
+Pacote `dist/portable-0.3.1-lifecycle-guard` gerado e instalado somente na copia
+completa existente; --probe-career-hooks --validate-only aprovado com os dois mods,
+sem inicializar jogo/mods ou exercitar o guard. API publica permanece 0.3.1;
+este incremento interno da sonda e identificado pela branch/commit, nao release.
