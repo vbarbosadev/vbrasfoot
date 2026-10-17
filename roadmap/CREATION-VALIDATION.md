@@ -96,6 +96,12 @@ EXE, todos os arquivos sav, JARs de mods e selecao antes/depois iguais. Validaca
 privada em Temp/opencode/vbrasfoot-window-update-e4dccced85ba437ebb68c796103328e2;
 nova acao de recovery ainda nao confirmada pelo usuario.
 
+Confirmacao posterior: usuario informou teste todo OK. Sessao privada
+`session-a320397a-df84-4cb5-947c-772b9ded5ce0` corrobora tres acionamentos de recovery,
+bounds 0,0,1920,1032 mantidos; primeiro estado6 virou NORMAL0, seguintes idempotentes
+na geometria. Escala transform1.0 e monitor1920x1080. Nao houve novo corte capturado
+nesse teste; nao atribuir eliminacao da causa ao sucesso da acao manual.
+
 Inventario ampliado `creation-completion.tsv`: seletores de escrita de campo
 `field:owner.member:descriptor` alem das chamadas exatas. PUTSTATIC/PUTFIELD
 distintos, GETFIELD nao conta como commit; scanner nao inicializa classes.

@@ -68,8 +68,9 @@ politica de retencao de sessoes/backups. Desinstalacao atual preserva dados.
 
 ## Politica de manutencao do SDK
 
-Base atual: API major 1, SDK/loader 0.4.5 experimental; incremento de contexto
-posterior integrado por #13 (`ad9f6a8`, informado), sem nova release/tag/instalacao.
+Base atual: API major 1, SDK/loader 0.4.6 experimental em desenvolvimento;
+validador JSON/guia IA sem ampliar capacidades de gameplay. Contexto foi integrado
+por #13; recovery0.4.5 instalado/confirmado na copia Documents. Sem release/tag.
 Manter minLoaderVersion/capacidades por recurso e perfil exato, recusando
 incompatibilidades com mensagem acionavel. Adicoes preservam assinaturas anteriores;
 default pode recusar capacidade em loader antigo. Nao prometer compatibilidade

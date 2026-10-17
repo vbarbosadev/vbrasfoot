@@ -55,12 +55,19 @@ Copy-Item -LiteralPath (Join-Path $sdk 'template-read-only') -Destination $proje
 if (-not (Test-Path -LiteralPath (Join-Path $project '.gitignore'))) { throw 'ZIP perdeu .gitignore' }
 $manifest = Join-Path $project 'vbrasfoot.mod.properties'
 $text = [IO.File]::ReadAllText($manifest).Replace('id=br.exemplo.consulta', 'id=br.sdk.fixture')
+$quotedName = 'Autor "IA" / ' + [char]0x00e7
+$text = [regex]::Replace($text, '(?m)^name=[^\r\n]*', ('name=' + $quotedName))
 [IO.File]::WriteAllText($manifest, $text, [Text.UTF8Encoding]::new($false))
 & (Join-Path $project 'build.ps1') -Sdk $api
 if ($LASTEXITCODE -ne 0) { throw 'Template SDK-only fora do checkout falhou' }
 $mod = Join-Path $project 'dist\meu-mod.jar'
 $result = Run-Validator 'template-validation' @($mod)
 if (-not $result.Contains('br.sdk.fixture')) { throw 'Mod personalizado nao reconhecido' }
+$description = Run-Validator 'sdk-description' @('--describe-sdk') | ConvertFrom-Json
+if ($description.format -ne 1 -or $description.kind -ne 'sdk-description' -or $description.sandbox -ne $false -or $description.sdkVersion -ne $version) { throw 'Contrato machine-readable divergente' }
+$jsonMod = Run-Validator 'template-json' @('--json',$mod) | ConvertFrom-Json
+if ($jsonMod.valid -ne $true -or $jsonMod.mod.id -ne 'br.sdk.fixture' -or $jsonMod.codeInitialized -ne $false -or $jsonMod.installedSetValidated -ne $false) { throw 'Validacao JSON do mod incorreta' }
+if ($jsonMod.mod.name -cne $quotedName) { throw 'JSON perdeu quotes/acentos do manifesto UTF8' }
 $observerProject = Join-Path $fixture 'observador'
 Copy-Item -LiteralPath (Join-Path $sdk 'examples\career-observer') -Destination $observerProject -Recurse
 & (Join-Path $observerProject 'build.ps1') -Sdk $api
@@ -97,8 +104,14 @@ $fixtureJar = Join-Path $fixture 'uninitialized.jar'
 & jar --create --file $fixtureJar -C $classes . -C $resources vbrasfoot.mod.properties
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar fixture publica' }
 $null = Run-Validator 'no-initialization' @($fixtureJar)
+$noInit = Run-Validator 'no-initialization-json' @('--json',$fixtureJar) | ConvertFrom-Json
+if ($noInit.valid -ne $true -or $noInit.codeInitialized -ne $false) { throw 'JSON inicializou/rejeitou fixture no-init' }
 $broken = Join-Path $fixture 'broken.jar'; [IO.File]::WriteAllBytes($broken, [byte[]]@(1,2,3))
 $null = Run-Validator 'invalid-refused' @($broken) 1
+$invalidJson = Run-Validator 'invalid-json' @('--json',$broken) 1 | ConvertFrom-Json
+if ($invalidJson.valid -ne $false -or $invalidJson.error.code -ne 'MANIFEST_REJECTED') { throw 'Erro JSON sem codigo esperado' }
+$badArgsJson = Run-Validator 'bad-arguments-json' @('--json') 1 | ConvertFrom-Json
+if ($badArgsJson.error.code -ne 'INVALID_ARGUMENTS') { throw 'Erro JSON de argumentos incorreto' }
 $null = Run-Validator 'bad-arguments' @('--not-supported') 1
 if (Test-Path -LiteralPath (Join-Path $fixture 'vbrasfoot')) { throw 'Validador criou home/cache/logs do loader' }
 # Hash-only verification again: builds happened only in copied projects, not inside the SDK.

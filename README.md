@@ -1,4 +1,7 @@
-# vbrasfoot 0.4.5 (experimental)
+# vbrasfoot 0.4.6 (experimental)
+
+[Criar mods com ajuda de IA](roadmap/AI-MOD-AUTHORING.md): capacidades reais,
+prompt inicial, testes e validador `--describe-sdk` / `--json mod.jar` sem jogo.
 
 Inventario local sem iniciar jogo/mods ou criar logs: `java -jar dist/vbrasfoot.jar
 --storage-status --game-dir "C:\Jogo" --home "C:\Jogo\vbrasfoot"`.

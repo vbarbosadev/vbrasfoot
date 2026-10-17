@@ -46,6 +46,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de isolamento de JARs de mods falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.StorageInventorySelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de inventario somente leitura falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkValidatorJsonSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes JSON do validador SDK falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.DiagnosticExportSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de exportacao diagnostica falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.QueryMeasurementsSelfTest
