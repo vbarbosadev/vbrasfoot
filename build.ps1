@@ -17,6 +17,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar vbrasfoot' }
     & jar --create --file 'dist\vbrasfoot-api.jar' -C $classes br/vbrasfoot/api
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar API' }
+    & jar --create --file 'dist\vbrasfoot-validator.jar' --main-class br.vbrasfoot.SdkValidator -C $classes br/vbrasfoot/api -C $classes br/vbrasfoot/SdkValidator.class -C $classes br/vbrasfoot/ModManifest.class -C $classes br/vbrasfoot/ModValidator.class -C $PSScriptRoot LICENSE
+    if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar validador target-free' }
     $exampleSources = @(Get-ChildItem 'examples\inspector\src' -Recurse -Filter '*.java' | ForEach-Object FullName)
     & javac --release 17 -encoding UTF-8 -cp 'dist\vbrasfoot-api.jar' -d $example @exampleSources
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar mod de exemplo' }
@@ -56,5 +58,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Build independente do template falhou' }
     & java -jar "$PSScriptRoot\dist\vbrasfoot.jar" --validate-mod "$PSScriptRoot\templates\read-only-mod\dist\meu-mod.jar"
     if ($LASTEXITCODE -ne 0) { throw 'Validacao individual do template falhou' }
+    & "$PSScriptRoot\examples\career-observer\build.ps1" -Sdk "$PSScriptRoot\dist\vbrasfoot-api.jar"
+    if ($LASTEXITCODE -ne 0) { throw 'Build independente do observador falhou' }
     Write-Host 'Build e testes concluidos. Execute .\run.ps1 --validate-only'
 } finally { Pop-Location }

@@ -757,3 +757,58 @@ anonimato garantido, captura exaustiva ou progresso em identidade P3/gameplay P6
 Revisao final `dist/portable-0.4.3-export-reviewed` gerada apos novo smoke Swing e
 todas as suites aprovadas; previa com area de status legivel/monoespacada e sem
 reescrita implicita do texto revisado.
+
+## Confirmacao guiada 0.4.3 e SDK-only 0.4.4
+
+Usuario informou teste de exportacao feito e autorizou integrar #10. PR integrada
+na main como 0ac7fca; CI main Java 17/21 aprovado antes da nova branch
+`feat/standalone-sdk-package`. Na copia foi observado somente por nome/tamanho/data
+o arquivo local `diagnostic-bc2b05d4-a5f5-429a-93c6-48b123c12be4.txt` (986 bytes,
+17/10/2026 10:27:26). **Conteudo privado nao foi lido/publicado**; metadados e
+confirmacao nao provam individualmente todos os opt-ins/redacoes/anonimato.
+
+SDK/loader 0.4.4, API major 1. `release-sdk.ps1` compila API e tres classes do
+validador target-free em pastas novas, fonte explicita/sourcepath vazio; nao inclui
+Main/LegacyRuntime/Profile/ASM. Validador individual compartilhado com launcher,
+sem necessidade de EXE/loader/home para autores. Perfil publico e loader conferidos
+no teste; alteracao nao migra saves ou permissões.
+
+Executado Windows/Oracle Java 21.0.12:
+
+- **78 gerais** aprovados, incluindo JVM filha com validador SDK e classe cujo
+  initializer/construtor/callback falharia se executado; nao criou home/cache/logs.
+  Demais suites: 35 selecao, 23 falhas, 41 exportacao, 13 tracking, 11 dispatcher,
+  22 lifecycle, 33 observacoes, 16 scope, 15 bytecode, 7 template e teste do observador
+  SDK-only aprovados. `test.ps1 -IncludeUi` aprovado, sem novo gameplay.
+- `release-sdk.ps1 -Output dist/sdk-0.4.4-final`: API/validador/Javadocs/guias,
+  template/observador/fontes/testes/MIT, ZIP canonico e checksums. ZIP **260.568 bytes**,
+  SHA-256 `356754ff9693b4dc0cafc0712f19296a6fa134597a4b2309524a41cdeb979d19`.
+  Nao criou tag/release, upload, dependencia baixada, jogo ou runtime redistribuido.
+- `test-sdk-package.ps1`: ZIP extraido fora do checkout, projetos novos com ID
+  personalizado no template, build/test de ambos somente contra API e validador
+  target-free. API/testes nao embutidos no JAR dos mods. Fixture de nao inicializacao
+  passou, invalido/argumentos desconhecidos recusados. Destino existente, hash
+  adulterado, arquivo extra sintetico, traversal no indice e namespace proibido com
+  checksum consistente recusados. Fixture privada
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-sdk-author-c3d881d7945a43c086b55b0704b72fc8`.
+- Primeiro prototipo ZIP gerado pelo .NET Framework tinha entradas com backslash
+  e foi corretamente recusado; writer corrigido para nomes `/`. Prototipo privado
+  `dist/sdk-0.4.4-author.zip` nao e artefato aprovado; sem delete/overwrite automatico.
+- `release.ps1 -Output dist/portable-0.4.4-sdk-reviewed`: pacote/Javadocs/validador e
+  novos guias; links relativos entre guia de observacoes e exemplo corrigidos no portable.
+- CLI/lock/config/safe aprovado em fixture privada
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-mod-management-cd7f2f3104044f6ea30098878bb6fca0`.
+- Template fora do checkout/instalacao/validate-only aprovado em
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-author-template-0f5392e34e224ad2a1aef5ac8f6292f9`.
+- Portable sequencial aprovado com GameDir explicito; fixture
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-7ee3a8d9966c41cbad25ee181c4b4abf`,
+  log build/portable-0.4.4-sdk-reviewed.log.
+
+CI ampliado para gerar/extrair/verificar SDK-only em Java 17/21, contents:read e sem
+upload/publicacao. Checksums nao autenticam origem; scripts/ferramentas do pacote
+so devem ser executados quando confiaveis. Build reproduzivel como procedimento,
+nao promessa de ZIP identico entre horarios/JDKs. Javadocs preservam avisos legais.
+
+EXE/saves da origem e save corrente da copia hashados e intactos. Publicacao revisada
+do SDK e usabilidade por autor terceiro humano ainda pendentes; API experimental
+nao e aceite integral P5/P7 nem avanco de identidade P3/lifecycle completo/P6.

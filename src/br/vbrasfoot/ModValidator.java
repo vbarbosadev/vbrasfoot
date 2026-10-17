@@ -14,7 +14,7 @@ final class ModValidator {
         try (JarFile jar = new JarFile(manifest.jar().toFile())) {
             if (jar.getJarEntry(entry) == null) throw new IOException("mainClass nao esta no JAR: " + manifest.mainClass());
         }
-        try (var loader = new URLClassLoader(new java.net.URL[] {manifest.jar().toUri().toURL()}, Main.class.getClassLoader())) {
+        try (var loader = new URLClassLoader(new java.net.URL[] {manifest.jar().toUri().toURL()}, ModValidator.class.getClassLoader())) {
             Class<?> type = Class.forName(manifest.mainClass(), false, loader).asSubclass(Mod.class);
             if (!Modifier.isPublic(type.getModifiers()) || Modifier.isAbstract(type.getModifiers())) throw new IOException("mainClass deve ser publica e concreta");
             type.getConstructor();

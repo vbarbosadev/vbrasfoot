@@ -43,7 +43,7 @@ record ModManifest(Path jar, String id, String name, String version, String main
             supported = Integer.parseInt(bounds[0]) <= 1 && 1 < Integer.parseInt(bounds[1]);
         }
         if (!supported) throw new IOException("API nao suportada: " + id + "; use 1 ou intervalo [min,max) contendo 1");
-        if (!required(values, "gameProfile").equals(Profile.ID)) throw new IOException("Mod de outra versao do jogo: " + id);
+        if (!required(values, "gameProfile").equals(br.vbrasfoot.api.Sdk.GAME_PROFILE)) throw new IOException("Mod de outra versao do jogo: " + id);
         Set<String> permissions = Set.copyOf(split(values.getProperty("permissions", "")));
         if (!Set.of("game.read", "ui.register", "data.read", "data.write", "events.career.read").containsAll(permissions)) {
             throw new IOException("Permissao desconhecida ou de escrita na carreira: " + id);

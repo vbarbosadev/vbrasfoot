@@ -184,7 +184,7 @@ Prioridade: alta. Dependencias: P0 e P2.
 
 Prioridade: alta para abrir a plataforma. Dependencias: P1 a P4 para o MVP completo.
 
-- [ ] Publicar SDK versionado, Javadocs, guia de compatibilidade e especificacao do manifesto.
+- [ ] Publicar SDK versionado, Javadocs, guia de compatibilidade e especificacao do manifesto. (0.4.4: ZIP SDK-only/API/validador/guias gerados e testados em CI; release/tag/publicacao revisada ainda pendentes.)
 - [x] Criar template com compilacao simples, manifesto, testes, empacotamento e instalacao na pasta escolhida do jogo. (Starter leitura/interface; nao inclui eventos ou carreira.)
 - [ ] Entregar exemplos: consulta/interface; historico por carreira; reacao a uma partida finalizada. Exemplos devem declarar somente as permissoes utilizadas.
 - [x] Criar comando de validacao que nao inicialize codigo de mods, com relatorio de dependencias, capacidades e erros. (--validate-mod individual + --validate-only conjunto; nao e auditoria/sandbox.)
@@ -448,3 +448,18 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   teste de junction fica no Temp privado, nao dentro da instalacao de desenvolvimento.
 - UI humana/exportacao real pendentes; nao fecha P3, lifecycle/gameplay ou MVP
   integral. Contrato/privacidade/limites em DIAGNOSTIC-EXPORT.md.
+
+### P5 — pacote SDK-only para autores (0.4.4)
+
+- #10 integrado na main antes da nova branch. Usuario confirmou teste do diagnostico;
+  arquivo local observado apenas por metadados, sem ler/publicar conteudo privado.
+- Builder independente compila API e validador pequeno de fontes explicitas em
+  pastas novas, sem loader completo, cache, jogo ou build anterior. ZIP canonico,
+  hashes/allowlist/namespace e nenhuma publicacao automatica.
+- Guia primeiro mod e matriz de compatibilidade/manifesto; exemplos de consulta
+  e observacoes com build/testes proprios usando somente API. Minimos/eventos
+  experimentais e falta de P3/gameplay explicitados.
+- Teste extrai fora do checkout e personaliza/compila/testa/valida os projetos,
+  incluindo fixture que falharia se inicializada. CI Java 17/21 sem jogo ampliado.
+- Publicacao revisada e autor terceiro humano continuam gates separados. Detalhes
+  SDK-DISTRIBUTION.md; nao fechar MVP/roadmap por resultados sinteticos.

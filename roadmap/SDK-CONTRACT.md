@@ -1,4 +1,6 @@
-# SDK 0.4.3 — API major 1 (experimental)
+# SDK 0.4.4 — API major 1 (experimental)
+
+[Primeiro mod sem checkout](SDK-QUICKSTART.md) · [Compatibilidade](SDK-COMPATIBILITY.md).
 
 Contrato anterior preservado por compatibilidade. Novas consultas 0.3.0 em
 `SCOPED-QUERIES.md` adicionam handles com escopo; APIs por index abaixo continuam
@@ -67,8 +69,9 @@ No save offline testado, 8.395 clubes produziram apenas um valor distinto no
 acesso legado historicamente exposto como `id`. Nao use esse campo como chave
 unica; sua semantica completa ainda nao esta estabelecida. O campo e mantido
 somente por compatibilidade com a API anterior.
-Reconsulte ao trocar de carreira. Nao existe token de geracao nesta versao: paginas
-consecutivas nao sao snapshot atomico e podem observar momentos diferentes.
+Reconsulte ao trocar de carreira. APIs legadas por ID/index nao possuem token de
+geracao; handles das APIs scoped 0.3.0 tem contrato separado. Paginas consecutivas
+nao sao snapshot atomico e podem observar momentos diferentes.
 
 `snapshot()` permanece por compatibilidade e copia toda a carreira na EDT; evite
 seu uso em novas interfaces. O inspetor 0.2.0 usa filtro/paginas de 100 clubes e
