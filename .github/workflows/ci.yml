@@ -1,0 +1,58 @@
+name: Build and unit tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, 'feat/**', 'fix/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: Windows / Java ${{ matrix.java }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21']
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - name: Build loader, public SDK, inspector and synthetic tests
+        run: ./build.ps1
+      - name: Verify patch whitespace
+        run: git diff --check
+      - name: Compile read-only hook inventory without game dependencies
+        run: |
+          New-Item -ItemType Directory -Force -Path build/hook-analysis | Out-Null
+          $sources = @(Get-ChildItem tools/hook-analysis -Filter '*.java' | ForEach-Object FullName)
+          javac --release 17 -encoding UTF-8 -d build/hook-analysis @sources
+          if ($LASTEXITCODE -ne 0) { throw 'Hook inventory compilation failed' }
+      - name: Parse PowerShell scripts without executing game operations
+        run: |
+          $failures = @()
+          Get-ChildItem -Path . -Filter '*.ps1' -Recurse |
+            Where-Object { $_.FullName -notmatch '[\\/](build|dist|cache|logs|backups|verification)[\\/]' } |
+            ForEach-Object {
+              $tokens = $null
+              $errors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+              if ($errors) { $failures += $errors }
+            }
+          if ($failures.Count) { $failures | Format-List; throw 'PowerShell syntax errors' }
+
+# Deliberately no game binaries, saves, artifact upload, publishing or write token.
+# Passing these jobs is not a gameplay/UI/save-compatibility release gate.

@@ -27,6 +27,9 @@ public final class Main {
         if (options.help) { help(); return; }
         InstallPaths paths = InstallPaths.resolve(options.game, options.home);
         Path game = paths.gameRoot(), home = paths.installRoot();
+        if (Files.exists(home.resolve(".update-pending"))) {
+            throw new IllegalStateException("Atualizacao incompleta: execute recover-update.ps1 antes de iniciar o loader");
+        }
         Files.createDirectories(home);
         try (SessionDiagnostics diagnostic = SessionDiagnostics.open(home, game, args)) {
             try { launch(options, game, home, diagnostic.logger()); }

@@ -23,7 +23,8 @@ Usuario (runtime Java 17+ no PATH; validado nesta rodada com Java 21.0.12):
 .\install.ps1 -GameDir 'C:\Jogos\Brasfoot22-23'
 ```
 
-O instalador exige unidade local, perfil conhecido, espaco livre minimo de 256 MiB
+O instalador exige unidade local, perfil conhecido, reserva livre minima de 256 MiB
+mais margem proporcional aos arquivos gerenciados para staging/geracao anterior
 e permissao de escrita (falha sem elevar privilegios). Nao baixa nem instala Java.
 JDK e exigido somente para desenvolvimento; nao se afirma teste em todas as JVMs
 17+. Resolucao e validacao dos caminhos recusam links/junctions identificados.
@@ -48,10 +49,30 @@ locks ativos. A verificacao de processos e conservadora (pode bloquear por outra
 instalacao do jogo/loader aberta).
 
 As substituicoes sao atomicas **por arquivo**, nao uma transacao de toda a versao.
-Falhas/interrupcoes podem deixar instalacao parcial. Nao ha rollback automatico:
-preserve o diretorio e revise arquivos/manifesto antes de recuperar; nao apague
-dados ou saves para forcar reinstalacao. A recuperacao de atualizacao interrompida
-ainda e gate pendente de release.
+Antes de publicar arquivos, o instalador prepara fontes e a geracao anterior dos
+arquivos gerenciados em `.update-pending/`, com journal e hashes. Falhas preservam
+esse diretorio; launcher, nova instalacao e desinstalacao recusam o estado pendente.
+Nao ha rollback automatico nem restauracao de saves.
+
+Use o script do pacote para recuperar inclusive uma primeira instalacao incompleta:
+
+```powershell
+.\recover-update.ps1 -GameDir 'C:\Jogos\Brasfoot22-23'
+.\recover-update.ps1 -GameDir 'C:\Jogos\Brasfoot22-23' -Apply
+```
+
+O preview valida allowlist, backups/hashes e o estado atual antes de propor retornar
+os arquivos gerenciados a geracao anterior. Arquivo alterado fora da atualizacao
+ou backup corrompido bloqueia a recuperacao; preserve tudo e revise manualmente.
+Nao apague o journal para forcar a execucao. Saves/mods/dados nao sao restaurados.
+
+Se todos os arquivos novos **e o manifesto novo** ja foram publicados, mas apenas
+a limpeza foi interrompida, `-Complete` (preview) e `-Complete -Apply` mantem a
+geracao nova depois de conferir hashes, removendo somente temporarios gerenciados.
+Esse caminho de conclusao passou numa fixture sintetica do estado publicado com
+limpeza interrompida. Falha real de substituicao/rollback, staging sem journal,
+backup corrompido e journal fora da allowlist foram testados. Isso nao equivale a
+simular queda de energia em cada ponto do protocolo ou a transacao de toda a versao.
 
 ```powershell
 & 'C:\Jogos\Brasfoot22-23\vbrasfoot\app\uninstall.ps1'
@@ -72,5 +93,12 @@ Usa fixture privada apenas com EXE correto; nao representa jogo completo nem tes
 gameplay. Testa instalacao/preview, reinstalacao, caminho com espacos/acento,
 mudanca de local, JAR quebrado no modo seguro, arquivo alterado, lock e remocao
 preservando dados. Para validar gameplay siga `P0-VALIDACAO.md`.
+O teste provoca uma falha real de substituicao com arquivo bloqueado, confirma
+publicacao parcial, bloqueio do launcher e rollback explicito com hash anterior.
+Tambem nega escrita por ACL NTFS real na fixture e restaura a ACL em finally,
+verifica recusa de backup/journal corrompidos e testa cleanup em estados sinteticos.
+O preflight de espaco e exercitado com `-ReserveBytes` maior que o espaco disponivel;
+nao enche o disco, nao monta volumes e nao comprova comportamento sob ENOSPC real.
+`-ReserveBytes` permite aumentar a reserva, nunca reduzir o minimo de 256 MiB.
 O teste tambem cria uma junction em fixture separada e exige recusa por instalador
 e loader, verificando ausencia de escrita no diretorio protegido de destino.

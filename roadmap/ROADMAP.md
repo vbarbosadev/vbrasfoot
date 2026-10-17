@@ -55,7 +55,11 @@ O usuario deve conseguir:
 - O launcher agora aceita exclusivamente `gameRoot/vbrasfoot` como home interno; o pacote experimental ainda depende dos gates reais de P0/P1.
 - Os scripts de desenvolvimento dependem de diretorios irmaos; os launchers do pacote portable usam a propria localizacao.
 - O menu interno foi implementado em `a.eg.ve`, junto a `HX`/Opcoes, mas a versao mais recente ainda precisa de confirmacao visual na sessao real.
-- O teste de save encontrou 8.395 clubes e 193.831 jogadores com snapshots iguais no round-trip. O arquivo regravado nao foi identico em bytes; a causa nao foi determinada.
+- O teste antigo encontrou 8.395 clubes e 193.831 jogadores com snapshots iguais,
+  mas bytes diferentes. A primeira diferenca foi localizada na normalizacao de
+  referencias de String vazia pelo Kryo; comparacao dos campos serializados dos
+  dois grafos nao encontrou divergencias na cobertura implementada. As demais
+  diferencas nao foram atribuidas byte a byte (ver `SAVE-ANALYSIS.md`).
 - O round-trip offline nao equivale a jogar, salvar e reabrir pelo executavel original.
 - Nao ha eventos reais de partida/temporada, dados vinculados a carreira, API de escrita nem politica completa de conflitos.
 - Dependencias ordenam inicializacao; nao fornecem importacao de classes privadas entre mods.
@@ -94,16 +98,16 @@ Duplo clique em `bf22-23.exe` continua abrindo o jogo original, sem mods. O usua
 
 Prioridade: bloqueante. Dependencias: nenhuma.
 
-- [ ] Confirmar o botao vbrasfoot na barra interna da tela do elenco, sem barra externa adicional.
-- [ ] Testar resolucoes menores/maiores, escala do Windows, troca de telas e recriacao do painel.
+- [x] Confirmar o botao vbrasfoot na barra interna da tela do elenco, sem barra externa adicional. (Captura real teste02-inspetor.png; outras resolucoes/escala ainda pendentes.)
+- [ ] Testar resolucoes menores/maiores, escala do Windows, troca de telas e recriacao do painel. (1920x1080 em captura; 1280x720 e troca de tela confirmados pelo usuario; escala nao informada e matriz completa ainda pendente.)
 - [ ] Garantir que nenhum botao original seja ocultado, deslocado para fora da area util ou sobrescrito. Definir alternativa integrada se faltar espaco.
 - [ ] Registrar no diagnostico Java utilizado, argumentos, perfil, etapas da inicializacao e instalacao do menu.
 - [ ] Capturar stdout/stderr desde o inicio, inclusive falhas anteriores ao FileHandler e excecoes tratadas pelo handler legado, sem duplicar logs indefinidamente.
 - [ ] Verificar encerramento por fechar janela e por `System.exit`; evitar hooks que esperem pela EDT enquanto ela encerra a JVM.
-- [ ] Executar uma sessao em **copia completa e isolada** do jogo: carregar carreira existente, consultar, avancar, salvar, fechar e reabrir no EXE original.
-- [ ] Repetir com mods desligados e com o inspetor ativo.
+- [x] Executar uma sessao em **copia completa e isolada** do jogo: carregar carreira existente, consultar, avancar, salvar, fechar e reabrir no EXE original. (Sucesso confirmado pelo usuario; hashes/logs e verificacao offline conferidos. Capturas finais/dados numericos nao fornecidos.)
+- [x] Repetir com mods desligados e com o inspetor ativo. (Usuario confirmou ambos; logs dos modos conferidos; testes sequenciais na mesma copia.)
 - [ ] Comparar dados relevantes antes/depois: clubes, jogadores, financas, calendario, competicoes e historicos, com cobertura e limites registrados.
-- [ ] Investigar a diferenca binaria do round-trip sem assumir que seja benigna ou que represente corrupcao.
+- [x] Investigar a diferenca binaria do round-trip sem assumir que seja benigna ou que represente corrupcao. (Primeiro offset explicado e grafo serializado comparado; conclusoes/cobertura delimitadas em SAVE-ANALYSIS.md.)
 
 **Aceite:** sessao real concluida e documentada, arquivos originais preservados e nenhuma falha bloqueante conhecida. Testes sinteticos nao substituem esse gate.
 
@@ -279,10 +283,57 @@ Implementacao experimental (nao equivale a aceite das fases):
   dependencias opcionais/conflitos/capacidades/loader minimo, estados de lifecycle,
   acoes com registro encerravel e consultas paginadas no bridge. O exemplo compila
   somente contra o JAR publico. Contrato e limites: `SDK-CONTRACT.md`.
-- Pendente P1: sessao real instalada sem checkout, matrizes de erros de escrita,
-  recuperacao de atualizacao interrompida e testes de todas as JVMs anunciadas.
+- Pendente P1: sessao real instalada sem checkout, matriz completa de erros de
+  escrita/interrupcao e testes de todas as JVMs anunciadas. Recuperacao explicita
+  de uma falha real de substituicao ja foi implementada/testada (ver incremento abaixo).
 - Pendente P2: ampliar leitura com evidencias do jogo, geracao de carreira,
   cancelamento de tarefas e politicas completas de lifecycle. Servicos entre mods
   nao foram introduzidos porque nao ha necessidade comprovada nesta entrega.
 
 P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
+
+### Fechamento de bloqueios — 17/10/2026
+
+- Copia completa isolada concluida: 34.342 arquivos, hashes verificados antes/depois
+  da copia com concorrencia limitada; origem somente lida. Baseline privada preservada.
+- Pacote instalado na copia completa e `--validate-only` aprovado com inspetor 0.2.0.
+  Sessao real guiada escolhida pelo usuario; ainda nao executada/aprovada.
+- P1: staging/journal de arquivos gerenciados, bloqueio de instalacao incompleta e
+  recuperacao explicita com preview/allowlist/hashes adicionados. Falha real por
+  arquivo bloqueado, publicacao parcial e rollback da geracao anterior testados.
+- P0/P1/P2 ainda nao aprovados integralmente; P3/P4/P6 nao foram antecipados sem hooks
+  e evidencias. Proximo passo e a sessao guiada e registro de seus resultados reais.
+
+### Investigacao e matriz de recuperacao — 17/10/2026
+
+- `analyze-save.ps1`: causa da primeira diferenca antiga reproduzida por String
+  vazia; 20.578.147 campos serializados comparados sem divergencias na cobertura
+  declarada. Sondas locais nao sao usadas no launcher/SDK. Detalhes em SAVE-ANALYSIS.md.
+- Testes de P1 ampliados: ACL NTFS negando escrita, backup corrompido, journal fora
+  da allowlist, staging interrompido e conclusao de limpeza em fixture sintetica.
+- Espaco insuficiente: preflight recusou reserva maior que a disponivel antes de
+  staging; falta de espaco real durante escrita/quedas de energia nao simuladas.
+- Persistem limites de release: escalas, matriz de JVMs, cobertura semantica ampla
+  da sessao real e erros legados nao consolidados. Nao declarar roadmap completo.
+
+### Consolidacao e CI — 17/10/2026
+
+- Workflow publico compila loader/SDK/inspetor e executa testes sinteticos no
+  Windows com Temurin 17/21, sem jogo/saves e sem upload de artefatos privados.
+- Execucao local com Java 21: 66 testes e Swing aprovados. CI remoto 38996623272
+  aprovado para Windows/Temurin 17 e 21 (sintetico); revisoes seguintes do workflow
+  devem ter seus checks conferidos antes de liberar o PR.
+- Este incremento consolida recuperacao, copia completa e evidencias guiadas;
+  nao substitui gates ainda abertos nem implementa eventos por polling de tela.
+
+### P4 — inicio do mapeamento estatico (17/10/2026)
+
+- `inspect-career-hooks.ps1` le somente o EXE conhecido, gera fingerprints de
+  classe/Code/instrucoes e descriptors, recusando perfil sintetico desconhecido.
+- Candidatos de carregar/salvar e suas armadilhas documentados em CAREER-HOOKS.md:
+  salvar captura falhas e retorna void; carregar tem fallback recursivo cujo
+  resultado e descartado pela chamada externa. Retorno simples nao comprova evento.
+- Nenhum hook aplicado nem evento habilitado. Callers/descarregamento e execucao
+  controlada ainda pendentes; esse mapeamento nao e aceite de P4 ou liberacao de P3.
+- CI da revisao e9ff212 aprovado com Actions v5 pinadas e Java 17/21; checks agora
+  obrigatorios na main, mantendo excecao somente de revisao para administrador.

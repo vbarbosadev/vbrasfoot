@@ -91,6 +91,10 @@ public final class SelfTest {
         Path rejectedHome = invalidGame.resolve("must-not-create");
         rejects(() -> Main.run(new String[] {"--game-dir", invalidGame.toString(), "--home", rejectedHome.toString()}), "home inside original rejected");
         check(!Files.exists(rejectedHome), "reject home before writing original");
+        Path interruptedHome = Files.createDirectory(temp.resolve("interrupted-install"));
+        Files.createDirectory(interruptedHome.resolve(".update-pending"));
+        rejects(() -> Main.run(new String[] {"--game-dir", invalidGame.toString(), "--home", interruptedHome.toString(), "--validate-only"}), "incomplete installation rejected");
+        check(!Files.exists(interruptedHome.resolve("logs")), "incomplete install blocked before session writes");
         check(InstallPaths.resolve(invalidGame, invalidGame.resolve("vbrasfoot")).installRoot().endsWith("vbrasfoot"), "installed root accepted");
         rejects(() -> InstallPaths.resolve(invalidGame, invalidGame.resolve("sav")), "save root rejected");
         rejects(() -> InstallPaths.resolve(invalidGame, invalidGame), "game root rejected");

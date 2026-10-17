@@ -93,7 +93,13 @@ tem limite de 8 MiB e o log do loader tem rotacao; sessoes antigas sao preservad
 Revise caminhos e argumentos antes de compartilhar. Falhas anteriores ao launcher
 e erros gravados exclusivamente no arquivo legado `erros.log` nao sao consolidados.
 
+Investigacao reproduzivel da divergencia binaria antiga (somente copias privadas):
+[resultado e limites](roadmap/SAVE-ANALYSIS.md), ferramenta `analyze-save.ps1`.
+
 ## Testes
+
+GitHub Actions executa `build.ps1` e validacao de sintaxe PowerShell no Windows
+com Temurin 17/21, sem arquivos do jogo. CI sintetico nao aprova os gates reais.
 
 `build.ps1` executa os testes unitarios sem interface. Para incluir a integracao Swing (janela sintetica + JAR real do inspetor) e o round-trip de uma copia do save:
 
