@@ -81,7 +81,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Comparador SDK-only falhou' }
 $comparator = Join-Path $comparatorProject 'dist\player-comparator.jar'
 $comparatorResult = Run-Validator 'comparator-json' @('--json',$comparator) | ConvertFrom-Json
 if ($comparatorResult.valid -ne $true -or $comparatorResult.mod.id -ne 'br.vbrasfoot.player-comparator') { throw 'Comparador nao validado' }
-foreach ($jarPath in @($mod,$observer,$comparator)) {
+$dashboardProject = Join-Path $fixture 'painel'
+Copy-Item -LiteralPath (Join-Path $sdk 'examples\career-dashboard') -Destination $dashboardProject -Recurse
+& (Join-Path $dashboardProject 'build.ps1') -Sdk $api
+if ($LASTEXITCODE -ne 0) { throw 'Painel SDK-only falhou' }
+$dashboard = Join-Path $dashboardProject 'dist\career-dashboard.jar'
+$dashboardResult = Run-Validator 'dashboard-json' @('--json',$dashboard) | ConvertFrom-Json
+if ($dashboardResult.valid -ne $true -or $dashboardResult.mod.id -ne 'br.vbrasfoot.career-dashboard') { throw 'Painel nao validado' }
+foreach ($jarPath in @($mod,$observer,$comparator,$dashboard)) {
     $jar = [IO.Compression.ZipFile]::OpenRead($jarPath)
     try {
         foreach ($entry in $jar.Entries) {

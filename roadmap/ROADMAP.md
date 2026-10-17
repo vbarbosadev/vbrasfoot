@@ -636,3 +636,14 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 - Mapeamento estatico liga getters a rotulos UI e saldo a debit/credit originais;
   15 testes puros e52 I/O original em fixture. Sem agenda/historicos/eventos por
   polling, sem humano primeiro silencioso. UI real/concorrencia abrangente pendentes.
+
+### P5 — painel data/saldo e protocolo de autor terceiro
+
+- Exemplo independente0.5.0 com filtro/paginas100, leitura manual de data/fusos/
+  saldoLong, escopos/ClubRef conferidos e cleanup. Sem polling/rede/save/dados.
+- Fakes/API-only, smoke Swing com JAR real e quatro projetos compilados fora do
+  checkout no SDK. Painel pode ser usado na conferencia humana de valores reais.
+- THIRD-PARTY-ACCEPTANCE.md define missao/relatorio sem editar loader, com ajuda
+  de IA opcional e revisao humana. Protocolo nao e terceiro executado nem publicacao.
+- MVP integral/eventos de partida/persistencia permanecem bloqueados por evidencias
+  de lifecycle/identidade. Nao anunciar100% ou marcar P0-P5 aceitos por pacote.

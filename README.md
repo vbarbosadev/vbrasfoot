@@ -4,6 +4,9 @@
 prompt inicial, testes e validador `--describe-sdk` / `--json mod.jar` sem jogo.
 [Comparador de jogadores independente](examples/player-comparator/README.md):
 exemplo de mod diferente, apenas leitura, compilado/testado contra SDK publico.
+[Painel de data/saldo](examples/career-dashboard/README.md) e
+[protocolo de autor terceiro](roadmap/THIRD-PARTY-ACCEPTANCE.md): novos passos para
+conferencia humana, nao aceite automatico do MVP ou gameplay.
 
 Inventario local sem iniciar jogo/mods ou criar logs: `java -jar dist/vbrasfoot.jar
 --storage-status --game-dir "C:\Jogo" --home "C:\Jogo\vbrasfoot"`.

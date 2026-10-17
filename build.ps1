@@ -84,5 +84,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Build independente do comparador falhou' }
     & java -jar "$PSScriptRoot\dist\vbrasfoot-validator.jar" --json "$PSScriptRoot\examples\player-comparator\dist\player-comparator.jar"
     if ($LASTEXITCODE -ne 0) { throw 'Validador recusou comparador' }
+    & "$PSScriptRoot\examples\career-dashboard\build.ps1" -Sdk "$PSScriptRoot\dist\vbrasfoot-api.jar"
+    if ($LASTEXITCODE -ne 0) { throw 'Build independente do painel de carreira falhou' }
+    & java -jar "$PSScriptRoot\dist\vbrasfoot-validator.jar" --json "$PSScriptRoot\examples\career-dashboard\dist\career-dashboard.jar"
+    if ($LASTEXITCODE -ne 0) { throw 'Validador recusou painel de carreira' }
     Write-Host 'Build e testes concluidos. Execute .\run.ps1 --validate-only'
 } finally { Pop-Location }

@@ -1127,3 +1127,23 @@ Log build/calendar-balance-original-io.log. Frame sintetico, nao confirmacao UI.
 Campos/in-place/multithread/locale/timezones e humanos selecionados amplos pendentes.
 Novas leituras nao desbloqueiam evento de dia nem P3/P4completo/P6. Nenhum save
 de usuario/EXE/arquivo de equipe alterado, sem publicacao/tag/release.
+
+## P5 — painel e kit para autor terceiro, sem aceite artificial
+
+#24 integrado7df12fb/CI17+21 antes desta branch. examples/career-dashboard e fonte
+original MIT/API-only, modelo/fakes/build/installer independente, minLoader0.5.0,
+permissoesgame.read/ui.register/capacidades scoped/calendar/balance. Leitura manual,
+saldoLong bruto/fusos, escopos e ClubRef conferidos, stale limpa handles; shutdown
+agendado EDT sem esperar. Sem jogo/rede/save/reflexao/polling/persistencia.
+
+43 testes headless iniciais aprovados (novos motivos futuros podem ampliar numero);
+test.ps1 -IncludeUi com JAR real e GameAccessfake confirma data29/02/2024/saldo
+negativo, stale limpa output e shutdown fecha janela. Nao conferencia UI real.
+SDK0.5.0-mvp-preparation extraido fora do checkout compila/testa/valida quatro
+projetos API-only, JSON + negatives/allowlist/hashes/no-init aprovados em fixture
+Temp/opencode/vbrasfoot-sdk-author-027367932d7f422db070516321691cfb.
+Logs locais dashboard-validation.log/mvp-sdk-test.log ignorados.
+
+THIRD-PARTY-ACCEPTANCE prepara kit/missao/relatorio para humano independente, nao
+executa esse gate nem publica release. O MVP P0-P5+P7 depende de identidade/sidecars/
+eventos reais nao entregues por esta documentacao. Sem afirmar100% por builds.
