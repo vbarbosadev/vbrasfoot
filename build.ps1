@@ -31,6 +31,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes da sonda falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ProbeDispatcherSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da fila da sonda falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerLifecycleSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de lifecycle interno falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.QueryScopesSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de escopo de consulta falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.HookTransformerSelfTest

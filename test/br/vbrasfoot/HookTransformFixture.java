@@ -3,6 +3,10 @@ package br.vbrasfoot;
 /** Own control-flow model, not decompiled game code. */
 public final class HookTransformFixture {
     public static java.nio.file.Path source, target;
+    public static boolean failReset;
+    public HookTransformFixture() {
+        if (failReset) throw new IllegalStateException("fixture-reset-abort");
+    }
     public static boolean c(String name, boolean backup) {
         if ("abort".equals(name)) throw new IllegalStateException("fixture-abort");
         if (name == null) return true;

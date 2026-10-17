@@ -389,3 +389,14 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 - Teste automatizado fora do checkout aprovado, mas usabilidade por terceiro,
   eventos/carreira, painel, habilitar/desabilitar e exportacao diagnostica ainda
   pendentes. Starter nao equivale ao MVP completo nem ao aceite integral de P5.
+
+### P4 — guard sincronico experimental de lifecycle
+
+- Estado interno separado da fila diagnostica; tickets de sessao/geracao recusam
+  saves de grafo anterior. Tentativas concorrentes/overflow falham conservadoramente.
+- Instrumenta atribuicoes de raizes em load/construtor/setter, preservando schema,
+  EXE e fingerprint. Reset/falha nao significa CareerUnloaded ou nova carreira pronta.
+- 22 testes internos, 15 de bytecode e 41 checks de I/O original aprovados. Frame
+  sintetico nao comprova lifecycle de criar/trocar/descarregar na UI completa.
+- Somente opt-in; relatorio privado career-lifecycle.properties, sem callbacks
+  publicos, identidade persistente ou sidecars. Detalhes CAREER-LIFECYCLE.md.

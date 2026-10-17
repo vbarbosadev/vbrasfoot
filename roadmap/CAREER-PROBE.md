@@ -109,6 +109,10 @@ que mudanca de timestamp/hash nao e criterio de evento. Detalhes em VALIDACAO.md
 
 ## Pendencias antes da API
 
+Incremento atual: [guard interno de lifecycle](CAREER-LIFECYCLE.md), independente
+da fila diagnostica, com invalidacao conservadora e relatorio privado. Permanece
+opt-in; nao substitui a corroboracao de UI nem implementa eventos publicos.
+
 Corroborar UI real e fallback/falhas em todos os caminhos, mapear unload/troca,
 fixar momento de commit e geracao de carreira, implementar filas/callbacks limitados
 e testar compatibilidade do save produzido. Somente depois anunciar capacidades

@@ -23,19 +23,49 @@ public final class CareerTransformer {
     static byte[] transformFixture(byte[] original) throws IOException {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        int[] counts = new int[6];
+        int[] counts = new int[7];
         reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
             @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 MethodVisitor method = super.visitMethod(access, name, descriptor, signature, exceptions);
                 boolean load = name.equals("c") && descriptor.equals("(Ljava/lang/String;Z)Z");
                 boolean save = name.equals("ae") && descriptor.equals("(Ljava/lang/String;)V");
+                boolean setter = name.equals("a") && descriptor.equals("(Lbest/f;)V");
                 boolean reset = name.equals("<init>") && descriptor.equals("()V");
-                if (reset) {
-                    counts[5]++;
+                if (reset || setter) {
+                    if (reset) counts[5]++;
                     return new MethodVisitor(Opcodes.ASM8, method) {
+                        final Label start = new Label(), end = new Label(), handler = new Label();
+                        boolean started;
+                        private void begin() {
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "enterReset", "()V", false);
+                            super.visitLabel(start); started = true;
+                        }
+                        @Override public void visitCode() { super.visitCode(); if (setter) begin(); }
+                        @Override public void visitMethodInsn(int op, String owner, String called, String desc, boolean iface) {
+                            super.visitMethodInsn(op, owner, called, desc, iface);
+                            if (reset && !started && op == Opcodes.INVOKESPECIAL && owner.equals("java/lang/Object") && called.equals("<init>")) begin();
+                        }
+                        @Override public void visitFieldInsn(int op, String owner, String field, String desc) {
+                            super.visitFieldInsn(op, owner, field, desc);
+                            if (op == Opcodes.PUTSTATIC && owner.equals("c/a") && (field.equals("SR") || field.equals("afQ"))) {
+                                counts[6]++;
+                                super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "rootAssigned", "()V", false);
+                            }
+                        }
                         @Override public void visitInsn(int op) {
-                            if (op == Opcodes.RETURN) super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "rootsReset", "()V", false);
+                            if (op == Opcodes.RETURN) super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, setter ? "rootSetterFinished" : "rootsReset", "()V", false);
                             super.visitInsn(op);
+                        }
+                        @Override public void visitMaxs(int stack, int locals) {
+                            if (!started) throw new IllegalStateException("Constructor/reset boundary not validated");
+                            super.visitLabel(end);
+                            super.visitTryCatchBlock(start, end, handler, "java/lang/Throwable");
+                            super.visitLabel(handler);
+                            super.visitFrame(Opcodes.F_NEW, 0, new Object[0], 1, new Object[] {"java/lang/Throwable"});
+                            super.visitInsn(Opcodes.DUP);
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "abortReset", "(Ljava/lang/Throwable;)V", false);
+                            super.visitInsn(Opcodes.ATHROW);
+                            super.visitMaxs(stack, locals);
                         }
                     };
                 }
@@ -65,6 +95,12 @@ public final class CareerTransformer {
                             counts[4]++; call("backupCopied", "()V");
                         }
                     }
+                    @Override public void visitFieldInsn(int op, String owner, String name, String desc) {
+                        super.visitFieldInsn(op, owner, name, desc);
+                        if (load && op == Opcodes.PUTSTATIC && owner.equals("c/a") && (name.equals("SR") || name.equals("afQ"))) {
+                            counts[6]++; call("rootAssigned", "()V");
+                        }
+                    }
                     @Override public void visitInsn(int op) {
                         if (load && op == Opcodes.IRETURN) { super.visitInsn(Opcodes.DUP); call("exitLoad", "(Z)V"); }
                         if (save && op == Opcodes.RETURN) call("exitSave", "()V");
@@ -86,7 +122,10 @@ public final class CareerTransformer {
                 };
             }
         }, ClassReader.EXPAND_FRAMES);
-        for (int count : counts) if (count != 1) throw new IOException("Expected exact load/save/close/copy sites; rejected before defineClass");
+        for (int i = 0; i < 6; i++) if (counts[i] != 1) throw new IOException("Expected exact load/save/close/copy sites; rejected before defineClass");
+        // Real c.a has five observed root writes (two constructor + two decoder + setter).
+        // The private synthetic fixture does not define those original fields.
+        if (reader.getClassName().equals("c/a") && counts[6] != 5) throw new IOException("Root-assignment sites changed; refused");
         return writer.toByteArray();
     }
 }
