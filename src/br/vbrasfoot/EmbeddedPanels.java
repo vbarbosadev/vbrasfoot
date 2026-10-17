@@ -25,12 +25,11 @@ final class EmbeddedPanels {
         try {
             JComponent content = java.util.Objects.requireNonNull(created.component(), "component");
             if (content.getParent() != null) throw new IllegalArgumentException("Componente do mod ja pertence a outra interface");
-            JPanel layer = new JPanel(new BorderLayout(8, 8));
+            JPanel layer = theme.style(new JPanel(new BorderLayout(0, 0)), UiTheme.Role.BODY);
             layer.setName("vbrasfoot.embedded-panel");
-            layer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-            JPanel header = new JPanel(new BorderLayout());
-            header.add(new JLabel(title), BorderLayout.CENTER);
-            JButton back = new JButton("Voltar ao jogo"); back.setName("vbrasfoot.embedded-back");
+            JPanel header = theme.style(new JPanel(new BorderLayout(12, 0)), UiTheme.Role.HEADER);
+            header.add(theme.style(new JLabel(title), UiTheme.Role.TITLE), BorderLayout.CENTER);
+            JButton back = theme.style(new JButton("VOLTAR AO JOGO"), UiTheme.Role.SECONDARY_BUTTON); back.setName("vbrasfoot.embedded-back");
             back.addActionListener(event -> close()); header.add(back, BorderLayout.EAST);
             layer.add(header, BorderLayout.NORTH); layer.add(content, BorderLayout.CENTER);
             theme.apply(layer);

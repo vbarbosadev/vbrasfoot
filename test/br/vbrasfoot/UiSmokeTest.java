@@ -249,6 +249,28 @@ public final class UiSmokeTest {
                     named(layer, "player-comparator." + side + ".choose", JButton.class).doClick();
                 }
                 if (named(layer, "player-comparator.results", JTable.class).getRowCount() != 6) throw new AssertionError("Comparacao integrada incorreta");
+                var styled = named(layer, "player-comparator.results", JTable.class);
+                if (!styled.getBackground().equals(java.awt.Color.WHITE) || !styled.getSelectionBackground().equals(new java.awt.Color(244, 193, 26))) throw new AssertionError("Tema apagou estilo das tabelas");
+                frame.validate();
+                var preview = java.nio.file.Files.createTempFile(Path.of("build"), "embedded-style-preview-", ".png");
+                var image = new java.awt.image.BufferedImage(layer.getWidth(), layer.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
+                var graphics = image.createGraphics();
+                try { layer.printAll(graphics); } finally { graphics.dispose(); }
+                javax.imageio.ImageIO.write(image, "png", preview.toFile());
+                System.out.println("Synthetic style preview (owned fake data only): " + preview);
+                frame.setSize(1280, 720); frame.validate();
+                var smallPreview = java.nio.file.Files.createTempFile(Path.of("build"), "embedded-style-small-", ".png");
+                var small = new java.awt.image.BufferedImage(layer.getWidth(), layer.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
+                var smallGraphics = small.createGraphics();
+                try { layer.printAll(smallGraphics); } finally { smallGraphics.dispose(); }
+                javax.imageio.ImageIO.write(small, "png", smallPreview.toFile());
+                for (String key : java.util.List.of("vbrasfoot.embedded-back", "player-comparator.refresh", "player-comparator.0.choose", "player-comparator.1.choose")) {
+                    var control = named(layer, key, JButton.class);
+                    var rect = javax.swing.SwingUtilities.convertRectangle(control.getParent(), control.getBounds(), layer);
+                    if (rect.width <= 0 || rect.height <= 0 || !new java.awt.Rectangle(0, 0, layer.getWidth(), layer.getHeight()).contains(rect)) throw new AssertionError("Controle fora da area1280x720: " + key);
+                }
+                System.out.println("Synthetic smaller UI preview: " + smallPreview);
+                frame.setBounds(bounds); frame.validate();
                 named(layer, "vbrasfoot.embedded-back", JButton.class).doClick();
                 if (frame.getGlassPane() != originalGlass || frame.getContentPane() != originalContent || originalGlass.isVisible()) throw new AssertionError("Voltar nao restaurou a UI");
                 var host = new EmbeddedPanels(logger);

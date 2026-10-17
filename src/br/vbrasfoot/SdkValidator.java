@@ -21,6 +21,7 @@ public final class SdkValidator {
                     + ",\"conditionalCapabilities\":[\"events.career.observed\"],\"observationFlag\":\"--probe-career-hooks\""
                     + ",\"featureMinimums\":{\"query.scoped\":\"0.3.0\",\"query.calendar.current\":\"0.5.0\",\"query.club.balance\":\"0.5.0\"}"
                     + ",\"uiFeatures\":{\"ui.panel.embedded\":{\"minimumLoader\":\"0.6.0\",\"method\":\"ModContext.registerPanel\",\"placement\":\"career-window-overlay\",\"originalContentPreserved\":true}}"
+                    + ",\"themeRolesMinimumLoader\":\"0.7.0\""
                     + ",\"readMethods\":{\"query.calendar.current\":\"GameAccess.scopedCalendar\",\"query.club.balance\":\"GameAccess.scopedClubBalance\"}"
                     + ",\"unsupported\":[\"gameplay.write\",\"career.identity.persistent\",\"career.sidecars\",\"events.career.complete\",\"events.match\",\"ui.original-screen-injection\",\"hot-reload\"]"
                     + ",\"limits\":{\"queryPageMax\":500,\"clubHandles\":4096,\"subscriptionsPerMod\":4},\"sandbox\":false}");

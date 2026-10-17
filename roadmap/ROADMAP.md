@@ -668,3 +668,13 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   escalas/multimonitor pendentes. Nao generic injection ou simulacao pausada.
 - Nova evidencia criacao: az muda indice1->4 e V4->22 na mesma geracao, listas
   estaveis. Isso mostra selecao/avanco interno, nao commit de lifecycle ou P3.
+
+### P2/P5 — composicao visual0.7.0
+
+- Usuario confirmou overlay sem janela extra, mas avaliou visual distante do jogo.
+  UiTheme.apply foi ajustado para preservar estilos explicitos e papeis semanticos,
+  separando cabecalho escuro/corpo branco/secoes verdes/selection amarela/rodape.
+- Comparador1.1 redesenhado, filtro e navegacao em linhas separadas; sem copiar
+  codigo/recursos da referencia realbrasfoot-mods ou suas regras de gameplay.
+- Testes de roles/preservacao/EDT, preview/smoke sinteticos em1920/1280 e SDK-only;
+  aprovacao humana do novo visual e demais escalas permanecem pendentes.
