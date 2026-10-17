@@ -19,6 +19,8 @@ public final class SdkValidator {
                     + ",\"experimental\":true,\"permissions\":" + strings(ModManifest.KNOWN_PERMISSIONS.stream().sorted().toList())
                     + ",\"capabilities\":" + strings(ModManifest.KNOWN_CAPABILITIES.stream().sorted().toList())
                     + ",\"conditionalCapabilities\":[\"events.career.observed\"],\"observationFlag\":\"--probe-career-hooks\""
+                    + ",\"featureMinimums\":{\"query.scoped\":\"0.3.0\",\"query.calendar.current\":\"0.5.0\",\"query.club.balance\":\"0.5.0\"}"
+                    + ",\"readMethods\":{\"query.calendar.current\":\"GameAccess.scopedCalendar\",\"query.club.balance\":\"GameAccess.scopedClubBalance\"}"
                     + ",\"unsupported\":[\"gameplay.write\",\"career.identity.persistent\",\"career.sidecars\",\"events.career.complete\",\"events.match\",\"ui.original-screen-injection\",\"hot-reload\"]"
                     + ",\"limits\":{\"queryPageMax\":500,\"clubHandles\":4096,\"subscriptionsPerMod\":4},\"sandbox\":false}");
             return 0;

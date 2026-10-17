@@ -95,6 +95,31 @@ final class CareerBridge implements GameAccess {
         List<?> humans = (List<?>) call(game, "aN");
         return humans == null || humans.isEmpty() ? List.of() : (List<?>) call(game, "P");
     }
+    @Override public ScopedCalendar scopedCalendar() {
+        return scopedRead(() -> {
+            ReadState state = readState();
+            if (!state.loaded()) throw new GameQueryException(GameQueryException.Reason.NO_CAREER, "Nenhuma carreira identificada para calendario");
+            int index = number(state.primary(), "J");
+            Object original = call(state.primary(), "bb");
+            if (!(original instanceof java.util.Calendar calendar)) throw new GameQueryException(GameQueryException.Reason.UNSUPPORTED_DATA, "Calendario original indisponivel");
+            CalendarDate date = CalendarSnapshots.copy(calendar);
+            unchanged(state);
+            if (call(state.primary(), "bb") != original || number(state.primary(), "J") != index) throw new GameQueryException(GameQueryException.Reason.STATE_CHANGED, "Calendario mudou durante consulta");
+            return new ScopedCalendar(state.scope(), index, date);
+        });
+    }
+    @Override public ScopedClubBalance scopedClubBalance(ClubRef reference) {
+        java.util.Objects.requireNonNull(reference, "club reference");
+        return scopedRead(() -> {
+            ReadState state = readState(); scopes.requireScope(reference.scope());
+            if (!state.loaded()) throw new GameQueryException(GameQueryException.Reason.NO_CAREER, "Nenhuma carreira identificada para saldo");
+            int index = scopes.resolve(reference, state.clubs());
+            Object club = state.clubs().get(index);
+            long balance = ((Number) call(club, "kb")).longValue();
+            unchanged(state); scopes.resolve(reference, state.clubs());
+            return new ScopedClubBalance(state.scope(), reference, balance);
+        });
+    }
 
     @Override public ClubPage clubs(String filter, int offset, int limit) {
         GameAccess.validatePage(offset, limit);

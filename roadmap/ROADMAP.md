@@ -626,3 +626,13 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   metadados finais bounded3labels/stack8. Pareamento rejeitado em overflow/session
   antiga; nenhum grafo/classe/Throwable retido no report e nenhum evento promovido.
 - P3 e eventos completos dependem de corroborar conclusao, nao apenas ter listas.
+
+### P2 — SDK0.5.0: data atual e saldo de clube
+
+- Novos defaults/DTOs imutaveis scopedCalendar/scopedClubBalance, game.read,
+  query.calendar.current/query.club.balance. Gregorian AD/copia defensiva antes
+  de Calendar.get; timezone origem/exibicao explicitados, saldo long sem inventar
+  reais/centavos. Schema/save/jogo inalterados, APImajor1 preservada.
+- Mapeamento estatico liga getters a rotulos UI e saldo a debit/credit originais;
+  15 testes puros e52 I/O original em fixture. Sem agenda/historicos/eventos por
+  polling, sem humano primeiro silencioso. UI real/concorrencia abrangente pendentes.

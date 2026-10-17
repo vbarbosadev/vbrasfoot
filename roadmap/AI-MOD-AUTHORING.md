@@ -14,6 +14,7 @@ Tem modelo/fakes e build API-only: bom ponto de partida para adaptar com IA.
 | Ideia | SDK atual | Limite |
 |---|---|---|
 | Comparador de jogadores, filtros personalizados, painel de elenco | Sim: game.read, consultas scoped, janela Swing por acao | Campos disponiveis nos records; nao inventar atributos/IDs persistentes |
+| Data atual e saldo de clube | Sim, loader0.5.0: query.calendar.current/query.club.balance | Gregorian AD, timezone explicitado, saldo long em unidades nao ISO; nao agenda/historico |
 | Favoritos/preferencias/temas do proprio painel | Sim: data.read/data.write globais por mod | Favorito de clube/jogador nao pode usar handle/index como identidade permanente |
 | Exportacao de dados que o usuario escolheu consultar | Implementacao do mod com confirmacao explicita | Dados privados; nao envio automatico/paths arbitrarios via API de dados |
 | Observador de leituras/escritas primarias | Experimental: events.career.read, opt-in | Nao CareerLoaded/Unloaded/Saved completos; criacao ainda UNKNOWN |
@@ -42,6 +43,7 @@ Prefira scopedClubs/scopedPlayers; handles/index/session nao sao IDs persistente
 Nao use snapshot() para copiar toda carreira a cada clique. Paginas max500, nao atomicas.
 UI Swing na EDT; I/O/trabalho lento fora dela; callbacks observados nao sao EDT.
 Declare somente permissoes usadas. Registre acoes scoped, descarte recursos no shutdown.
+Calendario atual/saldo exigem minLoaderVersion=0.5.0 e as capacidades correspondentes.
 Use minLoaderVersion=0.4.6 se depender das garantias recentes de revogacao do contexto.
 Dados do contexto sao globais do mod, nao por carreira. Nao escreva gameplay/save.
 Trate excecoes tipadas/referencias expiradas pedindo nova consulta; nao repita mutacoes.

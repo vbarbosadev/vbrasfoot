@@ -44,6 +44,8 @@ invalidam todo o registro da encarnacao anterior na proxima consulta.
 - `CLUB_MOVED`: posicao/objeto mudou; consulte novamente.
 - `NO_CAREER`: bridge nao identifica carreira carregada nesse estado.
 - `STATE_CHANGED`: referencias/listas mudaram durante leitura; consulte novamente.
+- `UNSUPPORTED_DATA`: novos dados0.5.0 nao representaveis; nao converter calendario
+  por suposicao nem fazer refresh infinito. Veja CALENDAR-BALANCE.md.
 
 Offset/limit invalidos ainda retornam IllegalArgumentException. Nao retry
 automatico infinito; o inspetor esvazia a tabela e pede Atualizar quando obsoleto.

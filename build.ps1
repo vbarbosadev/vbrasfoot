@@ -60,6 +60,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes da sonda falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CreationContentTrackerSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de metadados de criacao falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CalendarSnapshotsSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de calendario/saldo falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ProbeDispatcherSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da fila da sonda falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerLifecycleSelfTest
