@@ -34,6 +34,12 @@ foreach ($relative in @('README.md','build.ps1','.gitignore','vbrasfoot.mod.prop
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "examples\career-observer\$relative") -Destination $target
 }
 Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'sdk\examples\career-observer\LICENSE')
+foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\playercomparator\ComparisonModel.java','src\br\vbrasfoot\playercomparator\PlayerComparatorMod.java','test\br\vbrasfoot\playercomparator\ComparisonModelTest.java')) {
+    $target = Join-Path $Output "sdk\examples\player-comparator\$relative"
+    [IO.Directory]::CreateDirectory((Split-Path $target -Parent)) | Out-Null
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "examples\player-comparator\$relative") -Destination $target
+}
+Copy-Item -LiteralPath "$PSScriptRoot\examples\player-comparator\dist\player-comparator.jar" -Destination (Join-Path $Output 'sdk\examples\player-comparator.jar')
 & javadoc --release 17 -encoding UTF-8 -quiet '-Xdoclint:all,-missing' -d (Join-Path $Output 'sdk\javadoc') -sourcepath (Join-Path $PSScriptRoot 'src') br.vbrasfoot.api
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao gerar Javadocs publicos' }
 # Fixed template sources only: never copy its build/dist/lib/private outputs.

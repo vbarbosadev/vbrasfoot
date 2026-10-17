@@ -2,6 +2,8 @@
 
 [Criar mods com ajuda de IA](roadmap/AI-MOD-AUTHORING.md): capacidades reais,
 prompt inicial, testes e validador `--describe-sdk` / `--json mod.jar` sem jogo.
+[Comparador de jogadores independente](examples/player-comparator/README.md):
+exemplo de mod diferente, apenas leitura, compilado/testado contra SDK publico.
 
 Inventario local sem iniciar jogo/mods ou criar logs: `java -jar dist/vbrasfoot.jar
 --storage-status --game-dir "C:\Jogo" --home "C:\Jogo\vbrasfoot"`.

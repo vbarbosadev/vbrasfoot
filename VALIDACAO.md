@@ -1057,3 +1057,36 @@ Temp/opencode/vbrasfoot-hook-io-b1a7f77677ce4a2d95d91a7e8306ba21. Logs locais
 creation-probe-build.log/creation-probe-original-io.log ignorados.
 Nenhum save de usuario/EXE alterado. UI original dos candidatos ainda pendente;
 nao definir CareerLoaded/identidade/sidecars P3/gameplay P6 por estes resultados.
+
+## P5 — comparador SDK-only e preparacao do teste real
+
+#21 integrado4fe1050/CI17+21 antes desta branch. Mod original MIT em
+examples/player-comparator, main/model/testes/build independentes, apenas API jar.
+Permissoes game.read/ui.register, query.scoped, minLoader0.4.6; consultas100, dois
+DTOs escolhidos em memoria, stale limpa ambos os lados. Sem snapshot global,
+lookup persistente por ID, filesystem/network ou gameplay. Value/codigo posicao/
+forca crus, sem unidades/ranking oficial inventados.
+
+94 checks headless modelo/lifecycle aprovados. Review alterou disposal para
+invokeLater (nao espera EDT) e incluiu LICENSE no JAR; callback tardio nao reabre
+janela. Smoke Swing carrega o JAR real via ModLoader contra GameAccess fake:
+janela/selecoes/tabelas readonly, comparacao6 campos, STALE_SCOPE limpa selecoes,
+refresh e shutdown descarta janela. UI sintetica, nao carreira real/latencia.
+
+SDK-only dist/sdk-0.4.6-comparator-reviewed.zip gerado/extrado fora do checkout:
+template/observador/comparador compilados/testados apenas API e JSON validados;
+allowlist/namespace/hash/negatives aprovados. Fixture privada
+Temp/opencode/vbrasfoot-sdk-author-0c0f3a4c07a64d84b090a664e40e3fef.
+Logs build/comparator-validation.log/comparator-sdk-author.log ignorados.
+Numeracao0.4.6/API1 permanece para incremento interno identificado por commit,
+sem release/tag/publicacao. Novo mod nao e instalado por padrao no pacote; a copia
+de teste do usuario pode receber explicitamente o comparador nesta tarefa.
+
+Portable final dist/portable-0.4.6-dual-final gerado e regressao aprovada em fixture
+Temp/opencode/vbrasfoot-install-f8a6e20012ad4f79a68077c3fa1d161d, sem gameplay/save.
+SDK-only final dist/sdk-0.4.6-dual-final.zip com installer do comparador por allowlist,
+teste fora do checkout novamente aprovado em
+Temp/opencode/vbrasfoot-sdk-author-b589ede13b1c46fa8b915dd434edf179.
+Novo installer exige loader existente, recusa links/JAR existente/sessao aberta,
+valida mod sem init, usa runtime.lock/staging e nao escreve configuracao/saves.
+Sem instalar por padrao nos mods do pacote e sem release/tag/upload.

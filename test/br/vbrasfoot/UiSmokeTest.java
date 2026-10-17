@@ -227,12 +227,44 @@ public final class UiSmokeTest {
                 var outputs = files.toList();
                 if (outputs.size() != 1 || !java.nio.file.Files.readString(outputs.get(0)).equals(edited)) throw new AssertionError("Exportacao nao salvou exatamente revisao explicita");
             }
+            mods.load(List.of(ModManifest.read(Path.of("examples/player-comparator/dist/player-comparator.jar"))), access, ui, managerHome.resolve("comparator-data"));
+            CareerBridge.onEdt(() -> {
+                ui.invoke("br.vbrasfoot.player-comparator:compare");
+                JDialog comparator = null;
+                for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().startsWith("Comparador de jogadores") && dialog.isDisplayable()) comparator = dialog;
+                if (comparator == null) throw new AssertionError("Comparador SDK-only nao abriu");
+                var content = comparator.getContentPane();
+                named(content, "player-comparator.refresh", JButton.class).doClick();
+                for (int side = 0; side < 2; side++) {
+                    named(content, "player-comparator." + side + ".clubs", javax.swing.JComboBox.class).setSelectedIndex(0);
+                    var players = named(content, "player-comparator." + side + ".players", JTable.class);
+                    if (players.getRowCount() != 1 || players.isCellEditable(0, 0)) throw new AssertionError("Comparador tabela jogadores incorreta");
+                    players.setRowSelectionInterval(0, 0);
+                    named(content, "player-comparator." + side + ".choose", JButton.class).doClick();
+                }
+                var results = named(content, "player-comparator.results", JTable.class);
+                if (results.getRowCount() != 6 || !results.getValueAt(1, 1).equals("Jogador de teste") || results.isCellEditable(0, 0)) throw new AssertionError("Comparacao incorreta/editavel");
+                stale.set(true);
+                var clubs = named(content, "player-comparator.0.clubs", javax.swing.JComboBox.class);
+                clubs.setSelectedIndex(-1); clubs.setSelectedIndex(0);
+                if (results.getRowCount() != 0 || !named(content, "player-comparator.status", javax.swing.JLabel.class).getText().contains("STALE_SCOPE")) throw new AssertionError("Comparador nao limpa dados expirados");
+                stale.set(false);
+                named(content, "player-comparator.refresh", JButton.class).doClick();
+                if (results.getRowCount() != 0) throw new AssertionError("Atualizar manteve comparacao antiga");
+                return null;
+            });
+            mods.close(); // Comparator owns its window, not the loader's window registry.
+            CareerBridge.onEdt(() -> {
+                for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().startsWith("Comparador de jogadores") && dialog.isDisplayable()) throw new AssertionError("Comparador vazou janela apos shutdown");
+                return null;
+            });
             ui.close();
             CareerBridge.onEdt(() -> {
                 for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && (dialog.getTitle().contains("Gerenciar mods") || dialog.getTitle().contains("Revisar diagnostico")) && dialog.isDisplayable()) throw new AssertionError("Painel/previa vazou apos fechar UI");
                 return null;
             });
             System.out.println("PASS: menu/gerenciador/falhas, previa privada editavel, cancelar sem escrita, opt-in e exportacao exata confirmada; cleanup aprovado (UI sintetica).");
+            System.out.println("PASS: comparador SDK-only janela/tabelas/selecao/STALE_SCOPE/refresh/shutdown (UI sintetica, nao carreira real).");
         } finally {
             CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; });
         }
