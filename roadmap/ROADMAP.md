@@ -546,3 +546,10 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   Orcamento de referencia local e limites/outliers em QUERY-PERFORMANCE.md.
 - Testes de estatisticas/cache e schemas/queries originais; memoria amostrada nao
   e memoria retida/leak proof, fixture nao e UI completa. P7 permanece parcial.
+
+### P7 — dois mods empacotados, isolamento delimitado
+
+- Suite compila dois JARs reais contra API publica: mesmo nome binario main/helper,
+  comportamento distinto e dependencia que ordena inicio sem expor classe privada.
+- 31 checks locais, no-init da validacao, callbacks independentes e shutdown reverso.
+  Sem jogo/rede/saves. Nao comprova sandbox/internals/GC/leak/UI real nem P7 integral.

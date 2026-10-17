@@ -42,6 +42,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de historico de falhas falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ModContextLifecycleSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de lifecycle do contexto falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ModJarIsolationSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de isolamento de JARs de mods falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.DiagnosticExportSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de exportacao diagnostica falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.QueryMeasurementsSelfTest
