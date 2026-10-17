@@ -1,4 +1,4 @@
-# Gerenciar mods — 0.4.1 experimental
+# Gerenciar mods — 0.4.2 experimental
 
 Menu **vbrasfoot → Gerenciar mods (proxima inicializacao)** mostra JAR, ID, versao,
 permissoes, estado atual, selecao futura, validacao do manifesto e pasta dos logs.
@@ -7,8 +7,30 @@ Abrir/atualizar nao grava. Habilitar/desabilitar exige selecionar e confirmar.
 
 **Sem hot reload**: desabilitar ACTIVE nao muda esta sessao. Feche normalmente e
 reinicie. Nao instala, baixa, apaga ou edita JAR/saves; nao desabilita dependentes
-silenciosamente. Historico consolidado de falhas recentes ainda pendente: consulte
-logs e status das assinaturas. P5 permanece parcial; painel nao e sandbox.
+silenciosamente. Aba **Falhas da sessao** e colunas de resumo mostram erros
+capturados pelo loader; use Atualizar para recarregar. P5 permanece parcial;
+painel nao e sandbox. Exportacao diagnostica ainda pendente.
+
+## Falhas recentes (0.4.2)
+
+- Ate **128 registros globais por sessao**, descartando os mais antigos e contando
+  evicoes. Resumos imutaveis com horario, sequencia, arquivo, ID, etapa, tipo e mensagem.
+- Captura nas fronteiras do loader: inicializacao/construtor, acao de UI, callback
+  de observacoes, overflow de assinatura e shutdown. Erro de acao/callback nao marca
+  todo o mod como FAILED; estado original da sessao permanece fiel ao contrato.
+- Overflow e detectado ao consultar status, atualizar painel ou descartar assinatura,
+  uma vez por assinatura. Horario e o da deteccao, nao necessariamente da sobrecarga.
+- Nao retém Throwable/Class, callbacks, classloaders ou objetos do jogo; textos
+  limitados (mensagem 512 chars, arquivo/ID/tipo 160, mais marcador de corte).
+- Somente memoria da sessao: reiniciar limpa o historico. Stack traces completos,
+  quando registrados pelo caminho original, continuam nos logs privados. Falhas de
+  inicializacao podem impedir abrir o painel; use logs e CLI/modo seguro.
+- Nao intercepta todas as threads/timers criados pelo mod, erros engolidos por ele
+  ou falhas internas do jogo. Lista vazia nao comprova ausencia de erros.
+- Nao altera saves, nao envia nem exporta automaticamente. Mensagens podem conter
+  caminhos, dados ou segredos produzidos pelo mod: revisar antes de compartilhar.
+  Codigo Java e confiavel, nao sandbox; nao ha garantia contra callback malicioso
+  ou JVM sem recursos. Nao provoque erros em carreira real para validar este painel.
 
 ## Linha de comando (jogo fechado)
 

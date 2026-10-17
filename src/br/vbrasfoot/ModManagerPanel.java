@@ -13,18 +13,27 @@ import javax.swing.table.DefaultTableModel;
 final class ModManagerPanel {
     private ModManagerPanel() { }
     static void register(ModUi ui, Path home, Path logs, Supplier<Map<String, br.vbrasfoot.api.ModState>> states) {
-        ui.register("vbrasfoot:manage", "Gerenciar mods (proxima inicializacao)", () -> show(ui, home, logs, states));
+        register(ui, home, logs, states, () -> new ModFailures.Snapshot(List.of(), 0));
+    }
+    static void register(ModUi ui, Path home, Path logs, Supplier<Map<String, br.vbrasfoot.api.ModState>> states, Supplier<ModFailures.Snapshot> failures) {
+        ui.register("vbrasfoot:manage", "Gerenciar mods (proxima inicializacao)", () -> show(ui, home, logs, states, failures));
     }
     static JPanel content(List<ModSelection.Entry> entries, Map<String, br.vbrasfoot.api.ModState> states) {
-        DefaultTableModel model = new DefaultTableModel(new String[] {"JAR", "ID", "Versao", "Estado agora", "Proximo inicio", "Permissoes", "Validacao"}, 0) {
+        return content(entries, states, new ModFailures.Snapshot(List.of(), 0));
+    }
+    static JPanel content(List<ModSelection.Entry> entries, Map<String, br.vbrasfoot.api.ModState> states, ModFailures.Snapshot failures) {
+        DefaultTableModel model = new DefaultTableModel(new String[] {"JAR", "ID", "Versao", "Estado agora", "Proximo inicio", "Permissoes", "Validacao", "Falhas recentes", "Ultima falha"}, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
         };
         for (var entry : entries) {
             var manifest = entry.manifest();
             String id = manifest == null ? "" : manifest.id();
+            var recent = failures.entries().stream().filter(f -> f.file().equals(entry.file())).toList();
+            var last = recent.isEmpty() ? null : recent.get(recent.size() - 1);
             model.addRow(new Object[] {entry.file(), id, manifest == null ? "" : manifest.version(),
                     states.containsKey(entry.file()) ? states.get(entry.file()).name() : "NAO CARREGADO", entry.enabled() ? "HABILITADO" : "DESABILITADO",
-                    manifest == null ? "" : manifest.permissions().stream().sorted().toList().toString(), entry.error()});
+                    manifest == null ? "" : manifest.permissions().stream().sorted().toList().toString(), entry.error(), recent.size(),
+                    last == null ? "" : last.stage() + ": " + last.type() + " " + last.message()});
         }
         JTable table = new JTable(model); table.setName("vbrasfoot.mod-manager.table");
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -32,7 +41,15 @@ final class ModManagerPanel {
         JPanel panel = new JPanel(new BorderLayout()); panel.add(new JScrollPane(table), BorderLayout.CENTER);
         return panel;
     }
-    private static void show(ModUi ui, Path home, Path logs, Supplier<Map<String, br.vbrasfoot.api.ModState>> states) {
+    static String failureText(ModFailures.Snapshot failures) {
+        StringBuilder text = new StringBuilder("Falhas desta sessao (ate 128). Atualizar recarrega a lista.\nNao persistidas entre sessoes; mensagens podem conter dados privados.\nRegistros antigos descartados: " + failures.evicted() + "\n\n");
+        if (failures.entries().isEmpty()) text.append("Nenhuma falha capturada nos limites instrumentados. Isso nao prova ausencia de erros no jogo/mods.\n");
+        for (var entry : failures.entries()) text.append('#').append(entry.sequence()).append(' ').append(entry.time()).append(' ')
+                .append(entry.file()).append(" [").append(entry.id()).append("] ").append(entry.stage()).append('\n')
+                .append(entry.type()).append(": ").append(entry.message()).append("\n\n");
+        return text.toString();
+    }
+    private static void show(ModUi ui, Path home, Path logs, Supplier<Map<String, br.vbrasfoot.api.ModState>> states, Supplier<ModFailures.Snapshot> failures) {
         JDialog dialog = new JDialog((java.awt.Frame) null, "vbrasfoot — Gerenciar mods", false);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         ui.own(dialog);
@@ -63,9 +80,14 @@ final class ModManagerPanel {
                         if (!dialog.isDisplayable()) return;
                         try {
                             var entries = get(); selection[0] = next;
-                            JPanel panel = content(entries, states.get());
+                            ModFailures.Snapshot snapshot = failures.get();
+                            JPanel panel = content(entries, states.get(), snapshot);
                             table[0] = (JTable) ((JScrollPane) panel.getComponent(0)).getViewport().getView();
-                            center.removeAll(); center.add(panel); center.revalidate(); center.repaint();
+                            JTextArea history = new JTextArea(failureText(snapshot));
+                            history.setEditable(false); history.setLineWrap(true); history.setWrapStyleWord(true); history.setCaretPosition(0);
+                            history.setName("vbrasfoot.mod-manager.failures");
+                            JTabbedPane tabs = new JTabbedPane(); tabs.addTab("Mods", panel); tabs.addTab("Falhas da sessao", new JScrollPane(history));
+                            center.removeAll(); center.add(tabs); center.revalidate(); center.repaint();
                             status.setText(jar == null ? "Selecao carregada; alteracoes nao afetam esta sessao." : "Salvo para proximo inicio. Estado atual preservado.");
                         } catch (Exception failure) {
                             Throwable cause = failure.getCause() == null ? failure : failure.getCause();

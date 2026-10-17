@@ -39,6 +39,11 @@ final class ModUi implements AutoCloseable {
         }
         actions.put(id, new Action(label, callback));
     }
+    void invoke(String id) {
+        Action action;
+        synchronized (this) { action = actions.get(id); }
+        if (action != null) action.callback().run();
+    }
 
     void start() {
         CareerBridge.onEdt(() -> {
@@ -126,8 +131,8 @@ final class ModUi implements AutoCloseable {
                 JMenuItem item = new JMenuItem(action.label());
                 item.putClientProperty("vbrasfoot.action.id", entry.getKey());
                 item.addActionListener(event -> {
-                    try { action.callback().run(); }
-                    catch (RuntimeException failure) {
+                    try { invoke(entry.getKey()); }
+                    catch (RuntimeException | Error failure) {
                         logger.log(Level.WARNING, "Falha na acao " + entry.getKey(), failure);
                         JOptionPane.showMessageDialog(frame, failure.getMessage(), "vbrasfoot", JOptionPane.ERROR_MESSAGE);
                     }

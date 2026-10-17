@@ -95,7 +95,7 @@ public final class Main {
                 try (ModUi ui = new ModUi(runtime, logger); ModLoader mods = new ModLoader(logger, probe == null ? null : probe.observations())) {
                     if (!options.safe) {
                         mods.load(manifests, new CareerBridge(runtime), ui, home.resolve("data"));
-                        ModManagerPanel.register(ui, home, sessionDirectory, mods::fileStates);
+                        ModManagerPanel.register(ui, home, sessionDirectory, mods::fileStates, mods::failures);
                         ui.start();
                     }
                     Thread current = Thread.currentThread();
