@@ -88,3 +88,46 @@ restauracao, gravacao de saves originais nem lancamento do jogo real nesta rodad
 
 P0 permanece aberto. Roteiro interativo em `roadmap/P0-VALIDACAO.md`; P1 a P6 nao
 foram implementadas nem aprovadas por este incremento.
+
+## Incremento experimental P1/P2 — 16/10/2026
+
+- SDK/loader 0.2.0, API major 1. Exemplo compilado somente contra o JAR publico.
+- `test.ps1 -IncludeUi -Save '..\Brasfoot22-23\sav\Flamengo.s22'`:
+  **64 testes aprovados**, perfil e Swing sintetico aprovados; teste adicional de
+  registro/remocao de acao passou. Verificador offline aprovado, inclusive todas
+  as paginas de clubes e paginas de jogadores do primeiro clube humano iguais
+  ao snapshot. Sem gameplay ou reabertura no EXE original.
+- Relatorio: `verification/save-10258633321303238868/report.properties`.
+  8.395 clubes / 193.831 jogadores; round-trip identico em bytes. EXE/save originais
+  com os mesmos hashes do incremento anterior.
+- A primeira consulta paginada por ID revelou ambiguidade: 8.395 clubes geraram
+  apenas **um valor distinto** no getter legado historicamente chamado de ID.
+  Corrigido para recusar selecao ambigua; `playersAt(club.index(), ...)` usa posicao
+  na lista atual. Nao e identidade duravel e nao protege troca de carreira entre
+  chamadas. Semantica completa de IDs permanece desconhecida.
+- Corrigida uma corrida preexistente entre o hook do diagnostico e o hook de
+  LogManager: `termination.txt` registra o motivo mesmo se handlers ja fecharam.
+- Pacote criado por `release.ps1`, sem arquivos do jogo/runtime Java, contendo
+  SDK, licenca e hashes. Instalador valida hashes das fontes do pacote antes de
+  escrever; esses hashes nao sao assinatura de autenticidade.
+- `test-portable.ps1`: instalacao/preview, validacao instalada sem referencia ao
+  checkout, reinstalacao, modo seguro com JAR quebrado, arquivo gerenciado alterado,
+  lock ativo, mover diretorio, preview/desinstalacao preservando dados e hash do EXE
+  aprovados. Fixture privada com EXE correto, nao com todos os recursos/saves.
+  Ambiente: Windows, PowerShell 5, Java 21.0.12, caminhos com espacos/acento.
+  O CMD seguro tambem foi executado em `--validate-only` com sucesso.
+  Pacote revisado: `dist/portable-0.2.0-reviewed/`.
+  Evidencias em `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-e4e321db8de641108d42b9f9f36eb6ff`.
+  Teste adicional: junction de home para diretorio protegido recusada tanto pelo
+  instalador como pelo loader, antes de qualquer escrita no destino protegido.
+
+Limites: substituicao atomica por arquivo, nao por release; atualizacao interrompida
+exige revisao manual. Sem matriz completa de junctions/links, somente leitura, falta
+de espaco, falhas de escrita e JVMs 17+. O inspetor foi atualizado nesta finalizacao
+para filtro/paginacao de 100 clubes e ate 500 jogadores do clube selecionado;
+nao chama mais snapshot completo no runtime atual.
+O teste Swing do inspetor atualizado foi reexecutado com sucesso; sua compilacao
+usa apenas o JAR publico. Os 64 testes unitarios foram reexecutados na revisao.
+Nao ha ampliacao por suposicao de calendario/financas/historicos, servicos entre
+mods, cancelamento de tarefas ou eventos de carreira. P0/P1/P2 nao aprovados como
+fases completas. Guias: `roadmap/PORTABLE.md` e `roadmap/SDK-CONTRACT.md`.

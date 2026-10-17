@@ -23,6 +23,7 @@ final class ModUi implements AutoCloseable {
     private final ClassLoader runtime;
     private final Logger logger;
     private Timer timer;
+    private final java.util.Set<JButton> installed = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
     ModUi(ClassLoader runtime, Logger logger) { this.runtime = runtime; this.logger = logger; }
 
     synchronized void register(String id, String label, Runnable callback) {
@@ -37,6 +38,19 @@ final class ModUi implements AutoCloseable {
             timer = new Timer(800, event -> install());
             timer.start();
             return null;
+        });
+    }
+
+    void unregister(String id) {
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            synchronized (this) { actions.remove(id); }
+            for (JButton button : installed) {
+                JPopupMenu menu = (JPopupMenu) button.getClientProperty("vbrasfoot.popup");
+                for (Component item : menu.getComponents()) {
+                    if (item instanceof JMenuItem action && id.equals(action.getClientProperty("vbrasfoot.action.id"))) menu.remove(action);
+                }
+                menu.putClientProperty("vbrasfoot.action." + id, null);
+            }
         });
     }
 
@@ -94,6 +108,7 @@ final class ModUi implements AutoCloseable {
                 JButton owner = button;
                 button.addActionListener(event -> popup.show(owner, 0, owner.getHeight()));
                 toolbar.add(button, toolbar.getComponentIndex(options));
+                installed.add(button);
                 logger.info("Menu vbrasfoot integrado na barra interna da carreira, ao lado de Opcoes.");
             }
             JPopupMenu menu = (JPopupMenu) button.getClientProperty("vbrasfoot.popup");
@@ -102,6 +117,7 @@ final class ModUi implements AutoCloseable {
                 if (Boolean.TRUE.equals(menu.getClientProperty(key))) continue;
                 Action action = entry.getValue();
                 JMenuItem item = new JMenuItem(action.label());
+                item.putClientProperty("vbrasfoot.action.id", entry.getKey());
                 item.addActionListener(event -> {
                     try { action.callback().run(); }
                     catch (RuntimeException failure) {
@@ -133,6 +149,15 @@ final class ModUi implements AutoCloseable {
     }
 
     @Override public void close() {
-        CareerBridge.onEdt(() -> { if (timer != null) timer.stop(); return null; });
+        CareerBridge.onEdt(() -> {
+            if (timer != null) timer.stop();
+            for (JButton button : installed) {
+                Container parent = button.getParent();
+                if (parent != null) { parent.remove(button); parent.revalidate(); parent.repaint(); }
+            }
+            installed.clear();
+            synchronized (this) { actions.clear(); }
+            return null;
+        });
     }
 }

@@ -12,6 +12,66 @@ final class CareerBridge implements GameAccess {
     private final ClassLoader runtime;
     CareerBridge(ClassLoader runtime) { this.runtime = runtime; }
 
+    private List<?> activeClubs() throws Exception {
+        Object game = Class.forName("c.a", false, runtime).getField("SR").get(null);
+        if (game == null || Class.forName("c.a", false, runtime).getField("afQ").get(null) == null) return List.of();
+        List<?> humans = (List<?>) call(game, "aN");
+        return humans == null || humans.isEmpty() ? List.of() : (List<?>) call(game, "P");
+    }
+
+    @Override public ClubPage clubs(String filter, int offset, int limit) {
+        GameAccess.validatePage(offset, limit);
+        String query = filter == null ? "" : filter.toLowerCase(java.util.Locale.ROOT);
+        return onEdt(() -> {
+            List<?> clubs = activeClubs();
+            List<ClubSummary> result = new ArrayList<>();
+            int total = 0;
+            Object game = Class.forName("c.a", false, runtime).getField("SR").get(null);
+            List<?> humans = clubs.isEmpty() ? List.of() : (List<?>) call(game, "aN");
+            int index = -1;
+            for (Object club : clubs) {
+                index++;
+                String name = (String) call(club, "getNome");
+                if (!name.toLowerCase(java.util.Locale.ROOT).contains(query)) continue;
+                if (total++ >= offset && result.size() < limit) {
+                    result.add(new ClubSummary(index, number(club, "gD"), name, humans.stream().anyMatch(h -> h == club), ((List<?>) call(club, "kc")).size()));
+                }
+            }
+            return new ClubPage(!clubs.isEmpty(), result, offset, total);
+        });
+    }
+
+    @Override public PlayerPage players(int clubId, int offset, int limit) {
+        GameAccess.validatePage(offset, limit);
+        return onEdt(() -> {
+            List<?> clubs = activeClubs();
+            int found = -1;
+            for (int i = 0; i < clubs.size(); i++) {
+                if (number(clubs.get(i), "gD") != clubId) continue;
+                if (found >= 0) throw new IllegalArgumentException("ID de clube ambiguo; use playersAt com index da pagina atual");
+                found = i;
+            }
+            return found < 0 ? new PlayerPage(!clubs.isEmpty(), List.of(), offset, 0) : playersAt(found, offset, limit);
+        });
+    }
+
+    @Override public PlayerPage playersAt(int clubIndex, int offset, int limit) {
+        GameAccess.validatePage(offset, limit);
+        return onEdt(() -> {
+            List<?> clubs = activeClubs();
+            if (clubIndex < 0 || clubIndex >= clubs.size()) throw new IllegalArgumentException("Indice de clube fora da lista atual");
+            Object club = clubs.get(clubIndex);
+                List<?> players = (List<?>) call(club, "kc");
+                List<Player> result = new ArrayList<>();
+                for (int i = offset; i < players.size() && result.size() < limit; i++) {
+                    Object p = players.get(i);
+                    result.add(new Player(number(p, "gD"), (String) call(p, "getNome"), number(p, "getIdade"),
+                            number(p, "getPosicao"), number(p, "fi"), number(p, "fk")));
+                }
+                return new PlayerPage(true, result, offset, players.size());
+        });
+    }
+
     @Override public Snapshot snapshot() {
         return onEdt(() -> {
             Class<?> state = Class.forName("c.a", false, runtime);

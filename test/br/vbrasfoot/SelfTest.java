@@ -91,6 +91,33 @@ public final class SelfTest {
         Path rejectedHome = invalidGame.resolve("must-not-create");
         rejects(() -> Main.run(new String[] {"--game-dir", invalidGame.toString(), "--home", rejectedHome.toString()}), "home inside original rejected");
         check(!Files.exists(rejectedHome), "reject home before writing original");
+        check(InstallPaths.resolve(invalidGame, invalidGame.resolve("vbrasfoot")).installRoot().endsWith("vbrasfoot"), "installed root accepted");
+        rejects(() -> InstallPaths.resolve(invalidGame, invalidGame.resolve("sav")), "save root rejected");
+        rejects(() -> InstallPaths.resolve(invalidGame, invalidGame), "game root rejected");
+        rejects(() -> InstallPaths.resolve(invalidGame, invalidGame.resolve("vbrasfoot/nested")), "nested install root rejected");
+        GameAccess paged = () -> new GameAccess.Snapshot(true, List.of(club));
+        check(paged.clubs("clu", 0, 10).items().size() == 1, "filtered club page");
+        check(paged.clubs("missing", 0, 10).total() == 0, "empty filtered page");
+        check(paged.clubs("", 9, 10).items().isEmpty(), "page beyond end");
+        rejects(() -> paged.clubs("", 0, 501), "bounded page size");
+        rejects(() -> paged.players(1, -1, 10), "negative offset rejected");
+        GameAccess duplicateIds = () -> new GameAccess.Snapshot(true, List.of(club, new GameAccess.Club(1, "Outro", false, List.of())));
+        rejects(() -> duplicateIds.players(1, 0, 10), "ambiguous club id rejected");
+        check(duplicateIds.playersAt(1, 0, 10).items().isEmpty(), "club list position selection");
+        Path evolved = temp.resolve("evolved.jar");
+        String evolvedText = "id=evolved\nname=Evolved\nversion=1\napiVersion=[1,2)\ngameProfile=brasfoot22-23\nmainClass=test.Main\nminLoaderVersion=0.2.0\noptionalDependencies=base\nrequiredCapabilities=query.paged\nconflicts=other\n";
+        manifestText(evolved, evolvedText);
+        check(ModManifest.read(evolved).optionalDependencies().equals(List.of("base")), "evolved manifest");
+        ModManifest evolvedManifest = ModManifest.read(evolved);
+        check(ModLoader.ordered(Map.of("evolved", evolvedManifest)).size() == 1, "absent optional dependency accepted");
+        check(ModLoader.ordered(Map.of("evolved", evolvedManifest, "base", entry("base", List.of()))).get(0).id().equals("base"), "optional dependency order");
+        rejects(() -> ModLoader.ordered(Map.of("evolved", evolvedManifest, "other", entry("other", List.of()))), "explicit conflict");
+        manifestText(evolved, evolvedText + "typo=invalid\n");
+        rejects(() -> ModManifest.read(evolved), "unknown manifest field");
+        manifestText(evolved, evolvedText.replace("0.2.0", "99.0.0"));
+        rejects(() -> ModManifest.read(evolved), "minimum loader version");
+        manifestText(evolved, evolvedText.replace("query.paged", "game.write"));
+        rejects(() -> ModManifest.read(evolved), "unknown required capability");
         for (String mode : List.of("exit", "exit-edt", "return")) {
             Path childHome = temp.resolve("shutdown-" + mode);
             var child = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java.exe").toString(),
@@ -103,14 +130,21 @@ public final class SelfTest {
             check(child.exitValue() == 0, "diagnostic child " + mode);
             try (var sessions = Files.list(childHome.resolve("logs"))) {
                 Path childSession = sessions.findFirst().orElseThrow();
-                String log = Files.readString(childSession.resolve("loader-0.log"));
-                check(log.contains(mode.startsWith("exit") ? "reason=jvm-shutdown" : "reason=launcher-returned"), "shutdown reason " + mode);
+                String reason = Files.readString(childSession.resolve("termination.txt")).trim();
+                check(reason.equals(mode.startsWith("exit") ? "jvm-shutdown" : "launcher-returned"), "shutdown reason " + mode);
                 check(Files.readString(childSession.resolve("stderr.log")).contains("child-error"), "shutdown flush " + mode);
             }
         }
         System.out.println("PASS: " + checks + " testes.");
     }
     private static Path write(Path path, byte[] bytes) throws IOException { return Files.write(path, bytes); }
+    private static void manifestText(Path path, String text) throws IOException {
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(path))) {
+            jar.putNextEntry(new JarEntry("vbrasfoot.mod.properties"));
+            jar.write(text.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+        }
+    }
     private static Path manifest(Path path, String id, String dependencies, String permissions, String profile) throws IOException {
         try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(path))) {
             jar.putNextEntry(new JarEntry("vbrasfoot.mod.properties"));

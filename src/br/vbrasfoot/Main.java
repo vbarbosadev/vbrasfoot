@@ -25,18 +25,9 @@ public final class Main {
     static void run(String[] args) throws Exception {
         Options options = Options.parse(args);
         if (options.help) { help(); return; }
-        Path game = options.game.toRealPath();
-        Path home = options.home.toAbsolutePath().normalize();
-        // Reject original resources before creating anything in the supplied home.
-        if (home.startsWith(game)) throw new IllegalArgumentException("--home deve ficar fora da pasta do jogo");
-        Path ancestor = home;
-        while (!Files.exists(ancestor)) ancestor = ancestor.getParent();
-        if (ancestor.toRealPath().resolve(ancestor.relativize(home)).normalize().startsWith(game)) {
-            throw new IllegalArgumentException("--home aponta para a pasta do jogo atraves de link/junction");
-        }
+        InstallPaths paths = InstallPaths.resolve(options.game, options.home);
+        Path game = paths.gameRoot(), home = paths.installRoot();
         Files.createDirectories(home);
-        home = home.toRealPath();
-        if (home.startsWith(game)) throw new IllegalArgumentException("--home deve ficar fora da pasta do jogo");
         try (SessionDiagnostics diagnostic = SessionDiagnostics.open(home, game, args)) {
             try { launch(options, game, home, diagnostic.logger()); }
             catch (Exception | LinkageError failure) {
@@ -51,7 +42,7 @@ public final class Main {
         logger.info("stage=profile-verification");
         Path executable = Profile.verify(game);
         logger.info("stage=profile-verified sha256=" + Profile.SHA256);
-        System.out.println("vbrasfoot 0.1.0 | " + Profile.ID + " | SHA-256 " + Profile.SHA256);
+        System.out.println("vbrasfoot " + br.vbrasfoot.api.Sdk.VERSION + " | " + Profile.ID + " | SHA-256 " + Profile.SHA256);
         // Safe mode and offline save checks deliberately ignore even malformed mod JARs.
         List<ModManifest> manifests = options.safe || options.checkSave != null ? List.of() : ModLoader.discover(home.resolve("mods"));
         for (ModManifest manifest : manifests) System.out.println("Mod: " + manifest.id() + " " + manifest.version());

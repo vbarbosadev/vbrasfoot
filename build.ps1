@@ -15,7 +15,7 @@ try {
     & jar --create --file 'dist\vbrasfoot-api.jar' -C $classes br/vbrasfoot/api
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar API' }
     $exampleSources = @(Get-ChildItem 'examples\inspector\src' -Recurse -Filter '*.java' | ForEach-Object FullName)
-    & javac --release 17 -encoding UTF-8 -cp $classes -d $example @exampleSources
+    & javac --release 17 -encoding UTF-8 -cp 'dist\vbrasfoot-api.jar' -d $example @exampleSources
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar mod de exemplo' }
     & jar --create --file 'mods\inspector.jar' -C $example . -C 'examples\inspector' vbrasfoot.mod.properties
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar mod de exemplo' }

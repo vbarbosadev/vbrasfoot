@@ -85,6 +85,9 @@ final class SessionDiagnostics implements AutoCloseable {
     private synchronized void finish(String reason) {
         if (closed) return;
         closed = true;
+        // LogManager has its own concurrent JVM hook and may already have closed handlers.
+        try { Files.writeString(directory.resolve("termination.txt"), reason + "\n"); }
+        catch (IOException failure) { originalErr.println("Falha ao registrar encerramento: " + failure); }
         logger.info("stage=diagnostic-close reason=" + reason);
         logger.removeHandler(handler);
         handler.close();
