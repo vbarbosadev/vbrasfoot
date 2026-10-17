@@ -1,7 +1,8 @@
 # P4 — candidatos estaticos de hooks de carreira
 
-Estado: **mapeamento estatico, sem transformacao ou eventos no loader**.
-Nao e corroboracao de runtime nem aceite de P4. A implementacao continua bloqueada
+Este documento registra o **mapeamento estatico**. A entrega posterior de sonda
+opt-in e seus testes/limites estao em `CAREER-PROBE.md`; nao ha eventos publicos.
+Este inventario nao e corroboracao de runtime nem aceite de P4. A API continua bloqueada
 pelas evidencias/gates correspondentes; polling de tela nao substitui esses hooks.
 
 ## Identidade

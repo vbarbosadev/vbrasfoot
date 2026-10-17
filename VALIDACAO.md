@@ -341,3 +341,49 @@ CI remoto **38997162116** (push) e **38997165762** (PR) aprovados, Windows/Temur
 17 e 21. Os dois checks foram tornados obrigatorios na main (app GitHub Actions
 15368, strict/up-to-date); protecoes anteriores e excecao de review por PR mantidas.
 Nenhum PR integrado automaticamente. Revisoes seguintes tambem exigem checks.
+
+## Proxima entrega P4 — sonda opt-in (17/10/2026)
+
+Branch `feat/career-hook-probe`, baseada no merge do PR #2. Sonda desativada por
+padrao; nenhum evento publico/capacidade de mods, unload ou persistencia P3.
+
+Tecnica documentada em `roadmap/CAREER-PROBE.md`: transforma somente corpos de
+`c.a` em memoria, apos hash exato e contagem de sites; nao altera EXE/cache/schema.
+ASM interno do JDK 17/21 explicitamente exportado somente no opt-in. Nao afirma
+que esse mecanismo seja contrato de producao ou portavel a outros JDKs.
+
+Executado localmente com Java 21:
+
+- Build: **69 testes gerais**, **12 de tracking/observador**, **12 de bytecode
+  sintetico transformado** aprovados, sem jogo nas suites sinteticas.
+- `run.ps1 --probe-career-hooks --validate-only`: classe transformada verificada
+  sem iniciar UI/carreira/mods. Tentativa inicial encontrou VerifyError de frame
+  no handler legado; corrigida, reexecutada e passou. Nunca foi aplicada por fallback.
+- `test-career-hooks.ps1`: **21 checks** aprovados chamando metodos originais de
+  I/O na EDT em fixture nova. Frame sintetico evita inicializacao da UI completa.
+  Load/save/reload, backup, falha primaria capturada pelo jogo, falha de backup,
+  fallback `.s22` invalido/`.sbck` valido deduplicado e argumento null verificados.
+- Schema de c.a original/transformada igual por nome, campos, assinaturas,
+  modificadores e superclass. Contagens de clubes/jogadores preservadas apos save/reload;
+  igualdade completa do grafo/gameplay **nao** declarada por esse teste.
+- Excecoes esperadas de falha primaria/backup/fallback aparecem no log; nao foram
+  mascaradas. Falha do backup nao virou falha de save primario nem sucesso de backup.
+- EXE/input da fixture e EXE/save da origem com hashes antes/depois iguais.
+
+Fixture aprovada reexecutada com transcript:
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-hook-io-720847240c304ae182ed8b45132f1dd4`.
+Todos os outputs/falhas sao nomes novos nessa fixture, sem restauracao ou mutacao
+de save da origem. Transcript privado `loader/runtime-observations.txt` registra
+sete observacoes na AWT-EventQueue-0, incluindo fallback completo com retorno
+externo false, falha primaria sem completed e falha de backup com primario completed.
+Frame sintetico nao e teste
+de UI/gameplay, troca/unload, EXE original ou durabilidade fisica do arquivo.
+Sonda ainda requer sessao real guiada antes de habilitar eventos/sidecars.
+
+Pacote `dist/portable-career-probe-20261017` gerado e instalado **somente** na
+copia completa isolada existente. Validacao instalada opt-in aprovada sem iniciar
+jogo; EXE/saves da origem e save atual da copia permanecem nos hashes anteriores.
+Regressao portable aprovada com a sonda desligada: logs privados em
+`build/portable-career-probe-20261017.log`, fixture
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-2cbd948ecd7d40f0a1c9ba14f6d43ddc`.
+`test.ps1 -IncludeUi` tambem reexecutado: suites sinteticas e inspetor aprovados.

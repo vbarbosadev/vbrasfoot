@@ -54,7 +54,8 @@ public final class Main {
              FileLock lock = lockChannel.tryLock()) {
             if (lock == null) throw new IllegalStateException("Outra instancia do vbrasfoot esta usando este diretorio");
             logger.info("stage=runtime-preparation");
-            try (LegacyRuntime runtime = LegacyRuntime.prepare(executable, home)) {
+            try (AutoCloseable probe = options.probe ? HookProbe.attach(observation -> logger.info("career-hook-probe=" + observation)) : () -> { };
+                 LegacyRuntime runtime = LegacyRuntime.prepare(executable, home, options.probe)) {
                 logger.info("stage=runtime-verified");
                 if (options.validate) {
                     // Does not initialize plugin classes or any game class.
@@ -78,7 +79,7 @@ public final class Main {
                     ClassLoader previous = current.getContextClassLoader();
                     current.setContextClassLoader(runtime);
                     try {
-                        logger.info("stage=game-entry safeMode=" + options.safe);
+                            logger.info("stage=game-entry safeMode=" + options.safe + " careerHookProbe=" + options.probe);
                         Class.forName(Profile.ENTRYPOINT, true, runtime).getMethod("main", String[].class)
                                 .invoke(null, (Object) options.gameArguments.toArray(String[]::new));
                         awaitWindows();
@@ -143,12 +144,13 @@ public final class Main {
         System.out.println("vbrasfoot: use run.ps1 [--validate-only | --list-mods | --safe-mode | --check-save CAMINHO]");
         System.out.println("--validate-only nao inicia o jogo nem inicializa mods; --safe-mode ignora todos os mods.");
         System.out.println("--check-save verifica uma copia privada com o Kryo original; nao inicia a interface do jogo.");
+        System.out.println("--probe-career-hooks: sonda experimental opt-in de carregar/salvar (nao habilita eventos de mods).");
         System.out.println("Avancado: --home PASTA --game-dir PASTA; apos --, argumentos do jogo.");
     }
 
     static final class Options {
         Path home = Path.of("vbrasfoot"), game = Path.of("Brasfoot22-23"), checkSave;
-        boolean validate, list, safe, help;
+        boolean validate, list, safe, help, probe;
         List<String> gameArguments = new ArrayList<>();
         static Options parse(String[] args) {
             Options result = new Options();
@@ -161,12 +163,14 @@ public final class Main {
                     case "--validate-only" -> { result.validate = true; modes++; }
                     case "--list-mods" -> { result.list = true; modes++; }
                     case "--safe-mode" -> result.safe = true;
+                    case "--probe-career-hooks" -> result.probe = true;
                     case "--help" -> result.help = true;
                     case "--" -> { result.gameArguments.addAll(List.of(args).subList(i + 1, args.length)); i = args.length; }
                     default -> throw new IllegalArgumentException("Opcao desconhecida: " + args[i]);
                 }
             }
             if (modes > 1) throw new IllegalArgumentException("Escolha somente um modo de verificacao/listagem");
+            if (result.probe && (result.safe || result.list || result.checkSave != null)) throw new IllegalArgumentException("Sonda nao combina com modo seguro, listagem ou verificacao offline");
             return result;
         }
         private static String value(String[] args, int index) {
