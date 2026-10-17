@@ -10,17 +10,23 @@ foreach ($name in @('install.ps1', 'uninstall.ps1', 'recover-update.ps1', 'launc
 }
 Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'app\LICENSE')
 [IO.Directory]::CreateDirectory((Join-Path $Output 'sdk')) | Out-Null
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.4.3.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.4.4.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.4.4.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-QUICKSTART.md" -Destination (Join-Path $Output 'sdk\SDK-QUICKSTART.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-COMPATIBILITY.md" -Destination (Join-Path $Output 'sdk\SDK-COMPATIBILITY.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-CONTRACT.md" -Destination (Join-Path $Output 'sdk\SDK-CONTRACT.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SCOPED-QUERIES.md" -Destination (Join-Path $Output 'sdk\SCOPED-QUERIES.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CAREER-OBSERVATIONS.md" -Destination (Join-Path $Output 'sdk\CAREER-OBSERVATIONS.md')
+# This guide lives beside examples in SDK-only/docs, but beside their parent in portable/sdk.
+$observationGuide = Join-Path $Output 'sdk\CAREER-OBSERVATIONS.md'
+[IO.File]::WriteAllText($observationGuide, ([IO.File]::ReadAllText($observationGuide).Replace('../examples/career-observer/README.md','examples/career-observer/README.md')), [Text.UTF8Encoding]::new($false))
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\MOD-MANAGEMENT.md" -Destination (Join-Path $Output 'MOD-MANAGEMENT.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\MOD-MANAGEMENT.md" -Destination (Join-Path $Output 'sdk\MOD-MANAGEMENT.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\DIAGNOSTIC-EXPORT.md" -Destination (Join-Path $Output 'DIAGNOSTIC-EXPORT.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\DIAGNOSTIC-EXPORT.md" -Destination (Join-Path $Output 'sdk\DIAGNOSTIC-EXPORT.md')
 [IO.Directory]::CreateDirectory((Join-Path $Output 'sdk\examples\career-observer')) | Out-Null
 Copy-Item -LiteralPath "$PSScriptRoot\dist\career-observer.jar" -Destination (Join-Path $Output 'sdk\examples\career-observer.jar')
-foreach ($relative in @('README.md','vbrasfoot.mod.properties','src\br\vbrasfoot\observer\CareerObserverMod.java')) {
+foreach ($relative in @('README.md','build.ps1','.gitignore','vbrasfoot.mod.properties','src\br\vbrasfoot\observer\CareerObserverMod.java','test\br\vbrasfoot\observer\CareerObserverModTest.java')) {
     $target = Join-Path $Output "sdk\examples\career-observer\$relative"
     [IO.Directory]::CreateDirectory((Split-Path $target -Parent)) | Out-Null
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "examples\career-observer\$relative") -Destination $target

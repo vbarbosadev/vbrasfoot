@@ -7,11 +7,12 @@ classes do jogo ou downloads durante o build. Mod Java e codigo confiavel, nao s
 ## Criar
 
 1. Copie esta pasta inteira para um diretorio novo do seu projeto.
-2. Obtenha `sdk/vbrasfoot-api-0.4.3.jar` no pacote do loader atual.
+2. Obtenha `api/vbrasfoot-api-0.4.4.jar` no SDK-only (ou `sdk/vbrasfoot-api-0.4.4.jar`
+   no pacote portable do loader).
 3. Compile/teste usando somente esse JAR:
 
    ```powershell
-   .\build.ps1 -Sdk 'C:\Downloads\vbrasfoot\sdk\vbrasfoot-api-0.4.3.jar'
+   .\build.ps1 -Sdk 'C:\Downloads\vbrasfoot-sdk\api\vbrasfoot-api-0.4.4.jar'
    ```
 
    Alternativa: coloque a API em `lib/vbrasfoot-api.jar` e execute `build.ps1`.
@@ -35,6 +36,15 @@ O validador nao inicializa o mod nem o jogo. Verifica manifesto/compatibilidade 
 classe/construtor, nao prova seguranca, dependencias instaladas ou comportamento.
 Depois valide o conjunto de mods pelo launcher `--validate-only`.
 
+Sem loader/jogo, o SDK-only tambem oferece:
+
+```powershell
+java -jar 'C:\Downloads\vbrasfoot-sdk\tools\vbrasfoot-validator-0.4.4.jar' .\dist\meu-mod.jar
+```
+
+Instalacao/UI ainda precisam do loader portable e copia do jogo. Nao embuta API
+ou validador no seu JAR. Consulte o guia SDK-QUICKSTART.md distribuido nos docs.
+
 O instalador exige loader instalado, recusa JAR existente/links, valida o JAR e
 usa lock para nao instalar com sessao do loader aberta. Nao atualiza/apaga mods
 automaticamente. Feche o jogo normalmente antes de instalar; arquivos gerados
@@ -56,4 +66,4 @@ Nao persistir ClubRef/CareerScope em arquivos. Paginas nao sao snapshot atomico.
 Nao ha eventos publicos de partida/temporada, dados por carreira, escrita de gameplay
 ou hot reload neste template. Esses recursos dependem dos gates ainda abertos.
 
-Guia do SDK: `sdk/SCOPED-QUERIES.md` e `sdk/SDK-CONTRACT.md` no pacote distribuido.
+Guias: `docs/SCOPED-QUERIES.md` e `docs/SDK-CONTRACT.md` no SDK-only; `sdk/` no portable.

@@ -1,5 +1,16 @@
 # Observador experimental — SDK 0.4.0
 
+No SDK-only atual, copie esta pasta para projeto novo e execute:
+
+```powershell
+.\build.ps1 -Sdk 'C:\Downloads\vbrasfoot-sdk\api\vbrasfoot-api-0.4.4.jar'
+java -jar 'C:\Downloads\vbrasfoot-sdk\tools\vbrasfoot-validator-0.4.4.jar' .\dist\career-observer.jar
+```
+
+O build independente usa somente a API e inclui teste headless de fake proprio;
+nenhum evento real e inferido do teste. LICENSE acompanha fonte/JAR. Nao embutir
+API ou validador dentro do mod. JDK/loader/jogo nao sao incluidos no SDK-only.
+
 Compilado somente contra API publica pelo build do projeto. JAR em
 `dist/career-observer.jar`, nao instalado em mods por padrao: requer launcher com
 `--probe-career-hooks`, capacidade `events.career.observed` e permissao

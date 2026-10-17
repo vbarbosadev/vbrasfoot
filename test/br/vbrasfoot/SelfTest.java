@@ -17,6 +17,7 @@ public final class SelfTest {
     private static int checks;
     public static void main(String[] args) throws Exception {
         Path temp = Files.createTempDirectory(Path.of("build"), "tests-");
+        check(br.vbrasfoot.api.Sdk.GAME_PROFILE.equals(Profile.ID), "public SDK and loader share exact game profile identity");
         check(Profile.digest(write(temp.resolve("empty"), new byte[0])).equals(
                 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), "SHA256");
         write(temp.resolve("bf22-23.exe"), new byte[] {1, 2, 3});
@@ -48,6 +49,15 @@ public final class SelfTest {
         if (!validator.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)) { validator.destroyForcibly(); throw new AssertionError("validator fixture timed out"); }
         check(validator.exitValue() == 0, "individual validator requires no game and never initializes mod");
         check(!Files.exists(temp.resolve("vbrasfoot")), "individual validator writes no home/cache/session");
+        var sdkValidator = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java.exe").toString(),
+                "-jar", Path.of("dist/vbrasfoot-validator.jar").toAbsolutePath().toString(), modFixture.toAbsolutePath().toString())
+                .directory(temp.toFile()).redirectErrorStream(true).redirectOutput(temp.resolve("sdk-validation.log").toFile()).start();
+        if (!sdkValidator.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)) { sdkValidator.destroyForcibly(); throw new AssertionError("SDK validator fixture timed out"); }
+        check(sdkValidator.exitValue() == 0 && !Files.exists(temp.resolve("vbrasfoot")), "SDK-only tool never initializes fixture or creates loader home");
+        try (var jar = new java.util.jar.JarFile("dist/vbrasfoot-validator.jar")) {
+            check(jar.getJarEntry("br/vbrasfoot/Main.class") == null && jar.getJarEntry("br/vbrasfoot/LegacyRuntime.class") == null
+                    && jar.getJarEntry("br/vbrasfoot/Profile.class") == null, "SDK validator contains no launcher/game-runtime/profile implementation");
+        }
         Path good = manifest(temp.resolve("valid.jar"), "base", "", "game.read,ui.register", "brasfoot22-23");
         check(ModManifest.read(good).id().equals("base"), "manifest read");
         rejects(() -> ModManifest.read(manifest(temp.resolve("bad-profile.jar"), "bad", "", "game.read", "realbrasfoot26")), "profile mismatch");

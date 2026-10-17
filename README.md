@@ -1,4 +1,4 @@
-# vbrasfoot 0.4.3 (experimental)
+# vbrasfoot 0.4.4 (experimental)
 
 Codigo e documentacao originais sob a [licenca MIT](LICENSE).
 O jogo Brasfoot, seus recursos e dependencias de terceiros nao sao abrangidos
@@ -24,6 +24,12 @@ Sem hot reload; permite desabilitar JAR invalido sem remove-lo ou alterar saves.
 O painel inclui falhas recentes capturadas nesta sessao, com memoria limitada;
 mensagens podem conter dados privados e nao sao enviadas automaticamente.
 Diagnostico local com previa editavel e opt-ins: [guia de exportacao](roadmap/DIAGNOSTIC-EXPORT.md).
+
+**SDK-only para autores, sem jogo/checkout para compilar:**
+[primeiro mod](roadmap/SDK-QUICKSTART.md), [compatibilidade](roadmap/SDK-COMPATIBILITY.md)
+e [geracao/verificacao do ZIP](roadmap/SDK-DISTRIBUTION.md).
+`release-sdk.ps1` gera pacote/API/validador/Javadocs; `test-sdk-package.ps1` verifica
+e compila os exemplos fora do checkout. Nao publica release ou baixa dependencias.
 
 ```powershell
 .\templates\read-only-mod\build.ps1 -Sdk .\dist\vbrasfoot-api.jar
