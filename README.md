@@ -1,8 +1,16 @@
-# vbrasfoot 0.1.0
+# vbrasfoot 0.2.0 (experimental)
+
+Codigo e documentacao originais sob a [licenca MIT](LICENSE).
+O jogo Brasfoot, seus recursos e dependencias de terceiros nao sao abrangidos
+por essa concessao. Veja [como contribuir](CONTRIBUTING.md).
 
 Modloader experimental **exclusivo do Brasfoot22-23 fornecido neste diretorio**. Usa o Java embarcado em `../Brasfoot22-23/bf22-23.exe`, sem substituir o executavel, sem importar classes do RealBrasfoot26 e sem migrar saves.
 
 ## Usar
+
+Instalacao portable dentro da pasta do jogo: [guia](roadmap/PORTABLE.md).
+Contrato publico do SDK/API major 1: [especificacao](roadmap/SDK-CONTRACT.md).
+P0 e os gates reais de P1/P2 ainda nao estao aprovados.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 
@@ -69,6 +77,21 @@ Nao foram portadas trocas, contrapropostas ou selecao de leiloes: dependem de re
 Antes de usar numa carreira importante, teste numa copia completa do diretorio do jogo: abrir save existente, consultar, avancar, salvar, fechar e reabrir pelo `bf22-23.exe` original. Nao basta o launcher abrir ou o verificador offline passar para afirmar compatibilidade total em gameplay.
 
 Veja `ANALISE.md` para o mapeamento e a origem das evidencias.
+
+## Validacao isolada e diagnostico
+
+`prepare-validation.ps1 -Preview` mostra a origem, destino e volume de uma copia
+isolada. Sem `-Preview`, cria um destino novo, verifica hashes e prepara launchers
+independentes do checkout. Nao abre o jogo nem restaura saves. A copia completa
+tem milhares de arquivos e pode demorar; somente a presenca de `baseline.json`
+apos o sucesso da preparacao identifica uma copia concluida. Destinos parciais
+nao sao apagados nem reutilizados automaticamente.
+
+Siga `roadmap/P0-VALIDACAO.md` para o teste real. Cada execucao do launcher registra
+metadados da JVM, etapas e stdout/stderr em `logs/session-*/`. Capturas por stream
+tem limite de 8 MiB e o log do loader tem rotacao; sessoes antigas sao preservadas.
+Revise caminhos e argumentos antes de compartilhar. Falhas anteriores ao launcher
+e erros gravados exclusivamente no arquivo legado `erros.log` nao sao consolidados.
 
 ## Testes
 

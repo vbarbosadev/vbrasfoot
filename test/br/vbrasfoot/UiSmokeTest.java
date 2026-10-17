@@ -69,7 +69,16 @@ public final class UiSmokeTest {
                 ((javax.swing.JMenuItem) menu.getComponent(0)).doClick();
                 return null;
             });
-            if (reads.get() != 1) throw new AssertionError("Inspetor nao consultou API");
+            if (reads.get() != 2) throw new AssertionError("Inspetor deve consultar pagina de clubes e jogadores");
+            ui.register("test:scoped", "Temporary action", () -> { });
+            Thread.sleep(1000);
+            CareerBridge.onEdt(() -> {
+                var toolbar = ((a.eg) frame.getContentPane()).toolbar();
+                var popup = (JPopupMenu) ((JButton) toolbar.getComponent(1)).getClientProperty("vbrasfoot.popup");
+                if (popup.getComponentCount() != 3) throw new AssertionError("Scoped action missing");
+                return null;
+            });
+            ui.unregister("test:scoped");
             Thread.sleep(1000); // Exercise a second installation pass to catch duplicate menus/actions.
             CareerBridge.onEdt(() -> {
                 var toolbar = ((a.eg) frame.getContentPane()).toolbar();

@@ -55,9 +55,96 @@ public final class SelfTest {
         check(club.players().isEmpty(), "defensive player copy");
         rejects(() -> club.players().add(mutable.get(0)), "immutable snapshot");
         check(CareerBridge.onEdt(() -> javax.swing.SwingUtilities.isEventDispatchThread()), "EDT dispatch");
+        var console = new java.io.ByteArrayOutputStream();
+        var capture = new java.io.ByteArrayOutputStream();
+        try (var tee = new SessionDiagnostics.Capture(console, capture, 4)) {
+            tee.write("abcdefgh".getBytes(StandardCharsets.UTF_8));
+            tee.write("ijk".getBytes(StandardCharsets.UTF_8));
+        }
+        check(console.toString(StandardCharsets.UTF_8).equals("abcdefghijk"), "capture preserves console");
+        String captured = capture.toString(StandardCharsets.UTF_8);
+        check(captured.startsWith("abcd\n[vbrasfoot:"), "bounded capture");
+        check(captured.indexOf("capture limit") == captured.lastIndexOf("capture limit"), "single truncation marker");
+        var originalOut = System.out;
+        var originalErr = System.err;
+        Path session;
+        try (var diagnostic = SessionDiagnostics.open(temp, temp, new String[] {"--validate-only"})) {
+            session = diagnostic.directory();
+            System.out.println("early-output");
+            System.err.println("legacy-handled-error");
+            diagnostic.logger().info("test-stage");
+        }
+        check(System.out == originalOut && System.err == originalErr, "restore console streams");
+        check(Files.readString(session.resolve("stdout.log")).contains("early-output"), "stdout capture");
+        check(Files.readString(session.resolve("stderr.log")).contains("legacy-handled-error"), "stderr capture");
+        check(Files.readString(session.resolve("loader-0.log")).contains("test-stage"), "session logger");
+        check(Files.readString(session.resolve("session.properties")).contains("java.version="), "runtime metadata");
+        Path invalidGame = Files.createDirectory(temp.resolve("invalid-game"));
+        write(invalidGame.resolve("bf22-23.exe"), new byte[] {1});
+        Path failureHome = temp.resolve("startup-failure");
+        rejects(() -> Main.run(new String[] {"--game-dir", invalidGame.toString(), "--home", failureHome.toString(), "--validate-only"}), "startup failure");
+        try (var sessions = Files.list(failureHome.resolve("logs"))) {
+            Path failedSession = sessions.findFirst().orElseThrow();
+            check(Files.readString(failedSession.resolve("loader-0.log")).contains("stage=failed"), "early failure in session logger");
+            check(!Files.readString(failedSession.resolve("stderr.log")).isBlank(), "early failure stderr captured");
+        }
+        Path rejectedHome = invalidGame.resolve("must-not-create");
+        rejects(() -> Main.run(new String[] {"--game-dir", invalidGame.toString(), "--home", rejectedHome.toString()}), "home inside original rejected");
+        check(!Files.exists(rejectedHome), "reject home before writing original");
+        check(InstallPaths.resolve(invalidGame, invalidGame.resolve("vbrasfoot")).installRoot().endsWith("vbrasfoot"), "installed root accepted");
+        rejects(() -> InstallPaths.resolve(invalidGame, invalidGame.resolve("sav")), "save root rejected");
+        rejects(() -> InstallPaths.resolve(invalidGame, invalidGame), "game root rejected");
+        rejects(() -> InstallPaths.resolve(invalidGame, invalidGame.resolve("vbrasfoot/nested")), "nested install root rejected");
+        GameAccess paged = () -> new GameAccess.Snapshot(true, List.of(club));
+        check(paged.clubs("clu", 0, 10).items().size() == 1, "filtered club page");
+        check(paged.clubs("missing", 0, 10).total() == 0, "empty filtered page");
+        check(paged.clubs("", 9, 10).items().isEmpty(), "page beyond end");
+        rejects(() -> paged.clubs("", 0, 501), "bounded page size");
+        rejects(() -> paged.players(1, -1, 10), "negative offset rejected");
+        GameAccess duplicateIds = () -> new GameAccess.Snapshot(true, List.of(club, new GameAccess.Club(1, "Outro", false, List.of())));
+        rejects(() -> duplicateIds.players(1, 0, 10), "ambiguous club id rejected");
+        check(duplicateIds.playersAt(1, 0, 10).items().isEmpty(), "club list position selection");
+        Path evolved = temp.resolve("evolved.jar");
+        String evolvedText = "id=evolved\nname=Evolved\nversion=1\napiVersion=[1,2)\ngameProfile=brasfoot22-23\nmainClass=test.Main\nminLoaderVersion=0.2.0\noptionalDependencies=base\nrequiredCapabilities=query.paged\nconflicts=other\n";
+        manifestText(evolved, evolvedText);
+        check(ModManifest.read(evolved).optionalDependencies().equals(List.of("base")), "evolved manifest");
+        ModManifest evolvedManifest = ModManifest.read(evolved);
+        check(ModLoader.ordered(Map.of("evolved", evolvedManifest)).size() == 1, "absent optional dependency accepted");
+        check(ModLoader.ordered(Map.of("evolved", evolvedManifest, "base", entry("base", List.of()))).get(0).id().equals("base"), "optional dependency order");
+        rejects(() -> ModLoader.ordered(Map.of("evolved", evolvedManifest, "other", entry("other", List.of()))), "explicit conflict");
+        manifestText(evolved, evolvedText + "typo=invalid\n");
+        rejects(() -> ModManifest.read(evolved), "unknown manifest field");
+        manifestText(evolved, evolvedText.replace("0.2.0", "99.0.0"));
+        rejects(() -> ModManifest.read(evolved), "minimum loader version");
+        manifestText(evolved, evolvedText.replace("query.paged", "game.write"));
+        rejects(() -> ModManifest.read(evolved), "unknown required capability");
+        for (String mode : List.of("exit", "exit-edt", "return")) {
+            Path childHome = temp.resolve("shutdown-" + mode);
+            var child = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java.exe").toString(),
+                    "-cp", System.getProperty("java.class.path"), DiagnosticExitFixture.class.getName(), childHome.toString(), mode)
+                    .redirectErrorStream(true).redirectOutput(temp.resolve(mode + ".log").toFile()).start();
+            if (!child.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)) {
+                child.destroyForcibly();
+                throw new AssertionError("Diagnostic shutdown timed out: " + mode);
+            }
+            check(child.exitValue() == 0, "diagnostic child " + mode);
+            try (var sessions = Files.list(childHome.resolve("logs"))) {
+                Path childSession = sessions.findFirst().orElseThrow();
+                String reason = Files.readString(childSession.resolve("termination.txt")).trim();
+                check(reason.equals(mode.startsWith("exit") ? "jvm-shutdown" : "launcher-returned"), "shutdown reason " + mode);
+                check(Files.readString(childSession.resolve("stderr.log")).contains("child-error"), "shutdown flush " + mode);
+            }
+        }
         System.out.println("PASS: " + checks + " testes.");
     }
     private static Path write(Path path, byte[] bytes) throws IOException { return Files.write(path, bytes); }
+    private static void manifestText(Path path, String text) throws IOException {
+        try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(path))) {
+            jar.putNextEntry(new JarEntry("vbrasfoot.mod.properties"));
+            jar.write(text.getBytes(StandardCharsets.UTF_8));
+            jar.closeEntry();
+        }
+    }
     private static Path manifest(Path path, String id, String dependencies, String permissions, String profile) throws IOException {
         try (JarOutputStream jar = new JarOutputStream(Files.newOutputStream(path))) {
             jar.putNextEntry(new JarEntry("vbrasfoot.mod.properties"));

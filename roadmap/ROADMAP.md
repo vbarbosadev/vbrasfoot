@@ -52,8 +52,8 @@ O usuario deve conseguir:
 
 ### Ainda nao significa pronto
 
-- O launcher **proibe `home` dentro da pasta do jogo**; isso bloqueia a instalacao solicitada e precisa ser corrigido explicitamente.
-- Os scripts dependem do layout de desenvolvimento com diretorios irmaos.
+- O launcher agora aceita exclusivamente `gameRoot/vbrasfoot` como home interno; o pacote experimental ainda depende dos gates reais de P0/P1.
+- Os scripts de desenvolvimento dependem de diretorios irmaos; os launchers do pacote portable usam a propria localizacao.
 - O menu interno foi implementado em `a.eg.ve`, junto a `HX`/Opcoes, mas a versao mais recente ainda precisa de confirmacao visual na sessao real.
 - O teste de save encontrou 8.395 clubes e 193.831 jogadores com snapshots iguais no round-trip. O arquivo regravado nao foi identico em bytes; a causa nao foi determinada.
 - O round-trip offline nao equivale a jogar, salvar e reabrir pelo executavel original.
@@ -111,17 +111,17 @@ Prioridade: bloqueante. Dependencias: nenhuma.
 
 Prioridade: bloqueante para distribuicao. Dependencias: P0.
 
-- [ ] Separar explicitamente `gameRoot`, `installRoot` e caminhos de dados.
+- [x] Separar explicitamente `gameRoot`, `installRoot` e caminhos de dados.
 - [ ] Substituir a proibicao geral de `home` interno por validacao especifica: aceitar `gameRoot/vbrasfoot`, rejeitar sobreposicao com `sav`, `teams`, executavel e demais recursos originais; verificar caminhos canonicos, junctions e links antes de escrita.
-- [ ] Criar pacote de release que contenha somente arquivos do vbrasfoot e licencas de dependencias redistribuiveis.
-- [ ] Criar instalador portable, por exemplo `install.ps1 -GameDir <pasta>`, com modo de previsualizacao.
-- [ ] Instalar launchers que resolvam os caminhos pela propria localizacao e iniciem com o diretorio de trabalho real do jogo.
-- [ ] Centralizar os argumentos JVM necessarios para que modo normal, seguro e diagnostico usem a mesma compatibilidade.
+- [x] Criar pacote de release que contenha somente arquivos do vbrasfoot e licencas de dependencias redistribuiveis.
+- [x] Criar instalador portable, por exemplo `install.ps1 -GameDir <pasta>`, com modo de previsualizacao.
+- [x] Instalar launchers que resolvam os caminhos pela propria localizacao e iniciem com o diretorio de trabalho real do jogo.
+- [x] Centralizar os argumentos JVM necessarios para que modo normal, seguro e diagnostico usem a mesma compatibilidade.
 - [ ] Definir runtime Java suportado. Usuario final precisa apenas do runtime; JDK fica para desenvolvedores. Se empacotar Java, revisar licenca, fornecedor, versao e atualizacoes de seguranca.
 - [ ] Verificar espaco livre, permissao de escrita, versao do jogo e existencia de sessao aberta antes de instalar/atualizar.
 - [ ] Registrar arquivos gerenciados em manifesto. Atualizar apenas esses arquivos; preservar mods, configuracoes, backups e dados do usuario.
-- [ ] Implementar desinstalacao com previsualizacao, preservando dados por padrao e sem remocao recursiva ampla da pasta do jogo.
-- [ ] Manter modo seguro acessivel mesmo quando um mod/JAR esta quebrado.
+- [x] Implementar desinstalacao com previsualizacao, preservando dados por padrao e sem remocao recursiva ampla da pasta do jogo.
+- [x] Manter modo seguro acessivel mesmo quando um mod/JAR esta quebrado.
 - [ ] Testar instalacao, atualizacao, reinstalacao e mudanca de local com caminhos contendo espacos e acentos, sem privilegios administrativos.
 
 **Aceite:** instalar numa copia do Brasfoot e executar mesmo depois de mover ou tornar indisponivel o projeto-fonte. Hash do EXE e recursos originais permanece igual. Saves existentes continuam abrindo.
@@ -130,14 +130,14 @@ Prioridade: bloqueante para distribuicao. Dependencias: P0.
 
 Prioridade: alta. Dependencias: P0; pode ser projetada enquanto P1 e implementada.
 
-- [ ] Versionar API/SDK e definir compatibilidade entre loader, perfil do jogo e mods.
+- [x] Versionar API/SDK e definir compatibilidade entre loader, perfil do jogo e mods.
 - [ ] Evoluir o manifesto com versao/range da API, versao minima do loader, dependencias obrigatorias/opcionais, conflitos e capacidades requeridas.
-- [ ] Preservar ou migrar explicitamente o formato atual; rejeitar campos/versoes incompatíveis com mensagens acionaveis.
+- [x] Preservar ou migrar explicitamente o formato atual; rejeitar campos/versoes incompatíveis com mensagens acionaveis.
 - [ ] Definir estados do ciclo de vida: descoberto, validado, inicializado, ativo, falhou, desativado e encerrado.
 - [ ] Definir threads permitidas, descarte de assinaturas, cancelamento e remocao de componentes da interface.
-- [ ] Nao expor nomes ofuscados, referencias mutaveis do jogo ou classloaders internos na API publica.
-- [ ] Documentar estabilidade dos IDs de clubes/jogadores e como identifica-los em snapshots de carreiras diferentes.
-- [ ] Adicionar consultas paginadas/filtradas; evitar copiar os quase 194 mil jogadores a cada acao na EDT.
+- [x] Nao expor nomes ofuscados, referencias mutaveis do jogo ou classloaders internos na API publica.
+- [x] Documentar estabilidade dos IDs de clubes/jogadores e como identifica-los em snapshots de carreiras diferentes.
+- [x] Adicionar consultas paginadas/filtradas; evitar copiar os quase 194 mil jogadores a cada acao na EDT. (API/bridge e inspetor usam paginas; falta medicao do orcamento real.)
 - [ ] Ampliar leitura conforme evidencias: carreira, clube humano, calendario, competicoes, partidas, financas e historicos.
 - [ ] Introduzir registro de servicos publicos entre mods, se necessario, em vez de compartilhar suas classes privadas indiscriminadamente.
 
@@ -254,3 +254,35 @@ Nao ha estimativa de prazo fechada: principalmente hooks e identidade de carreir
 3. Implementar o layout instalado e remover com seguranca o bloqueio de `home` interno, sem simplesmente permitir qualquer caminho dentro do jogo.
 4. Gerar e instalar o pacote em `Brasfoot22-23/vbrasfoot/`, mantendo o EXE e os saves intocados durante a instalacao.
 5. Publicar os resultados dessa primeira instalacao antes de iniciar a API de escrita.
+
+### Incremento de implementacao — 16/10/2026
+
+- Diagnostico por sessao, captura limitada e fechamento sem acesso a EDT
+  implementados; testes automatizados de retorno/System.exit aprovados.
+- Verificador offline ampliado com repeticao das mesmas raizes, segunda geracao,
+  tamanhos e primeiro byte divergente. Diferenca antiga reproduzida, causa aberta.
+- Preparacao de copia isolada e roteiro em `P0-VALIDACAO.md` adicionados.
+  Fixture reduzida aprovada; copia completa real ainda pendente apos timeout.
+- Evidencias e limitacoes atualizadas em `../VALIDACAO.md` (46 testes).
+
+Nenhum gate de fase foi marcado como aprovado: ainda falta a sessao real de P0.
+
+### Incremento P1/P2 — 16/10/2026
+
+Implementacao experimental (nao equivale a aceite das fases):
+
+- P1: InstallPaths separa gameRoot/installRoot e valida caminhos antes de escrita;
+  release.ps1 gera pacote sem jogo/Java; instalacao com preview, manifesto/hashes,
+  verificacao de processo/lock/espaco, launchers independentes e desinstalacao
+  por allowlist preservando dados. Guia: `PORTABLE.md`.
+- P2: SDK 0.2.0/API major 1, manifesto evoluido compativel com formato antigo,
+  dependencias opcionais/conflitos/capacidades/loader minimo, estados de lifecycle,
+  acoes com registro encerravel e consultas paginadas no bridge. O exemplo compila
+  somente contra o JAR publico. Contrato e limites: `SDK-CONTRACT.md`.
+- Pendente P1: sessao real instalada sem checkout, matrizes de erros de escrita,
+  recuperacao de atualizacao interrompida e testes de todas as JVMs anunciadas.
+- Pendente P2: ampliar leitura com evidencias do jogo, geracao de carreira,
+  cancelamento de tarefas e politicas completas de lifecycle. Servicos entre mods
+  nao foram introduzidos porque nao ha necessidade comprovada nesta entrega.
+
+P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.

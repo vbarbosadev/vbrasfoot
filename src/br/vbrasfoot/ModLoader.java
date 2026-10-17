@@ -23,7 +23,13 @@ final class ModLoader implements AutoCloseable {
     private final List<URLClassLoader> classLoaders = new ArrayList<>();
     private final List<Mod> loaded = new ArrayList<>();
     private final Logger logger;
+    private final Map<String, br.vbrasfoot.api.ModState> states = new LinkedHashMap<>();
+    private final Map<Mod, String> identities = new java.util.IdentityHashMap<>();
     ModLoader(Logger logger) { this.logger = logger; }
+    private void state(String id, br.vbrasfoot.api.ModState state) {
+        states.put(id, state);
+        logger.info("mod=" + id + " state=" + state);
+    }
 
     static List<ModManifest> discover(Path directory) throws IOException {
         if (!Files.isDirectory(directory)) return List.of();
@@ -50,7 +56,9 @@ final class ModLoader implements AutoCloseable {
         ModManifest manifest = all.get(id);
         if (manifest == null) throw new IOException("Dependencia de mod ausente: " + id);
         if (!pending.add(id)) throw new IOException("Ciclo de dependencias: " + id);
+        for (String conflict : manifest.conflicts()) if (all.containsKey(conflict)) throw new IOException("Conflito entre mods: " + id + " / " + conflict);
         for (String dependency : manifest.dependencies()) visit(dependency, all, done, pending, result);
+        for (String dependency : manifest.optionalDependencies()) if (all.containsKey(dependency)) visit(dependency, all, done, pending, result);
         pending.remove(id);
         done.add(id);
         result.add(manifest);
@@ -59,23 +67,48 @@ final class ModLoader implements AutoCloseable {
     void load(List<ModManifest> manifests, GameAccess game, ModUi ui, Path data) throws Exception {
         // Separate loaders; dependencies order initialization, not access to each other's private classes.
         for (ModManifest manifest : manifests) {
+            state(manifest.id(), br.vbrasfoot.api.ModState.DISCOVERED);
+            state(manifest.id(), br.vbrasfoot.api.ModState.VALIDATED);
+            initializeMod(manifest, game, ui, data);
+        }
+    }
+
+    private void initializeMod(ModManifest manifest, GameAccess game, ModUi ui, Path data) throws Exception {
+        try {
             URLClassLoader loader = new URLClassLoader(new java.net.URL[] {manifest.jar().toUri().toURL()}, Mod.class.getClassLoader());
             classLoaders.add(loader);
             Class<?> type = Class.forName(manifest.mainClass(), true, loader);
             Mod mod = type.asSubclass(Mod.class).getConstructor().newInstance();
             loaded.add(mod);
+            identities.put(mod, manifest.id());
             mod.initialize(new ModContext() {
                 private void require(String permission) {
                     if (!manifest.permissions().contains(permission)) throw new SecurityException(manifest.id() + " nao declarou " + permission);
                 }
                 public GameAccess game() {
                     require("game.read");
-                    return () -> { require("game.read"); return game.snapshot(); };
+                    return new GameAccess() {
+                        public Snapshot snapshot() { require("game.read"); return game.snapshot(); }
+                        public ClubPage clubs(String filter, int offset, int limit) {
+                            require("game.read"); return game.clubs(filter, offset, limit);
+                        }
+                        public PlayerPage players(int clubId, int offset, int limit) {
+                            require("game.read"); return game.players(clubId, offset, limit);
+                        }
+                        public PlayerPage playersAt(int clubIndex, int offset, int limit) {
+                            require("game.read"); return game.playersAt(clubIndex, offset, limit);
+                        }
+                    };
                 }
                 public Logger logger() { return logger; }
                 public void registerAction(String id, String label, Runnable action) {
                     require("ui.register");
                     ui.register(manifest.id() + ":" + id, label, action);
+                }
+                public AutoCloseable registerScopedAction(String id, String label, Runnable action) {
+                    registerAction(id, label, action);
+                    java.util.concurrent.atomic.AtomicBoolean closed = new java.util.concurrent.atomic.AtomicBoolean();
+                    return () -> { if (closed.compareAndSet(false, true)) ui.unregister(manifest.id() + ":" + id); };
                 }
                 public byte[] readData(String file) throws IOException {
                     require("data.read");
@@ -93,7 +126,12 @@ final class ModLoader implements AutoCloseable {
                     } finally { Files.deleteIfExists(temporary); }
                 }
             });
+            state(manifest.id(), br.vbrasfoot.api.ModState.INITIALIZED);
+            state(manifest.id(), br.vbrasfoot.api.ModState.ACTIVE);
             logger.info("Mod carregado: " + manifest.id() + " " + manifest.version());
+        } catch (Exception | LinkageError failure) {
+            state(manifest.id(), br.vbrasfoot.api.ModState.FAILED);
+            throw failure; // Fail closed: dependent mods must not run against a failed provider.
         }
     }
 
@@ -118,12 +156,14 @@ final class ModLoader implements AutoCloseable {
         List<Mod> reverse = new ArrayList<>(loaded);
         Collections.reverse(reverse);
         for (Mod mod : reverse) {
-            try { mod.shutdown(); } catch (Exception failure) { logger.log(Level.WARNING, "Erro ao encerrar mod", failure); }
+            try { mod.shutdown(); state(identities.get(mod), br.vbrasfoot.api.ModState.STOPPED); }
+            catch (Exception | LinkageError failure) { state(identities.get(mod), br.vbrasfoot.api.ModState.FAILED); logger.log(Level.WARNING, "Erro ao encerrar mod", failure); }
         }
         for (URLClassLoader loader : classLoaders) {
             try { loader.close(); } catch (IOException failure) { logger.log(Level.WARNING, "Erro ao fechar JAR", failure); }
         }
         loaded.clear();
+        identities.clear();
         classLoaders.clear();
     }
 }

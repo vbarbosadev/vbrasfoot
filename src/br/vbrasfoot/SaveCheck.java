@@ -32,11 +32,35 @@ final class SaveCheck {
             Roots first = read(copy, runtime);
             GameAccess.Snapshot snapshot = snapshot(first, runtime);
             if (!snapshot.loaded()) throw new IllegalStateException("Save decodificado, mas nenhuma carreira com clube humano foi identificada");
+            CareerBridge bridge = new CareerBridge(runtime);
+            java.util.List<GameAccess.ClubSummary> summaries = new java.util.ArrayList<>();
+            for (int offset = 0; offset < snapshot.clubs().size(); offset += 500) {
+                summaries.addAll(bridge.clubs("", offset, 500).items());
+            }
+            if (!summaries.equals(java.util.stream.IntStream.range(0, snapshot.clubs().size()).mapToObj(i -> {
+                var c = snapshot.clubs().get(i); return new GameAccess.ClubSummary(i, c.id(), c.name(), c.human(), c.players().size());
+            }).toList())) {
+                throw new IllegalStateException("Consulta paginada de clubes divergiu do snapshot");
+            }
+            GameAccess.Club human = snapshot.clubs().stream().filter(GameAccess.Club::human).findFirst().orElseThrow();
+            java.util.List<GameAccess.Player> pagedPlayers = new java.util.ArrayList<>();
+            int humanIndex = snapshot.clubs().indexOf(human);
+            for (int offset = 0; offset < human.players().size(); offset += 20) pagedPlayers.addAll(bridge.playersAt(humanIndex, offset, 20).items());
+            if (!human.players().equals(pagedPlayers)) throw new IllegalStateException("Consulta paginada de jogadores divergiu do snapshot");
             Path output = directory.resolve("roundtrip.s22");
             write(output, first, runtime);
+            // Distinguish same-object nondeterminism from a changed decoded representation.
+            // Neither byte stability nor public snapshots prove full graph equivalence.
+            Path repeat = directory.resolve("same-roots-repeat.s22");
+            write(repeat, first, runtime);
             Roots second = read(output, runtime);
             GameAccess.Snapshot restored = snapshot(second, runtime);
             if (!snapshot.equals(restored)) throw new IllegalStateException("Clubes/jogadores diferem apos round-trip");
+            Path generation2 = directory.resolve("second-generation.s22");
+            write(generation2, second, runtime);
+            if (!snapshot.equals(snapshot(read(generation2, runtime), runtime))) {
+                throw new IllegalStateException("Clubes/jogadores diferem apos segunda geracao");
+            }
             String after = Profile.digest(original);
             if (!before.equals(after)) throw new IllegalStateException("Save original mudou durante verificacao");
             Properties report = new Properties();
@@ -47,9 +71,19 @@ final class SaveCheck {
             report.setProperty("original.sha256.after", after);
             report.setProperty("roundtrip.sha256", Profile.digest(output));
             report.setProperty("byteIdentical", Boolean.toString(before.equals(Profile.digest(output))));
+            report.setProperty("original.size", Long.toString(Files.size(copy)));
+            report.setProperty("roundtrip.size", Long.toString(Files.size(output)));
+            report.setProperty("original.roundtrip.firstMismatch", Long.toString(Files.mismatch(copy, output)));
+            report.setProperty("sameRoots.repeat.byteIdentical", Boolean.toString(Files.mismatch(output, repeat) == -1));
+            report.setProperty("secondGeneration.byteIdentical", Boolean.toString(Files.mismatch(output, generation2) == -1));
+            report.setProperty("secondGeneration.clubPlayerSnapshotsEqual", "true");
+            report.setProperty("binaryDifference.cause", "Unresolved; repeated writes are diagnostic observations, not proof of compatibility");
             report.setProperty("clubs", Integer.toString(snapshot.clubs().size()));
             report.setProperty("players", Integer.toString(snapshot.clubs().stream().mapToInt(c -> c.players().size()).sum()));
             report.setProperty("clubPlayerSnapshotsEqual", "true");
+            report.setProperty("paged.clubs.equal", "true");
+            report.setProperty("paged.humanClubPlayers.equal", "true");
+            report.setProperty("clubs.distinctObservedIds", Long.toString(snapshot.clubs().stream().map(GameAccess.Club::id).distinct().count()));
             report.setProperty("coverage", "Offline Kryo read/write of both roots; not a gameplay or original-exe reopening test");
             try (var writer = Files.newBufferedWriter(directory.resolve("report.properties"))) { report.store(writer, "vbrasfoot save verification"); }
             System.out.println("Save verificado: " + report.getProperty("clubs") + " clubes; " + report.getProperty("players") + " jogadores.");
