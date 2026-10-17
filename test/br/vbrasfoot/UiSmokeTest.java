@@ -81,7 +81,7 @@ public final class UiSmokeTest {
                     throw new AssertionError("Botao nao esta junto a Opcoes");
                 }
                 JPopupMenu menu = (JPopupMenu) button.getClientProperty("vbrasfoot.popup");
-                if (menu.getComponentCount() != 2) throw new AssertionError("Acoes do mod ausentes");
+                if (menu.getComponentCount() != 3) throw new AssertionError("Acoes do mod/recuperacao ausentes");
                 ((javax.swing.JMenuItem) menu.getComponent(0)).doClick();
                 return null;
             });
@@ -91,7 +91,7 @@ public final class UiSmokeTest {
             CareerBridge.onEdt(() -> {
                 var toolbar = ((a.eg) frame.getContentPane()).toolbar();
                 var popup = (JPopupMenu) ((JButton) toolbar.getComponent(1)).getClientProperty("vbrasfoot.popup");
-                if (popup.getComponentCount() != 3) throw new AssertionError("Scoped action missing");
+                if (popup.getComponentCount() != 4) throw new AssertionError("Scoped action missing");
                 return null;
             });
             ui.unregister("test:scoped");
@@ -99,9 +99,14 @@ public final class UiSmokeTest {
             CareerBridge.onEdt(() -> {
                 var toolbar = ((a.eg) frame.getContentPane()).toolbar();
                 var menu = (JPopupMenu) ((JButton) toolbar.getComponent(1)).getClientProperty("vbrasfoot.popup");
-                if (frame.getJMenuBar().getMenuCount() != 1 || toolbar.getComponentCount() != 3 || menu.getComponentCount() != 2) {
+                if (frame.getJMenuBar().getMenuCount() != 1 || toolbar.getComponentCount() != 3 || menu.getComponentCount() != 3) {
                     throw new AssertionError("Menu ou acao duplicados");
                 }
+                frame.setBounds(-400, -300, 1024, 720); // Synthetic displaced window, not reproduction of legacy cause.
+                ui.invoke("vbrasfoot:restore-window");
+                var config = frame.getGraphicsConfiguration();
+                var expected = WindowRecovery.usable(config.getBounds(), java.awt.Toolkit.getDefaultToolkit().getScreenInsets(config));
+                if (!frame.getBounds().equals(expected)) throw new AssertionError("Explicit window recovery did not apply monitor work area");
                 boolean found = false;
                 for (Window window : Window.getWindows()) {
                     if (window instanceof JDialog dialog && dialog.getTitle().contains("Inspetor")) {
@@ -147,8 +152,8 @@ public final class UiSmokeTest {
             Thread.sleep(1000);
             CareerBridge.onEdt(() -> {
                 var popup = (JPopupMenu) ((JButton) ((a.eg) frame.getContentPane()).toolbar().getComponent(1)).getClientProperty("vbrasfoot.popup");
-                if (popup.getComponentCount() != 3) throw new AssertionError("Gerenciador nao registrado");
-                ((javax.swing.JMenuItem) popup.getComponent(2)).doClick(); return null;
+                if (popup.getComponentCount() != 4) throw new AssertionError("Gerenciador nao registrado");
+                ((javax.swing.JMenuItem) popup.getComponent(3)).doClick(); return null;
             });
             long managerDeadline = System.nanoTime() + 8_000_000_000L;
             boolean managerReady = false;

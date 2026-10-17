@@ -52,6 +52,14 @@ final class ModUi implements AutoCloseable {
 
     void start() {
         CareerBridge.onEdt(() -> {
+            register("vbrasfoot:restore-window", "Restaurar janela na area do monitor", () -> {
+                CareerBridge.onEdt(() -> {
+                    Object window = Class.forName("best.n", false, runtime).getMethod("db").invoke(null);
+                    if (!(window instanceof JFrame frame)) throw new IllegalStateException("Janela da carreira indisponivel");
+                    WindowRecovery.restore(frame, logger);
+                    return null;
+                });
+            });
             timer = new Timer(800, event -> install());
             timer.start();
             return null;
@@ -136,6 +144,9 @@ final class ModUi implements AutoCloseable {
                 toolbar.add(button, toolbar.getComponentIndex(options));
                 installed.add(button);
                 logger.info("Menu vbrasfoot integrado na barra interna da carreira, ao lado de Opcoes.");
+                logger.info("career-window bounds=" + frame.getBounds() + " state=" + frame.getExtendedState()
+                        + " undecorated=" + frame.isUndecorated() + " screen=" + frame.getGraphicsConfiguration().getBounds()
+                        + " scale=" + frame.getGraphicsConfiguration().getDefaultTransform());
             }
             JPopupMenu menu = (JPopupMenu) button.getClientProperty("vbrasfoot.popup");
             for (var entry : actions.entrySet()) {

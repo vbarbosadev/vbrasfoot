@@ -562,3 +562,15 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   recusados. Bytes logicos nao sao RSS/blocos alocados nem snapshot atomico.
 - Testes de CLI sem escrita, contagens, budgets, overflow e junction Windows;
   symlink indisponivel e SKIP, nao sucesso. Politica de limpeza ainda pendente.
+
+### P0/P4 — duas carreiras reais e mitigacao explicita de janela
+
+- Usuario criou duas carreiras, consultou mod, salvou/reabriu no original sem
+  partidas; escala100%. Logs corroboram roots-reset/saves, mas guard UNKNOWN e
+  unboundSaves: conclusao da criacao permanece bloqueio para P3, nao CareerLoaded.
+- Troca de save nao encontrada nas opcoes observadas; nao forcar/inventar unload.
+- Erro de equipe localizado em .ban preexistente com mesmo hash nas tres copias;
+  nao apagar/converter/suprimir. Corte de janela repetido recuperado por Alt+Espaco.
+- Acao explicita de recuperar bounds e diagnostico adicionados, sem reposicionar
+  automaticamente ou tocar dados. Causa raiz/UI real da nova acao pendentes;
+  detalhes e limites em CREATION-VALIDATION.md. Nenhuma fase integral fechada.

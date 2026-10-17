@@ -956,3 +956,25 @@ Nao e total do home/disco, snapshot atomico, quota/blocos alocados ou garantia
 contra TOCTOU hostil/todos reparse tags. Tempo nao interrompe I/O bloqueado.
 Nao implementa limpeza/retencao completa, nem autoriza apagar dados/backups/saves.
 Sem jogo, save, instalacao/tag/release/upload; matriz CI 17/21 conferida no PR.
+
+## Criacao humana de duas carreiras e investigacao de corte/header
+
+Usuario confirmou criacao/consulta/salvar/reabrir no EXE original em copia nova
+Documents/Brasfoot22-23, sem partidas, escala100%. Variante amistoso nao confirmada;
+troca dentro da sessao nao encontrada. Sessoes/observacoes/guard e limites em
+roadmap/CREATION-VALIDATION.md: UNKNOWN/unboundSaves na criacao impedem P3 apesar
+de escrita primaria completa; reabertura A no loader tem load completo/ACTIVE.
+
+Erro E8CC1702 localizado por leitura de quatro bytes de arquivos .ban (8.399),
+um header divergente, hash igual nas tres copias, sem deserializar/modificar.
+Javap original liga teams/.ban/ObjectInputStream ao stacktrace. Nao e .s22 nem
+incompatibilidade introduzida pelo loader; importacao desse arquivo e recusada
+pelo legado. Nao apagar/converter recursos ou alegar erro benigno/equipe importada.
+
+Corte de janela repetido ao concluir criacao, antes de abrir mod; Alt+Espaco
+recuperou. Codigo original alterna estado e pack da janela sem moldura; hipotese,
+nao causa comprovada. Incremento recovery explicito no menu usa EDT/area util do
+monitor e diagnostica bounds/estado; sem ajustes automaticos/hook/save/preferences.
+Seis checks sinteticos de geometria/thread e smoke Swing exercitam acao; UI real
+nova e reproducao no original continuam pendentes. Bytecode privado no Temp e
+log local build/creation-window-validation.log, nenhum artefato privado publicado.
