@@ -583,3 +583,15 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   11 testes sinteticos e inventario 1.038 classes/158 referencias no novo recorte.
 - Ap/az/bs rejeitados como marker exclusivo de pronta: caminhos reutilizados ou
   flag ja true no construtor. UNKNOWN na criacao permanece conservador, sem P3.
+
+### P5 — criacao assistida por IA e validador JSON (0.4.6)
+
+- Usuario confirmou recovery na copia; log corrobora acao/area util em escala100%,
+  nao eliminacao da causa original ou aceite integral P0.
+- Validador target-free oferece --describe-sdk e --json JAR, com formato1,
+  codigos/etapa/remedy, manifesto e limites conhecidos/condicionais/indisponiveis.
+  Saida nao inicia mod/jogo nem valida grafo instalado/seguranca.
+- Guia AI-MOD-AUTHORING.md com prompt/fluxo/tests/capacidades reais incluso no SDK.
+  API major1 preservada; modulo nao ganha gameplay/eventos completos/sidecars.
+- SDK extraido fora do checkout testado com parsing JSON e fixture no-init;
+  teste automatizado nao e autor terceiro humano/publicacao ou MVP completo.

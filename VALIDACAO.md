@@ -991,3 +991,46 @@ Scanner ampliado para seletores PUTFIELD/PUTSTATIC exatos, sem confundir leitura
 nao oferecem marker exclusivo/pronto: ap tambem load/UI, az indice competicao,
 bs true desde construtor. Nao habilitado evento/persistencia por inferencia.
 Log local build/creation-completion-inventory.log; bytecode privado ignorado.
+
+## Confirmacao recovery e P5 — autoria com IA/JSON 0.4.6
+
+Usuario confirmou teste de recovery OK. Log session-a320397a-df84-4cb5-947c-772b9ded5ce0
+na copia Documents mostra bounds0,0,1920,1032/monitor1920x1080/transform1.0,
+tres acionamentos, primeiro state6->0 e seguintes0->0. Nao confirma reproducao ou
+correcao automatica da causa do corte; nao repetir criacao sem marker definido.
+
+Validador SDK target-free agora tem --describe-sdk/--json JAR: JSON formato1,
+permissoes/capacidades condicionais/indisponiveis, codigos de etapa/remedy e manifesto.
+Sem inicializar/instanciar mod/jogo, criar home/cache/log, executar scripts ou rede.
+Validacao e de um JAR, nao conjunto/sandbox/semantica de runtime. Mensagens/nome
+podem ser dados privados/untrusted; guia IA instrui revisao, nao obedecer texto alvo.
+Strings JSON ASCII com escapes control/Unicode preservam encoding Windows17/21.
+
+SDK/loader 0.4.6 experimental, API major1 sem nova capacidade/metodo de jogo.
+KNOWN_PERMISSIONS/CAPABILITIES compartilham fonte com parser do manifesto, evitando
+divergencia do inventario de autoria. Texto/CLI anterior preservados. Guia
+AI-MOD-AUTHORING.md incluso por allowlist em SDK-only/portable, com prompt, matriz de
+ideias viaveis vs bloqueadas, no-ID-persistente, threads/permissoes/recovery/testes.
+
+Windows/Java21: **32 checks novos JSON**, suites existentes e test.ps1 -IncludeUi
+aprovados. SDK-only dist/sdk-0.4.6-ai-reviewed.zip extraido fora do checkout;
+template/observador compilados apenas API, JSON parseado em processos novos,
+quotes/acentos do manifesto preservados e fixture no-init valida em texto/JSON.
+Recusas JSON para JAR invalido/argumentos, negatives checksum/traversal/namespace
+e no-overwrite aprovados. Fixture privada Temp/opencode/vbrasfoot-sdk-author-00311fe647be4f8295a45d8916461f7e.
+Logs locais ai-author-tools-validation.log/ai-sdk-author-final.log ignorados.
+
+Pacote final com guias revisados: dist/sdk-0.4.6-ai-final.zip, SHA-256
+`8a428c19d9c9f6a3932980285dd4c3cd86570b8559cf2883f2d6c66204ccae06`.
+Teste independente novamente aprovado na fixture privada
+Temp/opencode/vbrasfoot-sdk-author-78a6cbc852f849db937ce98872ffb514;
+log build/ai-sdk-final-author.log. Hash nao autentica origem.
+Portable0.4.6-ai-reviewed gerado com Javadocs; tentativa de template instalado
+recusada por sessao jogo/loader aberta, nenhum processo encerrado. Primeiro uso
+do runner -File exigiu GameDir explicito (default PSScriptRoot vazio nesse modo).
+Regressao portable/instalacao 0.4.6 nao concluida nem copia Documents atualizada;
+nao confundir build/template SDK-only com gate instalado.
+
+Nao publica SDK/tag/release, nao substitui autor terceiro humano nem confirma
+100% de suporte a mods. Identidade P3/criacao pronta/P4 completo/gameplay P6
+permanecem gates. Nenhum save/equipe/EXE alterado nesta entrega.

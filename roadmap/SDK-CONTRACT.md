@@ -1,6 +1,7 @@
-# SDK 0.4.5 — API major 1 (experimental)
+# SDK 0.4.6 — API major 1 (experimental)
 
 [Primeiro mod sem checkout](SDK-QUICKSTART.md) · [Compatibilidade](SDK-COMPATIBILITY.md).
+[Criacao assistida por IA e contrato JSON](AI-MOD-AUTHORING.md).
 
 Contrato anterior preservado por compatibilidade. Novas consultas 0.3.0 em
 `SCOPED-QUERIES.md` adicionam handles com escopo; APIs por index abaixo continuam
@@ -97,7 +98,10 @@ agendada na EDT, close idempotente). Acoes antigas sao removidas quando o loader
 fecha a UI normalmente. Nao bloqueie a EDT nem espere por ela em shutdown hooks.
 Threads, timers e janelas criados pelo mod sao responsabilidade do autor.
 
-### Recursos do contexto (incremento posterior a 0.4.5)
+### Recursos do contexto (garantias consolidadas no loader 0.4.6)
+
+Declare minLoaderVersion=0.4.6 se depender destas garantias de revogacao automatica;
+loaders anteriores mantem assinaturas mas nao necessariamente esse comportamento.
 
 Todas as acoes registradas pelo contexto, inclusive `registerAction`, pertencem ao
 mod: falha parcial de initialize ou inicio do encerramento revoga dispatch e
