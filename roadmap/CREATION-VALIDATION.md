@@ -84,3 +84,36 @@ Proximo gate: definir/corroborar marker de conclusao da criacao antes de P3;
 diagnosticar bounds ao repetir corte, comparar caminho original e confirmar nova
 acao de recovery. Nao exigir troca na mesma sessao se a UI nao oferece a rota;
 documentar escopo de sessao/reabertura, sem inventar evento unload.
+
+## Atualizacao da copia e candidatos de conclusao
+
+Pacote privado `dist/portable-0.4.5-window-8a16775` gerado da main 8a16775 e
+instalado somente na copia Documents com jogo fechado. Incremento interno mantém
+numero 0.4.5; identidade pelo commit e SHA-256 do JAR instalado:
+`de89190ba33bb2341538a3e875e1947838a782222b8599ab8059e7dafd72e241`.
+EXE, todos os arquivos sav, JARs de mods e selecao antes/depois iguais. Validacao
+`--probe-career-hooks --validate-only` aprovada, sem iniciar jogo/mods. Evidencia
+privada em Temp/opencode/vbrasfoot-window-update-e4dccced85ba437ebb68c796103328e2;
+nova acao de recovery ainda nao confirmada pelo usuario.
+
+Inventario ampliado `creation-completion.tsv`: seletores de escrita de campo
+`field:owner.member:descriptor` alem das chamadas exatas. PUTSTATIC/PUTFIELD
+distintos, GETFIELD nao conta como commit; scanner nao inicializa classes.
+11 checks sinteticos de overload/field type/read-vs-write/no-init aprovados.
+Recorte alvo: 1.038 classes, 158 referencias (inclui 139 selecoes anteriores).
+
+- `best.f.ap` tem sete sites diretos, inclusive load c.a.c e acoes de a.eg.
+  Metodo inclui navegacao, autosave e ramificacoes. Retorno nao e exclusivo de
+  criacao: hook indiscriminado duplicaria lifecycle em navegacao/jogo.
+- `best.f.az` percorre competicoes buscando entrada valida e atualiza indice;
+  retorno nao garante carreira nova inicializada. Sete sites diretos no recorte.
+- `best.f.bs` recebe true no construtor da raiz e no load, false em best.h.mh;
+  apenas tres sites diretos de escrita no ZIP principal. Logo true nao prova
+  conclusao da criacao (ja pode existir antes da configuracao de ligas/tecnico).
+
+Nao foi introduzido hook/evento em candidatos rejeitados nem promovido o guard
+UNKNOWN por consulta/tela. Proximo trabalho deve separar a operacao completa
+de criacao dos caminhos reutilizados, com fingerprint/execucao controlada; nao
+pedir ao usuario repetir carreiras apenas para compensar ausencia desse marker.
+Recorte nao cobre reflexao/JNI/bibliotecas embarcadas. Bytecode/TSV privados em
+build/hook-analysis-579ea4bfbbaa4388bcfbfbb1ff7825c6, sem redistribuicao.

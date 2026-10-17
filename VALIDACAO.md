@@ -978,3 +978,16 @@ monitor e diagnostica bounds/estado; sem ajustes automaticos/hook/save/preferenc
 Seis checks sinteticos de geometria/thread e smoke Swing exercitam acao; UI real
 nova e reproducao no original continuam pendentes. Bytecode privado no Temp e
 log local build/creation-window-validation.log, nenhum artefato privado publicado.
+
+## Instalacao da mitigacao e seletores de escrita de campo
+
+Pacote privado portable-0.4.5-window-8a16775 gerado, instalado na copia Documents
+com jogo fechado; JAR e hash/commit registrados em CREATION-VALIDATION.md. Todos
+arquivos sav, EXE, mods e selecao hashados antes/depois sem mudanca. Validacao
+com sonda sem iniciar jogo aprovada. Instalacao nao e confirmacao UI da nova acao.
+
+Scanner ampliado para seletores PUTFIELD/PUTSTATIC exatos, sem confundir leitura;
+11 checks sinteticos aprovados e inventario alvo 1.038 classes/158 refs. Ap/az/bs
+nao oferecem marker exclusivo/pronto: ap tambem load/UI, az indice competicao,
+bs true desde construtor. Nao habilitado evento/persistencia por inferencia.
+Log local build/creation-completion-inventory.log; bytecode privado ignorado.

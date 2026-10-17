@@ -15,6 +15,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Artefato/candidatos de hook recusados' }
 if ($LASTEXITCODE -ne 0) { throw 'Inventario de callers incompleto/falhou' }
 & java -cp $output FindCareerReferences $executablePath (Join-Path $output 'lifecycle-paths.tsv') 'best/h.mh()V' 'best/h.mi()V' 'forms/h.wT()V' 'best/S.aY(I)Ljavax/swing/JPanel;' 'a/bV.AB()V' 'best/f.V()V'
 if ($LASTEXITCODE -ne 0) { throw 'Inventario de navegacao/criacao incompleto/falhou' }
+& java -cp $output FindCareerReferences $executablePath (Join-Path $output 'creation-completion.tsv') 'best/f.ap()V' 'best/f.aa()V' 'best/f.az()I' 'field:best/f.bs:Z' 'a/bV.AB()V'
+if ($LASTEXITCODE -ne 0) { throw 'Inventario de candidatos de conclusao falhou' }
 foreach ($class in @('a.gq','best.h','best.h2','forms.q','forms.s','forms.h','best.S','a.hU','a.bV','best.f')) {
     & javap -classpath $executablePath -c -p -s $class | Set-Content -LiteralPath (Join-Path $output ($class + '-bytecode.txt')) -Encoding UTF8
     if ($LASTEXITCODE -ne 0) { throw "Inspecao javap falhou: $class" }
