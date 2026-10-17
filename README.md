@@ -1,4 +1,4 @@
-# vbrasfoot 0.2.0 (experimental)
+# vbrasfoot 0.3.0 (experimental)
 
 Codigo e documentacao originais sob a [licenca MIT](LICENSE).
 O jogo Brasfoot, seus recursos e dependencias de terceiros nao sao abrangidos
@@ -10,6 +10,7 @@ Modloader experimental **exclusivo do Brasfoot22-23 fornecido neste diretorio**.
 
 Instalacao portable dentro da pasta do jogo: [guia](roadmap/PORTABLE.md).
 Contrato publico do SDK/API major 1: [especificacao](roadmap/SDK-CONTRACT.md).
+Consultas protegidas contra referencias obsoletas: [escopos 0.3.0](roadmap/SCOPED-QUERIES.md).
 P0 e os gates reais de P1/P2 ainda nao estao aprovados.
 
 Sonda experimental opt-in de carregar/salvar: [guia e limites](roadmap/CAREER-PROBE.md).

@@ -33,6 +33,11 @@ final class SaveCheck {
             GameAccess.Snapshot snapshot = snapshot(first, runtime);
             if (!snapshot.loaded()) throw new IllegalStateException("Save decodificado, mas nenhuma carreira com clube humano foi identificada");
             CareerBridge bridge = new CareerBridge(runtime);
+            var scopedPage = bridge.scopedClubs("", 0, 1);
+            var scopedReference = scopedPage.items().get(0).reference();
+            if (!bridge.scopedPlayers(scopedReference, 0, 500).items().equals(snapshot.clubs().get(0).players().stream().limit(500).toList())) {
+                throw new IllegalStateException("Consulta com escopo divergiu do snapshot do clube atual");
+            }
             java.util.List<GameAccess.ClubSummary> summaries = new java.util.ArrayList<>();
             for (int offset = 0; offset < snapshot.clubs().size(); offset += 500) {
                 summaries.addAll(bridge.clubs("", offset, 500).items());
@@ -55,6 +60,10 @@ final class SaveCheck {
             write(repeat, first, runtime);
             Roots second = read(output, runtime);
             GameAccess.Snapshot restored = snapshot(second, runtime);
+            boolean staleRefused = false;
+            try { bridge.scopedPlayers(scopedReference, 0, 20); }
+            catch (br.vbrasfoot.api.GameQueryException expected) { staleRefused = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE; }
+            if (!staleRefused) throw new IllegalStateException("Referencia de grafo anterior nao recusada");
             if (!snapshot.equals(restored)) throw new IllegalStateException("Clubes/jogadores diferem apos round-trip");
             Path generation2 = directory.resolve("second-generation.s22");
             write(generation2, second, runtime);
@@ -83,6 +92,8 @@ final class SaveCheck {
             report.setProperty("clubPlayerSnapshotsEqual", "true");
             report.setProperty("paged.clubs.equal", "true");
             report.setProperty("paged.humanClubPlayers.equal", "true");
+            report.setProperty("scoped.firstClubPlayers.equal", "true");
+            report.setProperty("scoped.previousGraphReference.refused", "true");
             report.setProperty("clubs.distinctObservedIds", Long.toString(snapshot.clubs().stream().map(GameAccess.Club::id).distinct().count()));
             report.setProperty("coverage", "Offline Kryo read/write of both roots; not a gameplay or original-exe reopening test");
             try (var writer = Files.newBufferedWriter(directory.resolve("report.properties"))) { report.store(writer, "vbrasfoot save verification"); }

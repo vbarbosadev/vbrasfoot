@@ -362,3 +362,16 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   CareerLoaded/Unloaded. Teste privado confirma raizes substituidas e snapshot vazio.
 - Cobertura sintetica/real-I/O documentada; UI de criar/trocar/fechar ainda precisa
   corroborar lifecycle publico. API/P3 permanecem bloqueadas, sem sidecars neste passo.
+
+### P2 — referencias de consulta com escopo (0.3.0)
+
+- Session/generation identificam encarnacao observada de raizes/listas no bridge,
+  nao carreira persistente ou revisao de todas as mutacoes. Funciona sem sonda.
+- Handles opacos com referencia fraca e registro LRU 4.096 recusam grafo anterior,
+  token expirado/forjado e clube movido/substituido; erros tipados pedem nova consulta.
+- APIs anteriores preservadas; metodos scoped adicionados a API major 1 com
+  loader minimo 0.3.0/capacidade query.scoped. Inspetor migrado para scoped reads.
+- Reload/reset em metodos originais na fixture corroboraram recusa das referencias
+  anteriores. Leitura normal/offline e Swing testados; detalhes SCOPED-QUERIES.md.
+- Limites concorrentes/in-place declarados. Nao fecha identidade P3, lifecycle P4
+  ou comandos P6. PR empilhado sobre a sonda enquanto PR #3 estiver aberto.
