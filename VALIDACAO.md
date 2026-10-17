@@ -813,10 +813,40 @@ EXE/saves da origem e save corrente da copia hashados e intactos. Publicacao rev
 do SDK e usabilidade por autor terceiro humano ainda pendentes; API experimental
 nao e aceite integral P5/P7 nem avanco de identidade P3/lifecycle completo/P6.
 
+## P2/P7 parcial — recursos e validade do contexto do mod
+
+Incremento em `feat/mod-context-lifecycle`, baseado em main da83cbd (#12 integrado).
+Sem nova release/tag, sem atualizar a instalacao isolada; API major 1 e assinaturas
+publicas preservadas. Comportamento de encerramento documentado no SDK-CONTRACT.md.
+
+- Acoes legacy/scoped tem proprietario e sao revogadas na falha parcial de initialize
+  ou inicio de shutdown, sem esperar pela EDT; limpeza visual permanece agendada.
+- Handle encerrado nao remove registro novo com mesmo ID, nem quando label e
+  callback sao identicos (comparacao por identidade, nao igualdade do record).
+- Contexto e facades obtidas antes do encerramento recusam servicos apos falha de
+  initialize ou retorno/falha de shutdown. Dados/consultas globais ficam disponiveis
+  durante shutdown normal; registros novos nao. Logger continua utilizavel.
+- FAILED de initialize preservado ao terminar cleanup; close idempotente e loader
+  fechado recusa load. Dois mods com mesmo ID local de acao nao se confundem;
+  shutdown reverso continua apos falha do segundo.
+
+`test.ps1 -IncludeUi` aprovado: **53 checks** novos de lifecycle nas fronteiras
+reais do loader com mods sinteticos, incluindo EDT estacionada para comprovar que
+revogacao nao espera pelo event dispatch. Suites existentes (78 gerais, 35 selecao,
+23 falhas, 41 exportacao, estatisticas/cache, tracking/dispatcher/lifecycle,
+observacoes/scopes/bytecode/template/observador) e UI sintetica aprovadas.
+Log local ignorado `build/context-lifecycle-validation.log`.
+
+Nao houve execucao de jogo, leitura/gravacao de save, instalacao ou publicacao.
+Callbacks/operacoes ja iniciados podem terminar; cleanup nao e cancelamento de
+thread, sandbox, prova de ausencia de leak ou garantia de shutdown via System.exit.
+Nenhum gate integral P2/P7 ou lifecycle de carreira/P3/P6 fechado por estes testes.
+
 ## P2/P7 parcial — benchmark read-only e cache de getters 0.4.5
 
 #11 integrado na main como c2b524c antes da nova branch `feat/scoped-query-performance`;
 CI main Java 17/21 aprovado. SDK/loader 0.4.5, API major 1/formatos de save inalterados.
+
 Runner `benchmark-queries.ps1` usa EXE/save conhecidos em copia privada nova, sem
 hooks/simulacao/gravar carreira. Decode original usa frame sintetico, nao UI completa.
 

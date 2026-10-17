@@ -34,10 +34,15 @@ final class ModUi implements AutoCloseable {
     ModUi(ClassLoader runtime, Logger logger) { this.runtime = runtime; this.logger = logger; }
 
     synchronized void register(String id, String label, Runnable callback) {
+        registerOwned(id, label, callback);
+    }
+    synchronized AutoCloseable registerOwned(String id, String label, Runnable callback) {
         if (id == null || label == null || callback == null || actions.containsKey(id)) {
             throw new IllegalArgumentException("Acao invalida ou duplicada: " + id);
         }
-        actions.put(id, new Action(label, callback));
+        Action action = new Action(label, callback);
+        actions.put(id, action);
+        return () -> unregister(id, action);
     }
     void invoke(String id) {
         Action action;
@@ -54,8 +59,17 @@ final class ModUi implements AutoCloseable {
     }
 
     void unregister(String id) {
+        Action action;
+        synchronized (this) { action = actions.get(id); }
+        if (action != null) unregister(id, action);
+    }
+    private void unregister(String id, Action expected) {
+        // Revoke dispatch immediately; Swing cleanup is asynchronous and never waits for the EDT.
+        synchronized (this) {
+            if (actions.get(id) != expected) return;
+            actions.remove(id);
+        }
         javax.swing.SwingUtilities.invokeLater(() -> {
-            synchronized (this) { actions.remove(id); }
             for (JButton button : installed) {
                 JPopupMenu menu = (JPopupMenu) button.getClientProperty("vbrasfoot.popup");
                 for (Component item : menu.getComponents()) {

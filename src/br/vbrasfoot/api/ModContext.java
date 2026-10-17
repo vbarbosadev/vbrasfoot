@@ -2,6 +2,11 @@ package br.vbrasfoot.api;
 
 import java.util.logging.Logger;
 
+/**
+ * Session-owned services. The loader rejects service operations after initialization
+ * failure or completion of shutdown. Global data remains usable during normal shutdown;
+ * new UI actions and observation subscriptions do not. This is not a sandbox.
+ */
 public interface ModContext {
     GameAccess game();
     Logger logger();
@@ -9,9 +14,12 @@ public interface ModContext {
     default CareerObservations careerObservations() {
         throw new UnsupportedOperationException("Observacoes exigem loader 0.4.0+ e --probe-career-hooks");
     }
-    /** Actions run on Swing's event dispatch thread. */
+    /** Actions run on Swing's event dispatch thread; loader removes them on failure/shutdown. */
     void registerAction(String id, String label, Runnable action);
-    /** Registration owned by this mod. Close on any thread to schedule removal on the EDT. */
+    /**
+     * Registration owned by this mod. Close on any thread to revoke dispatch and
+     * schedule visual removal on the EDT. In-flight callbacks may still complete.
+     */
     default AutoCloseable registerScopedAction(String id, String label, Runnable action) {
         throw new UnsupportedOperationException("Loader anterior a 0.2.0: use minLoaderVersion=0.2.0");
     }

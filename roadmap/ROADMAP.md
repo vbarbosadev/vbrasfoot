@@ -253,6 +253,18 @@ Nao ha estimativa de prazo fechada: principalmente hooks e identidade de carreir
 
 ## 6. Proximas tarefas de implementacao
 
+### Incremento P2/P7 — propriedade e encerramento do contexto
+
+- Acoes legacy/scoped removidas pelo proprietario em falha de inicializacao e
+  encerramento; dispatch revogado sem esperar pela EDT. Handle antigo nao remove
+  registro novo com mesmo ID; callbacks ja iniciados podem terminar.
+- Novos registros recusados durante shutdown; dados/consultas disponiveis para
+  limpeza final, contexto/facades invalidados apos retorno ou falha. FAILED
+  preservado apos cleanup; loader fechado nao aceita novo load.
+- Testes sinteticos nas fronteiras reais do loader, inclusive dois mods com ID
+  local de acao igual, ordem inversa e falha de shutdown sem bloquear o outro.
+  Sem jogo/save. Nao fecha gates de UI real, System.exit, leak ou lifecycle da carreira.
+
 1. [x] Salvar este documento em `vbrasfoot/roadmap/ROADMAP.md`.
 2. Fechar a verificacao visual do menu interno e a sessao de salvar/reabrir em copia isolada.
 3. Implementar o layout instalado e remover com seguranca o bloqueio de `home` interno, sem simplesmente permitir qualquer caminho dentro do jogo.
