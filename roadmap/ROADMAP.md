@@ -647,3 +647,12 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   de IA opcional e revisao humana. Protocolo nao e terceiro executado nem publicacao.
 - MVP integral/eventos de partida/persistencia permanecem bloqueados por evidencias
   de lifecycle/identidade. Nao anunciar100% ou marcar P0-P5 aceitos por pacote.
+
+### P4 — conteudo real e etapas internas de candidatos
+
+- Confirmacao humana data/saldo coincidentes; criacao nova OK. AB real tem4153
+  clubes/1humano antes e depois, identidades/geracao estaveis, guardUNKNOWN. Isso
+  rejeita contagens como commit. AC/pn/cancelamento nao observados nesta rodada.
+- Sonda marca sites internos az/V antes/depois e scalar index/date na EDT,
+  bounded8steps/3labels, exatos por fingerprint/sites, sem transformar best.f,
+  alterar schema/flag/guard ou publicar eventos. Candidatos ainda diagnosticos.

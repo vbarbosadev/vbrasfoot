@@ -1147,3 +1147,19 @@ Logs locais dashboard-validation.log/mvp-sdk-test.log ignorados.
 THIRD-PARTY-ACCEPTANCE prepara kit/missao/relatorio para humano independente, nao
 executa esse gate nem publica release. O MVP P0-P5+P7 depende de identidade/sidecars/
 eventos reais nao entregues por esta documentacao. Sem afirmar100% por builds.
+
+## Confirmacao real data/saldo e etapas internas da criacao
+
+Usuario confirmou data/saldo coincidentes e nova criacao OK. Sessao c163429c
+reporta4153clubes/1humano antes/depois, AB1start/1return/0fail/rejected e roots/
+lists/generation estaveis; guardUNKNOWN, healthy, inFlight0/stale0/unbound0 ao
+fechar. Nenhuma prova AC/pn/amistoso/cancelamento ou ready commit por contagens.
+
+Sonda agora marca callsites az/V antes/depois dentro de candidatos apenas;
+ClassSHA/methodaccess/descriptor/sites exatos validados antes define. Preserva
+receiver/returnint/Throwable, nao transforma best.f extra, no polling/flag/guard
+ou evento publico. Cada ultima tentativa tem max8etapas/3labels; scalars copied
+calendar e indice/contagens capturados somenteEDT, indisponibilidade declarada.
+33 testes content,12 bytecode candidate e52 I/O original aprovados (fixtureframe
+sintetico, nao execucao AB/AC/pn original). Log local creation-steps-original.log.
+Confirmacao das etapas originais e caminhos alternativos pendente; P3 segue gate.

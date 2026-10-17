@@ -34,6 +34,7 @@ public final class CreationPathTransformerSelfTest {
         var events = new ArrayList<HookProbe.Observation>();
         try (var subscription = (AutoCloseable) attach.invoke(null, (Consumer<HookProbe.Observation>) events::add)) {
             instrumented.getMethod("AB").invoke(object);
+            check(instrumented.getField("selectedIndex").getInt(null) == 8, "stage markers preserve receiver/int result and following call");
             check(events.size() == 2 && events.get(0).operation().equals("creation-candidate-start") && events.get(1).operation().equals("creation-candidate-return"), "candidate boundaries ordered");
             check(events.stream().noneMatch(HookProbe.Observation::completed), "return never claims completed creation");
             check(events.get(1).returnedSuccess() && !events.get(1).aborted(), "normal return semantics");

@@ -68,3 +68,8 @@ Comparar data e saldo com UI original (saldo pode estar abreviado/formatado).
 Comparacao humana, modos/regioes/timezones distintos e concorrencia abrangente
 continuam pendentes. Nao fecha P2, P3/P4/P6/MVP nem adiciona agenda/competicoes/
 partidas/historicos sem evidencia propria.
+
+Confirmacao humana posterior: usuario informou data e saldo coincidindo com UI
+original na copia de teste. Sessao adaaac74-115a-4c42-9de7-76667ace441d corrobora
+painel ACTIVE/load teste02; igualdade dos valores e confirmacao humana, nao log
+de conteudos. Nao extrapolar para todos clubes/timezones/modos ou escrita.

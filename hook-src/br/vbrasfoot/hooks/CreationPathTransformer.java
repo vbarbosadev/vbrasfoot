@@ -36,6 +36,7 @@ public final class CreationPathTransformer {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         Map<String, Integer> found = new HashMap<>(), returns = new HashMap<>();
+        Map<String, Integer> callSites = new HashMap<>();
         reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
             @Override public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
                 MethodVisitor method = super.visitMethod(access, name, desc, signature, exceptions);
@@ -45,12 +46,15 @@ public final class CreationPathTransformer {
                 String label = reader.getClassName().replace('/', '.') + "." + name;
                 return new MethodVisitor(Opcodes.ASM8, method) {
                     final Label start = new Label(), end = new Label(), handler = new Label();
-                    void marker(String called) {
-                        super.visitLdcInsn(label);
+                    void roots() {
                         if (captureRoots) {
                             super.visitFieldInsn(Opcodes.GETSTATIC, "c/a", "SR", "Lbest/f;");
                             super.visitFieldInsn(Opcodes.GETSTATIC, "c/a", "afQ", "Lbest/ay;");
                         } else { super.visitInsn(Opcodes.ACONST_NULL); super.visitInsn(Opcodes.ACONST_NULL); }
+                    }
+                    void marker(String called) {
+                        super.visitLdcInsn(label);
+                        roots();
                         super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, called, "(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V", false);
                     }
                     @Override public void visitCode() {
@@ -59,6 +63,17 @@ public final class CreationPathTransformer {
                     @Override public void visitInsn(int op) {
                         if (op == Opcodes.RETURN) { returns.merge(name, 1, Integer::sum); marker("creationPathReturned"); }
                         super.visitInsn(op);
+                    }
+                    void step(String stage) {
+                        super.visitLdcInsn(label); super.visitLdcInsn(stage); roots();
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "creationPathStep", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V", false);
+                    }
+                    @Override public void visitMethodInsn(int op, String owner, String called, String descriptor, boolean iface) {
+                        boolean selectedCall = op == Opcodes.INVOKEVIRTUAL && owner.equals(captureRoots ? "best/f" : reader.getClassName())
+                                && ((called.equals("az") && descriptor.equals("()I")) || (called.equals("V") && descriptor.equals("()V")));
+                        if (selectedCall) { callSites.merge(name + "." + called, 1, Integer::sum); step("before-" + called); }
+                        super.visitMethodInsn(op, owner, called, descriptor, iface);
+                        if (selectedCall) step("after-" + called); // Stack value/receiver is never consumed by the marker.
                     }
                     @Override public void visitMaxs(int stack, int locals) {
                         super.visitLabel(end);
@@ -75,6 +90,10 @@ public final class CreationPathTransformer {
         for (String name : selected.keySet()) {
             if (found.getOrDefault(name, 0) != 1 || returns.getOrDefault(name, 0) != 1) {
                 throw new IOException("Metodo/retorno candidato divergente: " + name);
+            }
+            if (captureRoots && (callSites.getOrDefault(name + ".V", 0) != 1
+                    || callSites.getOrDefault(name + ".az", 0) != (name.equals("pn") ? 0 : 1))) {
+                throw new IOException("Call sites do candidato divergentes: " + name);
             }
         }
         return writer.toByteArray();

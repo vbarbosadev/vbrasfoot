@@ -10,14 +10,18 @@ final class CreationContentTracker {
                   boolean rootsStable, boolean listsStable, boolean generationStable,
                   int clubsBefore, int humansBefore, int clubsAfter, int humansAfter,
                   boolean readableAfter, String outcome) { }
+    record Step(String label, String stage, long generation, int clubs, int humans,
+                int dayIndex, int year, int month, int day, boolean calendarAvailable) { }
+    private static final Set<String> STAGES = Set.of("before-az", "after-az", "before-V", "after-V");
     private static final class Counts {
         long starts, returns, failures, rejected;
         Report latest;
+        List<Step> latestSteps = List.of();
     }
     private record Sample(Object clubs, Object humans, int clubCount, int humanCount, boolean readable) { }
     private record Entry(String label, long session, long generation, WeakReference<Object> primary,
                          WeakReference<Object> secondary, WeakReference<Object> clubs,
-                         WeakReference<Object> humans, int clubCount, int humanCount) { }
+                         WeakReference<Object> humans, int clubCount, int humanCount, List<Step> steps) { }
     private final Map<String, Counts> counts = new LinkedHashMap<>();
     private final ThreadLocal<ArrayDeque<Entry>> entries = ThreadLocal.withInitial(ArrayDeque::new);
     private long session;
@@ -54,7 +58,33 @@ final class CreationContentTracker {
         try { before = sample(primary, secondary); }
         catch (Exception | LinkageError unavailable) { before = new Sample(null, null, -1, -1, false); }
         stack.push(new Entry(label, owner, generation, new WeakReference<>(primary), new WeakReference<>(secondary),
-                new WeakReference<>(before.clubs()), new WeakReference<>(before.humans()), before.clubCount(), before.humanCount()));
+                new WeakReference<>(before.clubs()), new WeakReference<>(before.humans()), before.clubCount(), before.humanCount(), new ArrayList<>()));
+    }
+    void step(String label, String stage, Object primary, Object secondary, long generation) {
+        if (!LABELS.contains(label) || !STAGES.contains(stage)) return;
+        ArrayDeque<Entry> stack = entries.get();
+        if (stack.isEmpty()) { entries.remove(); return; }
+        Entry entry = stack.peek();
+        synchronized (this) {
+            if (!entry.label().equals(label) || entry.session() != session || entry.steps().size() >= 8) { counts.get(label).rejected++; return; }
+        }
+        Sample value;
+        try { value = sample(primary, secondary); } catch (Exception | LinkageError unavailable) { value = new Sample(null, null, -1, -1, false); }
+        int index = -1, year = 0, month = 0, day = 0; boolean available = false;
+        if (primary != null) {
+            try {
+                index = ((Number) CareerBridge.call(primary, "J")).intValue();
+                Object calendar = CareerBridge.call(primary, "bb");
+                if (calendar instanceof java.util.Calendar source) {
+                    var date = CalendarSnapshots.copy(source);
+                    year = date.year(); month = date.month(); day = date.day(); available = true;
+                }
+            } catch (Exception | LinkageError unavailable) { /* Report unavailable scalar fields, never fabricate a date. */ }
+        }
+        synchronized (this) {
+            if (entry.session() != session) { counts.get(label).rejected++; return; }
+            entry.steps().add(new Step(label, stage, generation, value.clubCount(), value.humanCount(), index, year, month, day, available));
+        }
     }
     void finish(String label, Object primary, Object secondary, long generation, boolean returned) {
         if (!LABELS.contains(label)) return;
@@ -73,6 +103,7 @@ final class CreationContentTracker {
         synchronized (this) {
             if (before.session() != session) { counts.get(label).rejected++; return; }
             Counts value = counts.get(label);
+            value.latestSteps = List.copyOf(before.steps());
             if (returned) value.returns++; else value.failures++;
             boolean rootsStable = primary != null && secondary != null && before.primary().get() == primary && before.secondary().get() == secondary;
             boolean listsStable = after.clubs() != null && after.humans() != null && before.clubs().get() == after.clubs() && before.humans().get() == after.humans();
@@ -91,6 +122,11 @@ final class CreationContentTracker {
                     previous.rootsStable(), previous.listsStable(), previous.generationStable(), previous.clubsBefore(), previous.humansBefore(),
                     previous.clubsAfter(), previous.humansAfter(), previous.readableAfter(), previous.outcome()));
         });
+        return List.copyOf(result);
+    }
+    synchronized List<Step> steps() {
+        List<Step> result = new ArrayList<>();
+        counts.values().forEach(value -> result.addAll(value.latestSteps));
         return List.copyOf(result);
     }
 }

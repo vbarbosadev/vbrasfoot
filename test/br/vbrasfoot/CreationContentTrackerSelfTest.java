@@ -7,6 +7,10 @@ public final class CreationContentTrackerSelfTest {
         public List<Object> clubs = new ArrayList<>(), humans = new ArrayList<>();
         public List<Object> P() { return clubs; }
         public List<Object> aN() { return humans; }
+        public int index = 0;
+        public int J() { return index; }
+        public java.util.Calendar calendar = new java.util.GregorianCalendar(2024, java.util.Calendar.FEBRUARY, 29);
+        public java.util.Calendar bb() { return calendar; }
     }
     private static int checks;
     private static void check(boolean value, String label) { if (!value) throw new AssertionError(label); checks++; }
@@ -45,6 +49,26 @@ public final class CreationContentTrackerSelfTest {
         check(report(tracker).returns() == 0 && report(tracker).rejected() == 10, "overflow pairing fail closed");
         tracker.enter("untrusted-label", roots, secondary, 1); tracker.finish("untrusted-label", roots, secondary, 1, true);
         check(tracker.snapshot().size() == 3, "unknown labels cannot grow report");
+        tracker.reset();
+        tracker.step(label, "before-az", roots, secondary, 1);
+        check(tracker.steps().isEmpty(), "steps outside candidate ignored");
+        tracker.enter(label, roots, secondary, 1);
+        tracker.step(label, "before-az", roots, secondary, 1);
+        roots.index = 7;
+        tracker.step(label, "after-az", roots, secondary, 1);
+        tracker.step(label, "not-allowed", roots, secondary, 1);
+        tracker.step(label, "before-V", roots, secondary, 1);
+        tracker.step(label, "after-V", roots, secondary, 1);
+        tracker.finish(label, roots, secondary, 1, true);
+        check(tracker.steps().size() == 4 && tracker.steps().get(0).dayIndex() == 0 && tracker.steps().get(1).dayIndex() == 7, "exact stage order and observed index transition");
+        check(tracker.steps().get(0).calendarAvailable() && tracker.steps().get(0).year() == 2024 && tracker.steps().get(0).day() == 29, "cloned calendar fields captured");
+        roots.calendar.set(java.util.Calendar.YEAR, 2030);
+        check(tracker.steps().get(0).year() == 2024, "steps detached metadata");
+        tracker.enter(label, roots, secondary, 1);
+        for (int i = 0; i < 10; i++) tracker.step(label, "before-V", roots, secondary, 1);
+        tracker.finish(label, roots, secondary, 1, false);
+        check(tracker.steps().size() == 8 && report(tracker).rejected() == 2 && report(tracker).failures() == 1, "step budget and failure retains partial evidence");
+        tracker.reset(); check(tracker.steps().isEmpty(), "steps session reset");
         System.out.println("PASS: " + checks + " creation content metadata checks; synthetic, not initialized-career proof.");
     }
 }
