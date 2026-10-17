@@ -26,7 +26,7 @@ record InstallPaths(Path gameRoot, Path installRoot) {
         return new InstallPaths(root, target);
     }
 
-    private static void rejectRedirects(Path path) throws IOException {
+    static void rejectRedirects(Path path) throws IOException {
         for (Path current = path; current != null; current = current.getParent()) {
             if (!Files.exists(current, LinkOption.NOFOLLOW_LINKS)) continue;
             if (Files.isSymbolicLink(current) || !current.toRealPath().equals(current.toAbsolutePath().normalize())) {

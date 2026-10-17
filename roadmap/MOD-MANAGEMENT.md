@@ -1,4 +1,4 @@
-# Gerenciar mods — 0.4.2 experimental
+# Gerenciar mods — 0.4.3 experimental
 
 Menu **vbrasfoot → Gerenciar mods (proxima inicializacao)** mostra JAR, ID, versao,
 permissoes, estado atual, selecao futura, validacao do manifesto e pasta dos logs.
@@ -9,7 +9,8 @@ Abrir/atualizar nao grava. Habilitar/desabilitar exige selecionar e confirmar.
 reinicie. Nao instala, baixa, apaga ou edita JAR/saves; nao desabilita dependentes
 silenciosamente. Aba **Falhas da sessao** e colunas de resumo mostram erros
 capturados pelo loader; use Atualizar para recarregar. P5 permanece parcial;
-painel nao e sandbox. Exportacao diagnostica ainda pendente.
+painel nao e sandbox. **Preparar diagnostico** abre previa editavel para exportacao
+local explicita: [guia](DIAGNOSTIC-EXPORT.md). Sem logs brutos/saves ou envio automatico.
 
 ## Falhas recentes (0.4.2)
 

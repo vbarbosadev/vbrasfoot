@@ -7,11 +7,11 @@ classes do jogo ou downloads durante o build. Mod Java e codigo confiavel, nao s
 ## Criar
 
 1. Copie esta pasta inteira para um diretorio novo do seu projeto.
-2. Obtenha `sdk/vbrasfoot-api-0.4.2.jar` no pacote do loader atual.
+2. Obtenha `sdk/vbrasfoot-api-0.4.3.jar` no pacote do loader atual.
 3. Compile/teste usando somente esse JAR:
 
    ```powershell
-   .\build.ps1 -Sdk 'C:\Downloads\vbrasfoot\sdk\vbrasfoot-api-0.4.2.jar'
+   .\build.ps1 -Sdk 'C:\Downloads\vbrasfoot\sdk\vbrasfoot-api-0.4.3.jar'
    ```
 
    Alternativa: coloque a API em `lib/vbrasfoot-api.jar` e execute `build.ps1`.

@@ -190,7 +190,7 @@ Prioridade: alta para abrir a plataforma. Dependencias: P1 a P4 para o MVP compl
 - [x] Criar comando de validacao que nao inicialize codigo de mods, com relatorio de dependencias, capacidades e erros. (--validate-mod individual + --validate-only conjunto; nao e auditoria/sandbox.)
 - [x] Adicionar painel interno de mods: ID, versao, permissoes, estado, falhas recentes e local dos logs. (0.4.2: 128 resumos da sessao nas fronteiras do loader, sem alegar captura de todo erro do jogo/mod.)
 - [x] Implementar habilitar/desabilitar para a proxima inicializacao. (0.4.1: config atomica, grafo validado, CLI e painel; sem hot reload. UI real e usabilidade ainda pendentes.)
-- [ ] Fornecer exportacao de diagnostico revisavel pelo usuario, sem enviar automaticamente saves ou dados privados.
+- [x] Fornecer exportacao de diagnostico revisavel pelo usuario, sem enviar automaticamente saves ou dados privados. (0.4.3: resumo TXT com previa editavel, identidade/detalhes opt-in, save local explicito; sem logs brutos/upload. UI real ainda pendente.)
 - [ ] Fazer teste de usabilidade: criar e instalar um mod novo seguindo apenas o guia, sem editar o loader.
 
 **Aceite do MVP:** um desenvolvedor cria um JAR a partir do template, instala na copia do Brasfoot com vbrasfoot ja instalado e usa consultas/eventos/dados por carreira sem conhecer `best.*` ou `a.*`.
@@ -436,3 +436,15 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   Overflow detectado por status/painel/close, sem duplicacao por assinatura.
 - 23 testes novos e UI sintetica; sem provocar falhas nos mods/saves do usuario.
   UI real 0.4.2, exportacao diagnostica e demais gates permanecem pendentes.
+
+### P5 — exportacao revisavel de diagnostico (0.4.3)
+
+- #9 integrado na main antes da nova branch. Resumo por allowlist, sem leitura ou
+  anexacao de logs/saves/binarios; identidades/mensagens omitidas por padrao.
+- Previa editavel, opt-ins independentes e confirmacao antes de salvar exatamente
+  o texto revisado. Destino fixo diagnostics/diagnostic-UUID.txt, CREATE_NEW, limite 256 KiB,
+  links/aliases recusados. Nenhum envio automatico ou sobrescrita de arquivos.
+- 41 testes sinteticos e smoke Swing de cancelamento/opt-in/edicao/save exato;
+  teste de junction fica no Temp privado, nao dentro da instalacao de desenvolvimento.
+- UI humana/exportacao real pendentes; nao fecha P3, lifecycle/gameplay ou MVP
+  integral. Contrato/privacidade/limites em DIAGNOSTIC-EXPORT.md.
