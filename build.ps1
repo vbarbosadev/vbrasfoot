@@ -76,5 +76,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Validacao individual do template falhou' }
     & "$PSScriptRoot\examples\career-observer\build.ps1" -Sdk "$PSScriptRoot\dist\vbrasfoot-api.jar"
     if ($LASTEXITCODE -ne 0) { throw 'Build independente do observador falhou' }
+    & "$PSScriptRoot\examples\player-comparator\build.ps1" -Sdk "$PSScriptRoot\dist\vbrasfoot-api.jar"
+    if ($LASTEXITCODE -ne 0) { throw 'Build independente do comparador falhou' }
+    & java -jar "$PSScriptRoot\dist\vbrasfoot-validator.jar" --json "$PSScriptRoot\examples\player-comparator\dist\player-comparator.jar"
+    if ($LASTEXITCODE -ne 0) { throw 'Validador recusou comparador' }
     Write-Host 'Build e testes concluidos. Execute .\run.ps1 --validate-only'
 } finally { Pop-Location }

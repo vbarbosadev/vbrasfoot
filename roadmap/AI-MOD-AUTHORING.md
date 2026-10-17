@@ -5,6 +5,10 @@ do EXE, saves, fontes ofuscadas ou checkout do loader para compilar/testar o mod
 Nao envie dados privados nem bibliotecas proprietarias para um servico de IA.
 JAR Java e codigo confiado ao usuario, nao sandbox: revise fontes e dependencias.
 
+Exemplo independente: `examples/player-comparator` no SDK-only. Compara dois
+jogadores consultados, ate100 itens por pagina, sem ranking ou campos inventados.
+Tem modelo/fakes e build API-only: bom ponto de partida para adaptar com IA.
+
 ## Escolher um projeto que funcione hoje
 
 | Ideia | SDK atual | Limite |

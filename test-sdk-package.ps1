@@ -74,7 +74,14 @@ Copy-Item -LiteralPath (Join-Path $sdk 'examples\career-observer') -Destination 
 if ($LASTEXITCODE -ne 0) { throw 'Observador SDK-only falhou' }
 $observer = Join-Path $observerProject 'dist\career-observer.jar'
 $null = Run-Validator 'observer-validation' @($observer)
-foreach ($jarPath in @($mod,$observer)) {
+$comparatorProject = Join-Path $fixture 'comparador'
+Copy-Item -LiteralPath (Join-Path $sdk 'examples\player-comparator') -Destination $comparatorProject -Recurse
+& (Join-Path $comparatorProject 'build.ps1') -Sdk $api
+if ($LASTEXITCODE -ne 0) { throw 'Comparador SDK-only falhou' }
+$comparator = Join-Path $comparatorProject 'dist\player-comparator.jar'
+$comparatorResult = Run-Validator 'comparator-json' @('--json',$comparator) | ConvertFrom-Json
+if ($comparatorResult.valid -ne $true -or $comparatorResult.mod.id -ne 'br.vbrasfoot.player-comparator') { throw 'Comparador nao validado' }
+foreach ($jarPath in @($mod,$observer,$comparator)) {
     $jar = [IO.Compression.ZipFile]::OpenRead($jarPath)
     try {
         foreach ($entry in $jar.Entries) {

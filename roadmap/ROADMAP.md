@@ -605,3 +605,15 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   retorno generico nao e criada pronta. Falhas/sink isolados sem esconder original.
 - 11 checks de bytecode + tres de guard e shape original corroboram tecnica;
   execucao dos candidatos na UI real/cancelamento ainda pendente antes de P3.
+
+### P5 — comparador de jogadores independente
+
+- Mod br.vbrasfoot.player-comparator compila apenas API, sem legado/reflexao/rede/
+  dados persistentes: dois lados com filtro/paginas100 e comparacao de campos publicos.
+- Forca/posicao/value crus, sem salario/potencial/unidades/ranking inventados;
+  handles temporarios, stale invalida ambos lados e pede atualizar.
+- 94 checks modelo/lifecycle; smoke Swing de JAR real confirma janela/tabelas/
+  stale/refresh/descarte, nao teste humano em carreira real. SDK-only copia fontes
+  por allowlist e compila tres projetos fora do checkout, sem instalar mod por padrao.
+- Proximo gate humano: consultar dois jogadores na copia de teste e corroborar
+  fronteiras candidatas da criacao com sonda. P3/P6 nao liberados por exemplo de leitura.

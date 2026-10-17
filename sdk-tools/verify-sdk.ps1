@@ -24,6 +24,7 @@ $fixed = @('README.md','LICENSE','verify.ps1','sdk-package.json',"api/vbrasfoot-
 foreach ($doc in @('SDK-QUICKSTART.md','SDK-COMPATIBILITY.md','SDK-DISTRIBUTION.md','SDK-CONTRACT.md','AI-MOD-AUTHORING.md','QUERY-PERFORMANCE.md','SCOPED-QUERIES.md','CAREER-OBSERVATIONS.md','MOD-MANAGEMENT.md','DIAGNOSTIC-EXPORT.md')) { $fixed += "docs/$doc" }
 foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src/br/exemplo/consulta/ReadOnlyMod.java','test/br/exemplo/consulta/ReadOnlyModTest.java')) { $fixed += "template-read-only/$relative" }
 foreach ($relative in @('README.md','LICENSE','build.ps1','vbrasfoot.mod.properties','.gitignore','src/br/vbrasfoot/observer/CareerObserverMod.java','test/br/vbrasfoot/observer/CareerObserverModTest.java')) { $fixed += "examples/career-observer/$relative" }
+foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src/br/vbrasfoot/playercomparator/ComparisonModel.java','src/br/vbrasfoot/playercomparator/PlayerComparatorMod.java','test/br/vbrasfoot/playercomparator/ComparisonModelTest.java')) { $fixed += "examples/player-comparator/$relative" }
 $checksums = Get-Content -LiteralPath (Join-Path $root 'checksums.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 foreach ($entry in $checksums.PSObject.Properties) {
