@@ -921,3 +921,16 @@ recusado; EXE original hashado antes/depois. Relatorios privados ignorados em
 Nao houve execucao de criacao/gameplay nem novo hook. Roteiro com duas carreiras
 reais e variantes de amistoso em LIFECYCLE-PATHS.md permanece pendente; unload,
 save duravel, identidade/sidecars P3 e gameplay P6 continuam bloqueados.
+
+## P7 parcial — isolamento com dois JARs reais
+
+Base main 60c8b0d apos #14/#15. Suite ModJarIsolationSelfTest compila duas fontes
+proprias contra dist/vbrasfoot-api.jar, com main/helper de mesmo nome binario e
+comportamento diferente, empacota JARs/manifestos reais e usa discover/validator/load.
+**31 checks** aprovados no Windows/Java21: no-init em validacao, dependencias por ID
+ordenando filenames inversos, classes/instancias/counters separados, helper exclusivo
+do provider inacessivel ao dependente, duas acoes ativas, shutdown reverso/cleanup.
+Fixture build/jar-isolation-UUID preservada, propriedades process-local removidas
+no finally. Build completo aprovado; sem jogo, rede ou saves.
+Nao e sandbox, isolamento contra codigo hostil/internals, prova de GC/leak ou UI
+real. P7 global e P4/P3/P6 permanecem abertos.
