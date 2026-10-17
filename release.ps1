@@ -10,14 +10,15 @@ foreach ($name in @('install.ps1', 'uninstall.ps1', 'recover-update.ps1', 'launc
 }
 Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'app\LICENSE')
 [IO.Directory]::CreateDirectory((Join-Path $Output 'sdk')) | Out-Null
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.5.0.jar')
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.5.0.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.6.0.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.6.0.jar')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-QUICKSTART.md" -Destination (Join-Path $Output 'sdk\SDK-QUICKSTART.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-COMPATIBILITY.md" -Destination (Join-Path $Output 'sdk\SDK-COMPATIBILITY.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\QUERY-PERFORMANCE.md" -Destination (Join-Path $Output 'sdk\QUERY-PERFORMANCE.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-CONTRACT.md" -Destination (Join-Path $Output 'sdk\SDK-CONTRACT.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\AI-MOD-AUTHORING.md" -Destination (Join-Path $Output 'sdk\AI-MOD-AUTHORING.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CALENDAR-BALANCE.md" -Destination (Join-Path $Output 'sdk\CALENDAR-BALANCE.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\EMBEDDED-UI.md" -Destination (Join-Path $Output 'sdk\EMBEDDED-UI.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\THIRD-PARTY-ACCEPTANCE.md" -Destination (Join-Path $Output 'sdk\THIRD-PARTY-ACCEPTANCE.md')
 foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\careerdashboard\DashboardModel.java','src\br\vbrasfoot\careerdashboard\CareerDashboardMod.java','test\br\vbrasfoot\careerdashboard\DashboardModelTest.java')) {
     $target = Join-Path $Output "sdk\examples\career-dashboard\$relative"

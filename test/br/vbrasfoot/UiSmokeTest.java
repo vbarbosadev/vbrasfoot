@@ -236,6 +236,45 @@ public final class UiSmokeTest {
             }
             mods.load(List.of(ModManifest.read(Path.of("examples/player-comparator/dist/player-comparator.jar"))), access, ui, managerHome.resolve("comparator-data"));
             CareerBridge.onEdt(() -> {
+                var originalContent = frame.getContentPane(); var originalGlass = frame.getGlassPane();
+                var bounds = frame.getBounds();
+                ui.invoke("br.vbrasfoot.player-comparator:compare-integrated");
+                if (frame.getContentPane() != originalContent || !frame.getBounds().equals(bounds)) throw new AssertionError("Painel alterou tela/geometria original");
+                var layer = (javax.swing.JPanel) frame.getGlassPane();
+                if (!layer.isVisible() || !"vbrasfoot.embedded-panel".equals(layer.getName())) throw new AssertionError("Painel integrado nao abriu");
+                named(layer, "player-comparator.refresh", JButton.class).doClick();
+                for (int side = 0; side < 2; side++) {
+                    named(layer, "player-comparator." + side + ".clubs", javax.swing.JComboBox.class).setSelectedIndex(0);
+                    var table = named(layer, "player-comparator." + side + ".players", JTable.class); table.setRowSelectionInterval(0, 0);
+                    named(layer, "player-comparator." + side + ".choose", JButton.class).doClick();
+                }
+                if (named(layer, "player-comparator.results", JTable.class).getRowCount() != 6) throw new AssertionError("Comparacao integrada incorreta");
+                named(layer, "vbrasfoot.embedded-back", JButton.class).doClick();
+                if (frame.getGlassPane() != originalGlass || frame.getContentPane() != originalContent || originalGlass.isVisible()) throw new AssertionError("Voltar nao restaurou a UI");
+                var host = new EmbeddedPanels(logger);
+                var disposals = new AtomicInteger();
+                var theme = new br.vbrasfoot.api.UiTheme(frame.getFont(), java.awt.Color.WHITE, java.awt.Color.BLACK, java.awt.Color.BLACK, java.awt.Color.WHITE);
+                java.util.function.Function<br.vbrasfoot.api.UiTheme, br.vbrasfoot.api.ModPanel> factory = ignored -> new br.vbrasfoot.api.ModPanel() {
+                    final javax.swing.JPanel component = new javax.swing.JPanel();
+                    public javax.swing.JComponent component() { return component; }
+                    public void close() { disposals.incrementAndGet(); }
+                };
+                host.open("first", "First", frame, theme, factory, () -> true);
+                host.open("second", "Second", frame, theme, factory, () -> true);
+                host.closeOwner("first");
+                if (!frame.getGlassPane().isVisible() || disposals.get() != 1) throw new AssertionError("Outro owner removeu painel atual");
+                host.close(); host.close();
+                if (disposals.get() != 2 || frame.getGlassPane() != originalGlass) throw new AssertionError("Cleanup painel nao idempotente");
+                originalGlass.setVisible(true);
+                boolean refused = false;
+                try { host.open("blocked", "Blocked", frame, theme, factory, () -> true); } catch (IllegalStateException expected) { refused = true; }
+                originalGlass.setVisible(false);
+                if (!refused || disposals.get() != 2) throw new AssertionError("Camada original visivel nao respeitada");
+                host.open("screen-change", "Screen", frame, theme, factory, () -> false); host.check();
+                if (disposals.get() != 3 || frame.getGlassPane() != originalGlass) throw new AssertionError("Recriacao de tela nao fecha painel");
+                return null;
+            });
+            CareerBridge.onEdt(() -> {
                 ui.invoke("br.vbrasfoot.player-comparator:compare");
                 JDialog comparator = null;
                 for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().startsWith("Comparador de jogadores") && dialog.isDisplayable()) comparator = dialog;
@@ -290,6 +329,7 @@ public final class UiSmokeTest {
             System.out.println("PASS: menu/gerenciador/falhas, previa privada editavel, cancelar sem escrita, opt-in e exportacao exata confirmada; cleanup aprovado (UI sintetica).");
             System.out.println("PASS: comparador SDK-only janela/tabelas/selecao/STALE_SCOPE/refresh/shutdown (UI sintetica, nao carreira real).");
             System.out.println("PASS: painel carreira SDK-only data/saldo long negativo/STALE_SCOPE/shutdown (UI sintetica).");
+            System.out.println("PASS: comparador integrado overlay/tema/voltar, conteudo e geometria originais preservados (UI sintetica).");
         } finally {
             CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; });
         }

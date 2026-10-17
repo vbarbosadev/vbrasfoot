@@ -221,6 +221,17 @@ final class ModLoader implements AutoCloseable {
                         };
                     }
                 }
+                public AutoCloseable registerPanel(String id, String label, java.util.function.Function<br.vbrasfoot.api.UiTheme, br.vbrasfoot.api.ModPanel> factory) {
+                    require("ui.register"); java.util.Objects.requireNonNull(factory);
+                    if (!manifest.requiredCapabilities().contains("ui.panel.embedded")) throw new SecurityException("Declare requiredCapabilities=ui.panel.embedded");
+                    String key = manifest.id() + ":" + id;
+                    String panelOwner = key + ":" + java.util.UUID.randomUUID();
+                    AutoCloseable registration = registerScopedAction(id, label, () -> ui.openPanel(panelOwner, label, factory));
+                    java.util.concurrent.atomic.AtomicBoolean disposed = new java.util.concurrent.atomic.AtomicBoolean();
+                    AutoCloseable combined = () -> { if (disposed.compareAndSet(false, true)) { registration.close(); ui.closePanel(panelOwner); } };
+                    synchronized (owned) { owned.actions.put(key, combined); }
+                    return combined;
+                }
                 public byte[] readData(String file) throws IOException {
                     require("data.read");
                     Path path = dataPath(data, manifest.id(), file);

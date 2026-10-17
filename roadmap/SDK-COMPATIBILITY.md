@@ -1,11 +1,11 @@
-# Compatibilidade do SDK — 0.5.0 experimental
+# Compatibilidade do SDK — 0.6.0 experimental
 
 ## Quatro identidades diferentes
 
 1. **API major**: atualmente 1. Manifesto aceita 1 ou intervalo inteiro `[min,max)`
    contendo 1; nao e range SemVer. Metodos anteriores sao preservados; adicoes
    podem ter default que recusa loader antigo, em vez de inventar capacidade.
-2. **Loader/SDK SemVer**: 0.5.0 nesta entrega. `minLoaderVersion` e minimo explicito
+2. **Loader/SDK SemVer**: 0.6.0 nesta entrega. `minLoaderVersion` e minimo explicito
    com major.minor.patch, nao inferido do Java nem da versao do seu mod.
 3. **Perfil do jogo**: somente `brasfoot22-23` conhecido, fingerprint completo do
    EXE validado pelo loader. Mesmo nome comercial com bytes diferentes e recusado.
@@ -32,6 +32,7 @@ e capacidades no manifesto e trate erros/defaults documentados.
 | ZIP SDK-only e validador independente | 0.4.4 | JDK para compilar; ferramenta nao precisa de loader/jogo |
 | JSON/--describe-sdk e garantias de revogacao do contexto | 0.4.6 | Ferramenta target-free / contexto session-owned |
 | scopedCalendar/scopedClubBalance | 0.5.0 | game.read + query.calendar.current/query.club.balance; campos delimitados |
+| registerPanel/UiTheme/ModPanel | 0.6.0 | ui.register + ui.panel.embedded; overlay da janela da carreira, nao injecao arbitraria |
 
 Minimos descrevem disponibilidade dos recursos, nao uma matriz de gameplay
 aprovada em todas as versoes historicas. O template de leitura exige 0.3.1 pelos

@@ -56,6 +56,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de cache de getters falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.WindowRecoverySelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de recuperacao de janela falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.EmbeddedPanelsSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de UI integrada falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.HookProbeSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da sonda falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CreationContentTrackerSelfTest
