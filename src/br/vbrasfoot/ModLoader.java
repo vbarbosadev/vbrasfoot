@@ -23,6 +23,7 @@ final class ModLoader implements AutoCloseable {
     private final List<URLClassLoader> classLoaders = new ArrayList<>();
     private final List<Mod> loaded = new ArrayList<>();
     private final Logger logger;
+    private final ModFailures failures = new ModFailures();
     private final Map<String, br.vbrasfoot.api.ModState> states = new LinkedHashMap<>();
     private final Map<String, String> loadedFiles = new LinkedHashMap<>();
     private final Map<Mod, String> identities = new java.util.IdentityHashMap<>();
@@ -59,6 +60,15 @@ final class ModLoader implements AutoCloseable {
         Map<String, br.vbrasfoot.api.ModState> result = new LinkedHashMap<>();
         loadedFiles.forEach((file, id) -> result.put(file, states.getOrDefault(id, br.vbrasfoot.api.ModState.DISCOVERED)));
         return Map.copyOf(result);
+    }
+    ModFailures.Snapshot failures() {
+        // Poll terminal statuses without callbacks/I/O; overflow is visible even if the mod never polls.
+        List<SubscriptionOwner> owners;
+        synchronized (subscriptions) { owners = List.copyOf(subscriptions.values()); }
+        for (SubscriptionOwner owner : owners) {
+            synchronized (owner) { for (var subscription : owner.items) subscription.status(); }
+        }
+        return failures.snapshot();
     }
     static void requireObservationMode(List<ModManifest> manifests, boolean enabled) throws IOException {
         for (ModManifest manifest : manifests) if (!enabled && manifest.requiredCapabilities().contains("events.career.observed")) {
@@ -106,7 +116,7 @@ final class ModLoader implements AutoCloseable {
             Mod mod = type.asSubclass(Mod.class).getConstructor().newInstance();
             loaded.add(mod);
             identities.put(mod, manifest.id());
-            subscriptions.put(mod, owned);
+            synchronized (subscriptions) { subscriptions.put(mod, owned); }
             mod.initialize(new ModContext() {
                 private void require(String permission) {
                     if (!manifest.permissions().contains(permission)) throw new SecurityException(manifest.id() + " nao declarou " + permission);
@@ -144,14 +154,40 @@ final class ModLoader implements AutoCloseable {
                                 if (owned.closed) throw new IllegalStateException("Mod encerrando");
                                 owned.items.removeIf(s -> s.status() != Status.ACTIVE);
                                 if (owned.items.size() >= 4) throw new IllegalStateException("Limite de 4 assinaturas por mod");
-                                Subscription subscription = observations.subscribe(callback); owned.items.add(subscription); return subscription;
+                                java.util.Objects.requireNonNull(callback);
+                                Subscription delegate = observations.subscribe(update -> {
+                                    try { callback.accept(update); }
+                                    catch (RuntimeException | Error failure) {
+                                        failures.record(manifest.jar().getFileName().toString(), manifest.id(), ModFailures.Stage.CAREER_CALLBACK, failure);
+                                        throw failure;
+                                    }
+                                });
+                                Subscription subscription = new Subscription() {
+                                    private final java.util.concurrent.atomic.AtomicBoolean overflowRecorded = new java.util.concurrent.atomic.AtomicBoolean();
+                                    public Status status() {
+                                        Status status = delegate.status();
+                                        if (status == Status.OVERFLOW && overflowRecorded.compareAndSet(false, true)) failures.record(
+                                                manifest.jar().getFileName().toString(), manifest.id(), ModFailures.Stage.CAREER_OVERFLOW,
+                                                "OVERFLOW", "Fila de observacoes cheia; assinatura encerrada. Reassinar explicitamente para recuperar.");
+                                        return status;
+                                    }
+                                    public void close() { status(); delegate.close(); }
+                                };
+                                owned.items.add(subscription); return subscription;
                             }
                         }
                     };
                 }
                 public void registerAction(String id, String label, Runnable action) {
                     require("ui.register");
-                    ui.register(manifest.id() + ":" + id, label, action);
+                    java.util.Objects.requireNonNull(action);
+                    ui.register(manifest.id() + ":" + id, label, () -> {
+                        try { action.run(); }
+                        catch (RuntimeException | Error failure) {
+                            failures.record(manifest.jar().getFileName().toString(), manifest.id(), ModFailures.Stage.UI_ACTION, failure);
+                            throw failure;
+                        }
+                    });
                 }
                 public AutoCloseable registerScopedAction(String id, String label, Runnable action) {
                     registerAction(id, label, action);
@@ -178,6 +214,7 @@ final class ModLoader implements AutoCloseable {
             state(manifest.id(), br.vbrasfoot.api.ModState.ACTIVE);
             logger.info("Mod carregado: " + manifest.id() + " " + manifest.version());
         } catch (Exception | Error failure) {
+            failures.record(manifest.jar().getFileName().toString(), manifest.id(), ModFailures.Stage.INITIALIZE, failure);
             owned.close();
             state(manifest.id(), br.vbrasfoot.api.ModState.FAILED);
             throw failure; // Fail closed: dependent mods must not run against a failed provider.
@@ -205,17 +242,23 @@ final class ModLoader implements AutoCloseable {
         List<Mod> reverse = new ArrayList<>(loaded);
         Collections.reverse(reverse);
         for (Mod mod : reverse) {
-            SubscriptionOwner owned = subscriptions.get(mod);
+            SubscriptionOwner owned;
+            synchronized (subscriptions) { owned = subscriptions.get(mod); }
             if (owned != null) owned.close();
             try { mod.shutdown(); state(identities.get(mod), br.vbrasfoot.api.ModState.STOPPED); }
-            catch (Exception | Error failure) { state(identities.get(mod), br.vbrasfoot.api.ModState.FAILED); logger.log(Level.WARNING, "Erro ao encerrar mod", failure); }
+            catch (Exception | Error failure) {
+                String id = identities.get(mod);
+                String file = loadedFiles.entrySet().stream().filter(e -> e.getValue().equals(id)).map(Map.Entry::getKey).findFirst().orElse("");
+                failures.record(file, id, ModFailures.Stage.SHUTDOWN, failure);
+                state(id, br.vbrasfoot.api.ModState.FAILED); logger.log(Level.WARNING, "Erro ao encerrar mod", failure);
+            }
         }
         for (URLClassLoader loader : classLoaders) {
             try { loader.close(); } catch (IOException failure) { logger.log(Level.WARNING, "Erro ao fechar JAR", failure); }
         }
         loaded.clear();
         identities.clear();
-        subscriptions.clear();
+        synchronized (subscriptions) { subscriptions.clear(); }
         classLoaders.clear();
     }
 }

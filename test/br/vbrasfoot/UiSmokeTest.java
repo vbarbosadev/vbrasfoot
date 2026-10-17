@@ -141,7 +141,9 @@ public final class UiSmokeTest {
             Path managerHome = java.nio.file.Files.createTempDirectory(Path.of("build"), "manager-ui-").toAbsolutePath();
             java.nio.file.Files.createDirectories(managerHome.resolve("mods"));
             java.nio.file.Files.copy(home.resolve("mods/inspector.jar"), managerHome.resolve("mods/inspector.jar"));
-            ModManagerPanel.register(ui, managerHome, managerHome.resolve("logs"), mods::fileStates);
+            var fixtureFailures = new ModFailures();
+            fixtureFailures.record("inspector.jar", "br.vbrasfoot.inspector", ModFailures.Stage.UI_ACTION, new IllegalStateException("fixture-history-only"));
+            ModManagerPanel.register(ui, managerHome, managerHome.resolve("logs"), mods::fileStates, fixtureFailures::snapshot);
             Thread.sleep(1000);
             CareerBridge.onEdt(() -> {
                 var popup = (JPopupMenu) ((JButton) ((a.eg) frame.getContentPane()).toolbar().getComponent(1)).getClientProperty("vbrasfoot.popup");
@@ -156,6 +158,11 @@ public final class UiSmokeTest {
                         var table = find(dialog.getContentPane(), JTable.class);
                         if (table == null || table.getRowCount() == 0) return false;
                         if (!table.getValueAt(0, 3).equals("ACTIVE") || !table.getValueAt(0, 4).equals("HABILITADO")) throw new AssertionError("Estado/seleção gerenciador incorretos");
+                        if (!table.getValueAt(0, 7).equals(1) || !table.getValueAt(0, 8).toString().contains("fixture-history-only")) throw new AssertionError("Resumo de falha ausente");
+                        var tabs = find(dialog.getContentPane(), javax.swing.JTabbedPane.class);
+                        if (tabs == null || tabs.getTabCount() != 2 || !tabs.getTitleAt(1).equals("Falhas da sessao")) throw new AssertionError("Aba de falhas ausente");
+                        var history = (javax.swing.JTextArea) ((javax.swing.JScrollPane) tabs.getComponentAt(1)).getViewport().getView();
+                        if (history.isEditable() || !history.getText().contains("fixture-history-only")) throw new AssertionError("Historico incorreto/editavel");
                         return true;
                     }
                     return false;
@@ -169,7 +176,7 @@ public final class UiSmokeTest {
                 for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().contains("Gerenciar mods") && dialog.isDisplayable()) throw new AssertionError("Painel vazou apos fechar UI");
                 return null;
             });
-            System.out.println("PASS: menu/inspetor scoped e gerenciador: estado separado de selecao, abrir nao grava, cleanup sem janela vazada (UI sintetica).");
+            System.out.println("PASS: menu/inspetor scoped, gerenciador, resumo/aba de falhas read-only; abrir nao grava, cleanup sem janela vazada (UI sintetica).");
         } finally {
             CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; });
         }

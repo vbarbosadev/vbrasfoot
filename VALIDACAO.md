@@ -662,3 +662,49 @@ Windows/Oracle Java 21.0.12:
 Limites: testes nao substituem disable/reabrir/enable na UI real; historico de
 falhas recentes/exportacao diagnostica ainda pendentes. Sem identidade P3,
 persistencia por carreira, novos eventos de gameplay ou aceite integral de P5/P7.
+
+## Confirmacao guiada 0.4.1 e historico de falhas 0.4.2
+
+Usuario confirmou todo o roteiro de painel, desabilitar exemplo, reiniciar,
+manter inspetor, reabilitar e reiniciar. Conferencia independente na copia:
+
+- Sessao `session-fed53b9c-57a9-41b1-a341-1d03670e9c1b`: inspetor ACTIVE,
+  sem registro ACTIVE do exemplo; sessoes `session-569f025d-ec96-4922-b192-323534b61adb`
+  e `session-cbbea928-b379-4d32-a6c4-c5dbc8a1fd35`: ambos ACTIVE novamente.
+- Stderr dessas sessoes vazio; config final format=1 sem entries disabled.
+  Isso corrobora a confirmacao, nao cria evidencia de lifecycle/troca de carreira.
+- #8 integrado na main como 036d4eb, CI main Java 17/21 aprovado antes de prosseguir.
+
+Nova branch `feat/mod-failure-history`, loader/SDK 0.4.2, API major 1 sem novos
+metodos publicos. Historico de ate 128 resumos da sessao, com evicoes contabilizadas;
+sem reter Throwable/Class/classloader/objetos legados. Falhas de initialize/construtor,
+acao UI, callback, overflow e shutdown atribuidas a arquivo/ID. Painel tem resumo
+por JAR e aba global read-only; recarrega no Atualizar. Overflow registrado quando
+status e observado, nao necessariamente no instante exato da perda. Nao e journal
+duravel, nao captura toda thread arbitraria e nao altera estado/saves para diagnostico.
+
+Executado Windows/Oracle Java 21.0.12:
+
+- **23 testes novos**: limite/evicao, snapshots imutaveis, mensagens limitadas,
+  getMessage falho, 400 registros concorrentes, ownership/etapas, construtor refletido,
+  erro de acao/callback/overflow e shutdown, deduplicacao e sessao nova vazia.
+- Demais suites: 75 gerais, 35 selecao, 13 tracking, 11 dispatcher, 22 lifecycle,
+  33 observacoes, 16 scope, 15 bytecode e 7 template aprovados.
+- `test.ps1 -IncludeUi`: resumo/aba de falhas com registros sinteticos, readonly,
+  menu integrado/sem escrita ao abrir/cleanup aprovados. Nenhum erro provocado
+  nos mods/saves do usuario, nem interface real do jogo nesta etapa.
+- `release.ps1 -Output dist/portable-0.4.2-failure-history`: pacote/Javadocs gerados.
+- `test-mod-management.ps1`: fixture privada
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-mod-management-64cda4798f8640208458c683cd544523`,
+  CLI/lock/config/safe sem inicializar jogo/mods aprovado.
+- `test-mod-template.ps1`: fixture privada
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-author-template-60826139a2064bd0ba89852c26f7fa9c`,
+  build SDK-only fora do checkout/instalacao/validacao aprovados.
+- Portable aprovado em execucao sequencial: fixture
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-ef48505225cd4defa477c248462d2b30`,
+  log build/portable-0.4.2-failure-history-sequential.log. Primeira tentativa paralela
+  com testes CLI foi recusada pela deteccao global de sessao: runners de instalacao
+  nao sao independentes e devem ser executados sequencialmente.
+
+EXE/saves da origem e save corrente da copia novamente hashados, intactos.
+UI real 0.4.2, exportacao diagnostica revisavel e demais gates permanecem pendentes.

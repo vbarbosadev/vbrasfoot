@@ -1,4 +1,4 @@
-# SDK 0.4.1 — API major 1 (experimental)
+# SDK 0.4.2 — API major 1 (experimental)
 
 Contrato anterior preservado por compatibilidade. Novas consultas 0.3.0 em
 `SCOPED-QUERIES.md` adicionam handles com escopo; APIs por index abaixo continuam
