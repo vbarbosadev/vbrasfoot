@@ -123,3 +123,20 @@ de criacao dos caminhos reutilizados, com fingerprint/execucao controlada; nao
 pedir ao usuario repetir carreiras apenas para compensar ausencia desse marker.
 Recorte nao cobre reflexao/JNI/bibliotecas embarcadas. Bytecode/TSV privados em
 build/hook-analysis-579ea4bfbbaa4388bcfbfbb1ff7825c6, sem redistribuicao.
+
+## Sonda de fronteiras candidatas
+
+Depois do inventario, implementada instrumentacao somente diagnostica dos corpos
+AB de a.bV e AC/pn de a.cR. a.bV.AB chama az/V no caminho sem torneio; AC pergunta
+torneio e pode apenas escolher painel10; pn chama V e participa da rota de
+amistosos. Os dois ultimos nao sao exclusivos de carreira nova.
+ClassSHA a.bV=2845a9dee433a4757074e728b88bba7089790f62216df41772dcad95cad05314;
+a.cR=ae233636feed8f34d56d701545b756eb0d0f701aa5a1ee5c7e72679b5905ecca.
+Operacoes creation-candidate-* registram fronteira, nunca completed=true/guard
+ACTIVE. Falha original repropagada; classe/schema nao mudam. Guia CAREER-PROBE.md.
+
+11 checks de bytecode sintetico (classe/permissoes/fingerprint, ordem, excecao,
+no-completed, sink falho, shape/calls) e tres checks que guard UNKNOWN nao muda.
+I/O original com esses candidatos ligados sem inicializar UI: 46 checks,
+incluindo shape original/transformado de a.bV/a.cR. Nao executa AB/AC/pn originais
+nem prova pronta; nova rodada guiada curta deve corroborar esses limites.

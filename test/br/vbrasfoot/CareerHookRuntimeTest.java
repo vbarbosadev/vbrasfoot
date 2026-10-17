@@ -63,6 +63,9 @@ public final class CareerHookRuntimeTest {
              observerMod.load(List.of(ModManifest.read(Path.of(args[2]))), null, null, home.resolve("mod-data"));
             Class<?> state = Class.forName("c.a", false, runtime);
             check(schema(Class.forName("c.a", false, plain)).equals(schema(state)), "c.a schema unchanged");
+            for (String candidate : List.of("a.bV", "a.cR")) {
+                check(schema(Class.forName(candidate, false, plain)).equals(schema(Class.forName(candidate, false, runtime))), candidate + " candidate schema unchanged, not initialized");
+            }
             Class.forName("best.M", true, runtime).getConstructor(boolean.class).newInstance(true);
             // Set a private synthetic frame to exercise original decode/fallback without creating the game UI.
             JFrame frame = CareerBridge.onEdt(() -> {

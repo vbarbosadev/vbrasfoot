@@ -42,6 +42,16 @@ public final class HookProbeSelfTest {
             HookProbe.enterLoad("isolated", false); HookProbe.decodedLoad(); HookProbe.exitLoad(true);
             check(true);
         }
+        CareerLifecycle lifecycle = new CareerLifecycle(); lifecycle.rootsChanged();
+        var before = lifecycle.snapshot();
+        events.clear();
+        try (var guard = HookProbe.attachLifecycle(lifecycle); var subscription = HookProbe.attach(events::add)) {
+            HookProbe.creationPathStarted("candidate"); HookProbe.creationPathReturned("candidate");
+            HookProbe.creationPathFailed("candidate");
+            check(lifecycle.snapshot().equals(before));
+            check(events.size() == 3 && events.stream().noneMatch(HookProbe.Observation::completed));
+            check(events.get(2).aborted() && lifecycle.snapshot().phase() == CareerLifecycle.Phase.UNKNOWN);
+        }
         System.out.println("PASS: " + checks + " hook observation tests (synthetic; no game events).");
     }
 }

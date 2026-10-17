@@ -76,19 +76,20 @@ final class LegacyRuntime extends URLClassLoader {
     }
 
     @Override protected Class<?> findClass(String name) throws ClassNotFoundException {
-        if (!probe || !name.equals("c.a")) return super.findClass(name);
-        URL resource = findResource("c/a.class");
+        if (!probe || (!name.equals("c.a") && !name.equals("a.bV") && !name.equals("a.cR"))) return super.findClass(name);
+        URL resource = findResource(name.replace('.', '/') + ".class");
         if (resource == null) throw new ClassNotFoundException(name);
         try (var input = resource.openStream()) {
             byte[] original = input.readNBytes(1024 * 1024 + 1);
             if (original.length > 1024 * 1024) throw new IOException("Classe de hook grande demais");
-            byte[] transformed = (byte[]) Class.forName("br.vbrasfoot.hooks.CareerTransformer").getMethod("transform", byte[].class)
-                    .invoke(null, (Object) original);
+            byte[] transformed = name.equals("c.a")
+                    ? (byte[]) Class.forName("br.vbrasfoot.hooks.CareerTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
+                    : (byte[]) Class.forName("br.vbrasfoot.hooks.CreationPathTransformer").getMethod("transform", String.class, byte[].class).invoke(null, name, original);
             return defineClass(name, transformed, 0, transformed.length,
                     new java.security.CodeSource(getURLs()[0], (java.security.cert.Certificate[]) null));
         } catch (Exception | LinkageError failure) {
             // Do not fall back to an uninstrumented class after an explicitly requested probe fails.
-            throw new IllegalStateException("Sonda recusada antes de definir c.a", failure);
+            throw new IllegalStateException("Sonda recusada antes de definir " + name, failure);
         }
     }
 
@@ -112,6 +113,11 @@ final class LegacyRuntime extends URLClassLoader {
         Class<?> player = Class.forName("best.F", false, this);
         for (String method : List.of("getNome", "gD", "getIdade", "getPosicao", "fi", "fk")) player.getMethod(method);
         Class.forName("com.esotericsoftware.kryo.Kryo", false, this);
+        if (probe) {
+            Class.forName("a.bV", false, this).getMethod("AB");
+            Class.forName("a.cR", false, this).getMethod("AC");
+            Class.forName("a.cR", false, this).getMethod("pn");
+        }
     }
 
     @Override protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {

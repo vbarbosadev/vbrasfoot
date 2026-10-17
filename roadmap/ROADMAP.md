@@ -595,3 +595,13 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   API major1 preservada; modulo nao ganha gameplay/eventos completos/sidecars.
 - SDK extraido fora do checkout testado com parsing JSON e fixture no-init;
   teste automatizado nao e autor terceiro humano/publicacao ou MVP completo.
+
+### P4 — fronteiras candidatas da criacao, sem promover lifecycle
+
+- Sonda opt-in transforma tres corpos AB/AC/pn de a.bV/a.cR com ClassSHA exato,
+  acesso/descriptor/um retorno exatos, sem campos/nome/schema mudados.
+- creation-candidate-start/return/failed sao diagnosticos, completed=false,
+  sem guard ACTIVE/evento publico. AC pode retornar antes de configurar torneio;
+  retorno generico nao e criada pronta. Falhas/sink isolados sem esconder original.
+- 11 checks de bytecode + tres de guard e shape original corroboram tecnica;
+  execucao dos candidatos na UI real/cancelamento ainda pendente antes de P3.
