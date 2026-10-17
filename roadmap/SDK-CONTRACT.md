@@ -1,12 +1,14 @@
-# SDK 0.2.0 — API major 1 (experimental)
+# SDK 0.4.0 — API major 1 (experimental)
 
 Contrato anterior preservado por compatibilidade. Novas consultas 0.3.0 em
 `SCOPED-QUERIES.md` adicionam handles com escopo; APIs por index abaixo continuam
-sem garantia entre carreiras. Eventos/persistencia por carreira ainda indisponiveis.
+sem garantia entre carreiras. Observacoes opt-in 0.4.0 em `CAREER-OBSERVATIONS.md`;
+eventos completos/persistencia por carreira ainda indisponiveis.
 
 Compile somente contra `vbrasfoot-api.jar`, com Java 17+. O build do inspetor usa
 somente esse JAR no classpath, sem classes do jogo/loader. API major 1 mantem os
-metodos anteriores; recursos novos exigem `minLoaderVersion=0.2.0`. A identidade
+metodos anteriores; paginas/registro scoped exigem 0.2.0, handles 0.3.0 e observacoes
+0.4.0. Declare minLoaderVersion conforme recursos usados. A identidade
 publica esta em `Sdk`. O loader aceita somente o SHA-256 do perfil documentado.
 
 ## Manifesto UTF-8
@@ -36,8 +38,10 @@ Dependencias opcionais presentes tambem ordenam inicializacao e podem formar cic
 Dependencias sao IDs, nao ranges de versao de mods; nao compartilham classes privadas.
 
 Capacidades disponiveis: `game.read`, `ui.register`, `data.read`, `data.write`,
-`query.paged`. Permissoes sao as quatro primeiras; `query.paged` nao concede acesso
-sem `game.read`. Nao ha eventos reais, escrita de gameplay nem sandbox.
+`query.paged`, `query.scoped` e, somente com hooks opt-in, `events.career.observed`.
+Permissoes sao as quatro primeiras mais `events.career.read`; capacidades de
+consulta nao concedem acesso sem `game.read`. Observacoes nao sao eventos completos,
+escrita de gameplay ou sandbox.
 
 ## Consultas
 
@@ -95,4 +99,5 @@ servicos entre mods; mantenha suas classes privadas isoladas.
 
 Leitura de calendario, competicoes, financas, historicos e partidas exige evidencias
 especificas do 22-23. Nao foi adicionada por suposicao. Identidade/geracao de carreira,
-eventos, cancelamento de tarefas e politicas completas de callbacks sao futuros.
+eventos completos e cancelamento de tarefas sao futuros; observacoes limitadas e
+politica de callback experimental documentadas em CAREER-OBSERVATIONS.md.

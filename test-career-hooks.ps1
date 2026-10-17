@@ -24,7 +24,7 @@ $classpath = "$PSScriptRoot\build\classes;$PSScriptRoot\build\tests"
 Push-Location $copy
 try {
     $ErrorActionPreference = 'Continue' # Legacy failure cases intentionally print stack traces.
-    & java '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' '--add-exports=java.desktop/sun.java2d=ALL-UNNAMED' -Xmx1536m -cp $classpath br.vbrasfoot.CareerHookRuntimeTest $copy $loaderData *> (Join-Path $fixture 'runtime-test.log')
+    & java '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' '--add-exports=java.desktop/sun.java2d=ALL-UNNAMED' -Xmx1536m -cp $classpath br.vbrasfoot.CareerHookRuntimeTest $copy $loaderData "$PSScriptRoot\dist\career-observer.jar" *> (Join-Path $fixture 'runtime-test.log')
     $code = $LASTEXITCODE
 } finally { $ErrorActionPreference = 'Stop'; Pop-Location }
 Get-Content -LiteralPath (Join-Path $fixture 'runtime-test.log') -Tail 25

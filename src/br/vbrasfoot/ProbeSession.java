@@ -11,11 +11,13 @@ final class ProbeSession implements AutoCloseable {
     private final ProbeDispatcher dispatcher;
     private final AutoCloseable subscription;
     private final AutoCloseable lifecycleSubscription;
-    private final CareerLifecycle lifecycle = new CareerLifecycle();
+    private final CareerObservationHub observations = new CareerObservationHub();
+    private final CareerLifecycle lifecycle = new CareerLifecycle(observations);
     private final Thread shutdown;
     private final Logger logger;
     private final Path report;
     private boolean closed;
+    br.vbrasfoot.api.CareerObservations observations() { return observations; }
 
     ProbeSession(Logger logger, Path report) {
         this.logger = logger; this.report = report;
@@ -45,6 +47,7 @@ final class ProbeSession implements AutoCloseable {
         try { lifecycleSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach lifecycle guard"); }
         // Internal session disposal, NOT CareerUnloaded delivered to a mod.
         CareerLifecycle.Snapshot finalState = lifecycle.closeAndSnapshot();
+        observations.close();
         dispatcher.close();
         ProbeDispatcher.Stats stats = dispatcher.stats();
         logger.info("career-hook-probe-delivery=" + stats);

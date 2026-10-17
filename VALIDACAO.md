@@ -577,3 +577,55 @@ Pacote `dist/portable-0.3.1-lifecycle-guard` gerado e instalado somente na copia
 completa existente; --probe-career-hooks --validate-only aprovado com os dois mods,
 sem inicializar jogo/mods ou exercitar o guard. API publica permanece 0.3.1;
 este incremento interno da sonda e identificado pela branch/commit, nao release.
+
+## Confirmacao real do guard e SDK de observacoes 0.4.0
+
+Usuario informou teste feito. Sessao privada conferida:
+`session-44216057-f6b0-420a-8e8a-45f4decf9168` na copia completa.
+career-lifecycle.properties: geracao 3, loads=1, saves=0, Flamengo, ACTIVE antes de
+close/CLOSED depois, healthy=true, inFlight=0, staleCompletions=0/unboundSaves=0.
+Dispatcher: accepted=delivered=1, dropped/failed/discarded=0, workerAlive=false.
+Originais e save corrente da copia mantem hashes anteriores. Este teste nao e
+criar/trocar/descarregar carreira nem save do novo guard.
+
+Branch `feat/career-observations-sdk` empilhada sobre #6 (ainda aberto), SDK/loader
+0.4.0, API major 1 preservada. Observacoes experimentais somente opt-in, assinantes
+separados da fila diagnostica e ownership por mod. Sem caminhos/objetos de jogo na
+API. Nenhum sidecar ou evento CareerUnloaded implementado por suposicao.
+
+`test-career-hooks.ps1`: **44 checks originais** aprovados, agora com mod observador
+real compilado apenas contra SDK, recebendo tres leituras (fallback uma vez) e duas
+escritas primarias, sem evento de primaria falhada. Fixture privada:
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-hook-io-1c14ab0dd09c40608e165311346a9136`.
+Origem/EXE/input intactos no runner; frame sintetico, nao UI/gameplay completos.
+Nova suite publica cobre replay, ordem, stale save, erro/overflow, limites, workers
+que ignoram interrupcao, ownership/init falhado/permissao e modo normal recusado.
+Contrato/limites e exemplo em CAREER-OBSERVATIONS.md e examples/career-observer.
+
+Revisao 0.4.0: **33 checks de observacoes**, demais suites mantidas; stderr da sessao
+guiada do guard vazio. `test.ps1 -IncludeUi` e release com Javadocs aprovados.
+Template independente 0.4.0 aprovado fora do checkout na fixture
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-author-template-d09fb84d0dd64ead8849795f1e5d5799`.
+Pacote inclui guia/observador em sdk/examples, nao instalado por padrao em mods.
+
+Pacote final `dist/portable-0.4.0-observations-reviewed`: regressao portable aprovada
+em `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-fcc6dbbb854b4d51abac75fe205581fa`.
+Na fixture independente do template, observador copiado explicitamente e conjunto
+testado em processos novos: normal --validate-only recusou capacidade sem flag
+(exit=1), probe --validate-only e safe --validate-only passaram (exit=0). Logs
+privados `build/observations-{normal-refused,probe-validation,safe-validation}.log`.
+Esses comandos nao inicializam jogo/mods. Loader 0.4.0 instalado somente na copia
+completa, preservando mods existentes; observador nao instalado ali automaticamente.
+
+### Confirmacao guiada de abertura/consulta com 0.4.0
+
+Usuario confirmou abrir/consultar sem erro; nao testou outra carreira porque nao
+possui segundo save e nao encontrou botao para troca na tela usada. Isso nao prova
+ausencia de caminho de troca em todo o jogo nem fornece endpoint CareerUnloaded.
+Sessao privada `session-87421f49-5020-4596-8d2b-b00aaf60ae89`: hooks opt-in, mods
+consulta/inspetor ACTIVE, menu integrado, uma leitura completa de Flamengo na EDT,
+stderr vazio na inspecao. Mod observador nao instalado nessa copia: nao chamar
+esta confirmacao de teste real de callback do exemplo SDK 0.4.0.
+Processo Java PID 2436 ainda observado ativo; sem termination/report final nessa
+leitura. Nao afirmar fechamento, save, criacao ou troca. Hashes EXE/saves da origem
+e save corrente da copia novamente identicos aos anteriores.

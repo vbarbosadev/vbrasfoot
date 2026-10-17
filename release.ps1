@@ -10,9 +10,18 @@ foreach ($name in @('install.ps1', 'uninstall.ps1', 'recover-update.ps1', 'launc
 }
 Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'app\LICENSE')
 [IO.Directory]::CreateDirectory((Join-Path $Output 'sdk')) | Out-Null
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.3.1.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.4.0.jar')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-CONTRACT.md" -Destination (Join-Path $Output 'sdk\SDK-CONTRACT.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SCOPED-QUERIES.md" -Destination (Join-Path $Output 'sdk\SCOPED-QUERIES.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CAREER-OBSERVATIONS.md" -Destination (Join-Path $Output 'sdk\CAREER-OBSERVATIONS.md')
+[IO.Directory]::CreateDirectory((Join-Path $Output 'sdk\examples\career-observer')) | Out-Null
+Copy-Item -LiteralPath "$PSScriptRoot\dist\career-observer.jar" -Destination (Join-Path $Output 'sdk\examples\career-observer.jar')
+foreach ($relative in @('README.md','vbrasfoot.mod.properties','src\br\vbrasfoot\observer\CareerObserverMod.java')) {
+    $target = Join-Path $Output "sdk\examples\career-observer\$relative"
+    [IO.Directory]::CreateDirectory((Split-Path $target -Parent)) | Out-Null
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "examples\career-observer\$relative") -Destination $target
+}
+Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'sdk\examples\career-observer\LICENSE')
 & javadoc --release 17 -encoding UTF-8 -quiet '-Xdoclint:all,-missing' -d (Join-Path $Output 'sdk\javadoc') -sourcepath (Join-Path $PSScriptRoot 'src') br.vbrasfoot.api
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao gerar Javadocs publicos' }
 # Fixed template sources only: never copy its build/dist/lib/private outputs.
