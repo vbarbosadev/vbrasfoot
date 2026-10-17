@@ -97,6 +97,27 @@ agendada na EDT, close idempotente). Acoes antigas sao removidas quando o loader
 fecha a UI normalmente. Nao bloqueie a EDT nem espere por ela em shutdown hooks.
 Threads, timers e janelas criados pelo mod sao responsabilidade do autor.
 
+### Recursos do contexto (incremento posterior a 0.4.5)
+
+Todas as acoes registradas pelo contexto, inclusive `registerAction`, pertencem ao
+mod: falha parcial de initialize ou inicio do encerramento revoga dispatch e
+assinaturas; remocao visual e agendada, sem esperar pela EDT. Close de uma assinatura
+e idempotente e nao remove uma nova acao que reutilizou o mesmo ID. IDs locais
+iguais em mods diferentes sao independentes. Falha de shutdown nao impede limpeza
+do proprietario nem encerramento dos demais em ordem inversa.
+
+Durante shutdown normal, consultas/dados globais permanecem disponiveis para
+limpeza final, mas novas acoes/assinaturas sao recusadas. Apos seu retorno/falha,
+ou falha de initialize, servicos do contexto e facades previamente obtidas recusam
+operacoes com IllegalStateException. Logger permanece utilizavel para diagnostico.
+FAILED de inicializacao nao vira STOPPED apenas porque cleanup terminou. Loader
+fechado recusa load; nao e hot reload. Inicializar/fechar loader segue sequencial.
+
+Revogacao nao cancela callback/consulta/I/O ja iniciado e nao espera por codigo de
+mod em andamento. Threads, janelas, timers e referencias mantidas pelo proprio mod
+continuam responsabilidade do autor. Nao equivale a sandbox, prova de ausencia de
+leak ou suporte confiavel a shutdown de mods via System.exit.
+
 Dados continuam globais em `data/<mod-id>/` para preservar compatibilidade. Nao
 assuma vinculo com save; dados por carreira dependem de P3/P4. Nao ha registro de
 servicos entre mods; mantenha suas classes privadas isoladas.
