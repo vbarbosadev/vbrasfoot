@@ -18,6 +18,13 @@ Copy-Item -LiteralPath "$PSScriptRoot\roadmap\QUERY-PERFORMANCE.md" -Destination
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-CONTRACT.md" -Destination (Join-Path $Output 'sdk\SDK-CONTRACT.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\AI-MOD-AUTHORING.md" -Destination (Join-Path $Output 'sdk\AI-MOD-AUTHORING.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CALENDAR-BALANCE.md" -Destination (Join-Path $Output 'sdk\CALENDAR-BALANCE.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\THIRD-PARTY-ACCEPTANCE.md" -Destination (Join-Path $Output 'sdk\THIRD-PARTY-ACCEPTANCE.md')
+foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\careerdashboard\DashboardModel.java','src\br\vbrasfoot\careerdashboard\CareerDashboardMod.java','test\br\vbrasfoot\careerdashboard\DashboardModelTest.java')) {
+    $target = Join-Path $Output "sdk\examples\career-dashboard\$relative"
+    [IO.Directory]::CreateDirectory((Split-Path $target -Parent)) | Out-Null
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "examples\career-dashboard\$relative") -Destination $target
+}
+Copy-Item -LiteralPath "$PSScriptRoot\examples\career-dashboard\dist\career-dashboard.jar" -Destination (Join-Path $Output 'sdk\examples\career-dashboard.jar')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SCOPED-QUERIES.md" -Destination (Join-Path $Output 'sdk\SCOPED-QUERIES.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CAREER-OBSERVATIONS.md" -Destination (Join-Path $Output 'sdk\CAREER-OBSERVATIONS.md')
 # This guide lives beside examples in SDK-only/docs, but beside their parent in portable/sdk.

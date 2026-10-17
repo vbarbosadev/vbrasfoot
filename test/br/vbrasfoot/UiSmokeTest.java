@@ -39,6 +39,13 @@ public final class UiSmokeTest {
                 var page = legacyFixture.playersAt(0, offset, limit);
                 return new ScopedPlayerPage(scope, page.items(), offset, page.total());
             }
+            public ScopedCalendar scopedCalendar() {
+                return new ScopedCalendar(scope, 0, new CalendarDate(2024, 2, 29, "UTC", "UTC", "29/02/2024"));
+            }
+            public ScopedClubBalance scopedClubBalance(ClubRef club) {
+                if (stale.get()) throw new br.vbrasfoot.api.GameQueryException(br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE, "dashboard stale fixture");
+                return new ScopedClubBalance(scope, club, -123456789L);
+            }
         };
         Logger logger = Logger.getLogger("vbrasfoot.test");
         try (LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home);
@@ -253,9 +260,26 @@ public final class UiSmokeTest {
                 if (results.getRowCount() != 0) throw new AssertionError("Atualizar manteve comparacao antiga");
                 return null;
             });
-            mods.close(); // Comparator owns its window, not the loader's window registry.
+            mods.load(List.of(ModManifest.read(Path.of("examples/career-dashboard/dist/career-dashboard.jar"))), access, ui, managerHome.resolve("dashboard-data"));
+            CareerBridge.onEdt(() -> {
+                ui.invoke("br.vbrasfoot.career-dashboard:dashboard");
+                JDialog dashboard = null;
+                for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().startsWith("Painel de carreira") && dialog.isDisplayable()) dashboard = dialog;
+                if (dashboard == null) throw new AssertionError("Painel carreira nao abriu");
+                var content = dashboard.getContentPane();
+                named(content, "career-dashboard.refresh", JButton.class).doClick();
+                named(content, "career-dashboard.clubs", javax.swing.JComboBox.class).setSelectedIndex(0);
+                named(content, "career-dashboard.read", JButton.class).doClick();
+                var output = named(content, "career-dashboard.output", javax.swing.JTextArea.class);
+                if (output.isEditable() || !output.getText().contains("29/02/2024") || !output.getText().contains("-123456789")) throw new AssertionError("Painel data/saldo incorreto");
+                stale.set(true); named(content, "career-dashboard.read", JButton.class).doClick();
+                if (!output.getText().isEmpty() || !named(content, "career-dashboard.status", javax.swing.JLabel.class).getText().contains("STALE_SCOPE")) throw new AssertionError("Painel stale nao limpa");
+                stale.set(false); return null;
+            });
+            mods.close(); // Example mods own their windows, not the loader's window registry.
             CareerBridge.onEdt(() -> {
                 for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().startsWith("Comparador de jogadores") && dialog.isDisplayable()) throw new AssertionError("Comparador vazou janela apos shutdown");
+                for (Window window : Window.getWindows()) if (window instanceof JDialog dialog && dialog.getTitle().startsWith("Painel de carreira") && dialog.isDisplayable()) throw new AssertionError("Painel carreira vazou janela apos shutdown");
                 return null;
             });
             ui.close();
@@ -265,6 +289,7 @@ public final class UiSmokeTest {
             });
             System.out.println("PASS: menu/gerenciador/falhas, previa privada editavel, cancelar sem escrita, opt-in e exportacao exata confirmada; cleanup aprovado (UI sintetica).");
             System.out.println("PASS: comparador SDK-only janela/tabelas/selecao/STALE_SCOPE/refresh/shutdown (UI sintetica, nao carreira real).");
+            System.out.println("PASS: painel carreira SDK-only data/saldo long negativo/STALE_SCOPE/shutdown (UI sintetica).");
         } finally {
             CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; });
         }
