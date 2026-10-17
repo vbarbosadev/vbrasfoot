@@ -1,4 +1,4 @@
-# vbrasfoot 0.3.1 (experimental)
+# vbrasfoot 0.4.0 (experimental)
 
 Codigo e documentacao originais sob a [licenca MIT](LICENSE).
 O jogo Brasfoot, seus recursos e dependencias de terceiros nao sao abrangidos
@@ -13,7 +13,11 @@ Contrato publico do SDK/API major 1: [especificacao](roadmap/SDK-CONTRACT.md).
 Consultas protegidas contra referencias obsoletas: [escopos 0.3.0](roadmap/SCOPED-QUERIES.md).
 Template independente de leitura/interface: [guia](templates/read-only-mod/README.md).
 O pacote inclui API, Javadocs e template em `sdk/`; `--validate-mod JAR` valida
-um JAR sem jogo ou inicializacao do mod. Eventos/dados por carreira ainda pendentes.
+um JAR sem jogo ou inicializacao do mod. Eventos completos/dados por carreira ainda pendentes.
+
+Observacoes opt-in para mods: [contrato](roadmap/CAREER-OBSERVATIONS.md) e
+[exemplo SDK-only](examples/career-observer/README.md). Leitura/escrita primaria
+observadas nao significam unload, save duravel ou identidade persistente.
 
 ```powershell
 .\templates\read-only-mod\build.ps1 -Sdk .\dist\vbrasfoot-api.jar

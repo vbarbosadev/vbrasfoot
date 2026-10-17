@@ -56,11 +56,12 @@ public final class Main {
                     + " capacidades=" + manifest.requiredCapabilities() + " permissoes=" + manifest.permissions());
         }
         if (options.list) return;
+        ModLoader.requireObservationMode(manifests, options.probe);
         try (FileChannel lockChannel = FileChannel.open(home.resolve(".runtime.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
              FileLock lock = lockChannel.tryLock()) {
             if (lock == null) throw new IllegalStateException("Outra instancia do vbrasfoot esta usando este diretorio");
             logger.info("stage=runtime-preparation");
-            try (AutoCloseable probe = options.probe ? new ProbeSession(logger, sessionDirectory.resolve("probe-delivery.properties")) : () -> { };
+            try (ProbeSession probe = options.probe ? new ProbeSession(logger, sessionDirectory.resolve("probe-delivery.properties")) : null;
                  LegacyRuntime runtime = LegacyRuntime.prepare(executable, home, options.probe)) {
                 logger.info("stage=runtime-verified");
                 if (options.validate) {
@@ -76,7 +77,7 @@ public final class Main {
                 Path backup = backup(game, home);
                 System.out.println("Backup antes de iniciar: " + backup);
                 logger.info("stage=backup-verified directory=" + backup);
-                try (ModUi ui = new ModUi(runtime, logger); ModLoader mods = new ModLoader(logger)) {
+                try (ModUi ui = new ModUi(runtime, logger); ModLoader mods = new ModLoader(logger, probe == null ? null : probe.observations())) {
                     if (!options.safe) {
                         mods.load(manifests, new CareerBridge(runtime), ui, home.resolve("data"));
                         ui.start();

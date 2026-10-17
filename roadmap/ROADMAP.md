@@ -400,3 +400,16 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   sintetico nao comprova lifecycle de criar/trocar/descarregar na UI completa.
 - Somente opt-in; relatorio privado career-lifecycle.properties, sem callbacks
   publicos, identidade persistente ou sidecars. Detalhes CAREER-LIFECYCLE.md.
+
+### P4 — observacoes publicas experimentais (0.4.0)
+
+- Usuario confirmou teste do guard; relatorio real com load=1, saves=0, ACTIVE
+  antes de close, CLOSED depois, healthy=true e nenhuma tentativa pendente/perda.
+- SDK disponibiliza CareerObservations somente com hooks opt-in/permissao;
+  READ_COMPLETED/PRIMARY_WRITE_COMPLETED/INVALIDATED, sem inventar unload.
+- Replay e revisoes ordenados, fila 64/assinatura, workers isolados e limitados,
+  erros/overflow encerram somente assinatura; estado atual e recovery explicitos.
+- Mod observador compilado apenas contra API; 33 checks sinteticos e 44 de I/O
+  original com esse JAR. Nao prova UI completa, save duravel ou identidade P3.
+- P3, eventos completos de lifecycle/gameplay e restante do roadmap permanecem
+  pendentes. CAREER-OBSERVATIONS.md define contrato e cobertura, nao release estavel.

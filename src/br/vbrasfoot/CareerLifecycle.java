@@ -6,6 +6,8 @@ import java.util.Set;
 
 /** Internal synchronous guard, no user callbacks/I/O/EDT operations under its lock. */
 final class CareerLifecycle {
+    private final CareerObservationHub observations;
+    private long revision;
     enum Phase { EMPTY, UNKNOWN, ACTIVE, CLOSED }
     record Ticket(String session, long generation, boolean active) { }
     record Attempt(String session, long id, long interference, boolean exclusive) { }
@@ -20,6 +22,20 @@ final class CareerLifecycle {
     private long nextAttempt, interference;
     private final Set<Long> inFlight = new HashSet<>();
     private boolean healthy = true;
+
+    CareerLifecycle() { this(null); }
+    CareerLifecycle(CareerObservationHub observations) {
+        this.observations = observations;
+        if (observations != null) observations.initialize(publicState());
+    }
+    private br.vbrasfoot.api.CareerObservations.State publicState() {
+        return new br.vbrasfoot.api.CareerObservations.State(session, generation, revision,
+                br.vbrasfoot.api.CareerObservations.Phase.valueOf(phase.name()), loads, saves, healthy);
+    }
+    private void publish(br.vbrasfoot.api.CareerObservations.Kind kind, boolean backup) {
+        revision++;
+        if (observations != null) observations.publish(new br.vbrasfoot.api.CareerObservations.Update(kind, publicState(), backup));
+    }
 
     synchronized Ticket ticket() { return new Ticket(session, generation, phase == Phase.ACTIVE); }
     synchronized Attempt beginMutation() {
@@ -40,6 +56,7 @@ final class CareerLifecycle {
         if (phase == Phase.CLOSED) return ticket();
         generation++; invalidations++;
         phase = Phase.UNKNOWN; loadedFile = null; lastSavedFile = null; loadedBackup = false;
+        publish(br.vbrasfoot.api.CareerObservations.Kind.INVALIDATED, false);
         return ticket();
     }
     private boolean current(Ticket ticket) { return ticket != null && session.equals(ticket.session()) && ticket.generation() == generation; }
@@ -48,6 +65,7 @@ final class CareerLifecycle {
         if (!completed) return false;
         if (phase == Phase.CLOSED || !exclusive || file == null || !current(decoded)) { staleCompletions++; return false; }
         phase = Phase.ACTIVE; loadedFile = file; loadedBackup = backup; lastSavedFile = null; loads++;
+        publish(br.vbrasfoot.api.CareerObservations.Kind.READ_COMPLETED, backup);
         return true;
     }
     synchronized void resetFinished(Attempt attempt) {
@@ -58,6 +76,7 @@ final class CareerLifecycle {
         if (phase == Phase.CLOSED || !healthy || !inFlight.isEmpty() || !current(started)) { staleCompletions++; return false; }
         if (!started.active() || phase != Phase.ACTIVE || file == null) { unboundSaves++; return false; }
         lastSavedFile = file; saves++;
+        publish(br.vbrasfoot.api.CareerObservations.Kind.PRIMARY_WRITE_COMPLETED, false);
         return true;
     }
     synchronized Snapshot snapshot() {
@@ -68,6 +87,9 @@ final class CareerLifecycle {
         if (phase == Phase.CLOSED) return;
         generation++; phase = Phase.CLOSED; loadedFile = null; lastSavedFile = null; loadedBackup = false;
         inFlight.clear();
+        // Exposes disposal as state only; no invented unload callback during System.exit.
+        revision++;
+        if (observations != null) observations.finishState(publicState());
     }
     synchronized Snapshot closeAndSnapshot() {
         Snapshot before = snapshot(); close(); return before;

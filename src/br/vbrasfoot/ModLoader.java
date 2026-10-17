@@ -25,7 +25,15 @@ final class ModLoader implements AutoCloseable {
     private final Logger logger;
     private final Map<String, br.vbrasfoot.api.ModState> states = new LinkedHashMap<>();
     private final Map<Mod, String> identities = new java.util.IdentityHashMap<>();
-    ModLoader(Logger logger) { this.logger = logger; }
+    private static final class SubscriptionOwner {
+        final List<br.vbrasfoot.api.CareerObservations.Subscription> items = new ArrayList<>();
+        boolean closed;
+        synchronized void close() { closed = true; for (var item : items) item.close(); items.clear(); }
+    }
+    private final Map<Mod, SubscriptionOwner> subscriptions = new java.util.IdentityHashMap<>();
+    private final br.vbrasfoot.api.CareerObservations observations;
+    ModLoader(Logger logger) { this(logger, null); }
+    ModLoader(Logger logger, br.vbrasfoot.api.CareerObservations observations) { this.logger = logger; this.observations = observations; }
     private void state(String id, br.vbrasfoot.api.ModState state) {
         states.put(id, state);
         logger.info("mod=" + id + " state=" + state);
@@ -41,6 +49,11 @@ final class ModLoader implements AutoCloseable {
             }
         }
         return ordered(manifests);
+    }
+    static void requireObservationMode(List<ModManifest> manifests, boolean enabled) throws IOException {
+        for (ModManifest manifest : manifests) if (!enabled && manifest.requiredCapabilities().contains("events.career.observed")) {
+            throw new IOException("Mod " + manifest.id() + " requer --probe-career-hooks; observacoes experimentais indisponiveis neste modo");
+        }
     }
 
     static List<ModManifest> ordered(Map<String, ModManifest> manifests) throws IOException {
@@ -74,6 +87,7 @@ final class ModLoader implements AutoCloseable {
     }
 
     private void initializeMod(ModManifest manifest, GameAccess game, ModUi ui, Path data) throws Exception {
+        SubscriptionOwner owned = new SubscriptionOwner();
         try {
             URLClassLoader loader = new URLClassLoader(new java.net.URL[] {manifest.jar().toUri().toURL()}, Mod.class.getClassLoader());
             classLoaders.add(loader);
@@ -81,6 +95,7 @@ final class ModLoader implements AutoCloseable {
             Mod mod = type.asSubclass(Mod.class).getConstructor().newInstance();
             loaded.add(mod);
             identities.put(mod, manifest.id());
+            subscriptions.put(mod, owned);
             mod.initialize(new ModContext() {
                 private void require(String permission) {
                     if (!manifest.permissions().contains(permission)) throw new SecurityException(manifest.id() + " nao declarou " + permission);
@@ -107,6 +122,22 @@ final class ModLoader implements AutoCloseable {
                     };
                 }
                 public Logger logger() { return logger; }
+                public br.vbrasfoot.api.CareerObservations careerObservations() {
+                    require("events.career.read");
+                    if (observations == null) throw new UnsupportedOperationException("Use --probe-career-hooks para observacoes experimentais");
+                    return new br.vbrasfoot.api.CareerObservations() {
+                        public State state() { require("events.career.read"); return observations.state(); }
+                        public Subscription subscribe(java.util.function.Consumer<Update> callback) {
+                            require("events.career.read");
+                            synchronized (owned) {
+                                if (owned.closed) throw new IllegalStateException("Mod encerrando");
+                                owned.items.removeIf(s -> s.status() != Status.ACTIVE);
+                                if (owned.items.size() >= 4) throw new IllegalStateException("Limite de 4 assinaturas por mod");
+                                Subscription subscription = observations.subscribe(callback); owned.items.add(subscription); return subscription;
+                            }
+                        }
+                    };
+                }
                 public void registerAction(String id, String label, Runnable action) {
                     require("ui.register");
                     ui.register(manifest.id() + ":" + id, label, action);
@@ -135,7 +166,8 @@ final class ModLoader implements AutoCloseable {
             state(manifest.id(), br.vbrasfoot.api.ModState.INITIALIZED);
             state(manifest.id(), br.vbrasfoot.api.ModState.ACTIVE);
             logger.info("Mod carregado: " + manifest.id() + " " + manifest.version());
-        } catch (Exception | LinkageError failure) {
+        } catch (Exception | Error failure) {
+            owned.close();
             state(manifest.id(), br.vbrasfoot.api.ModState.FAILED);
             throw failure; // Fail closed: dependent mods must not run against a failed provider.
         }
@@ -162,14 +194,17 @@ final class ModLoader implements AutoCloseable {
         List<Mod> reverse = new ArrayList<>(loaded);
         Collections.reverse(reverse);
         for (Mod mod : reverse) {
+            SubscriptionOwner owned = subscriptions.get(mod);
+            if (owned != null) owned.close();
             try { mod.shutdown(); state(identities.get(mod), br.vbrasfoot.api.ModState.STOPPED); }
-            catch (Exception | LinkageError failure) { state(identities.get(mod), br.vbrasfoot.api.ModState.FAILED); logger.log(Level.WARNING, "Erro ao encerrar mod", failure); }
+            catch (Exception | Error failure) { state(identities.get(mod), br.vbrasfoot.api.ModState.FAILED); logger.log(Level.WARNING, "Erro ao encerrar mod", failure); }
         }
         for (URLClassLoader loader : classLoaders) {
             try { loader.close(); } catch (IOException failure) { logger.log(Level.WARNING, "Erro ao fechar JAR", failure); }
         }
         loaded.clear();
         identities.clear();
+        subscriptions.clear();
         classLoaders.clear();
     }
 }

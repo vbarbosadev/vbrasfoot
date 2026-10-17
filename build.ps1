@@ -22,6 +22,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar mod de exemplo' }
     & jar --create --file 'mods\inspector.jar' -C $example . -C 'examples\inspector' vbrasfoot.mod.properties
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar mod de exemplo' }
+    $observer = Join-Path $PSScriptRoot 'build\career-observer'
+    New-Item -ItemType Directory -Force -Path $observer | Out-Null
+    $observerSources = @(Get-ChildItem 'examples\career-observer\src' -Recurse -Filter '*.java' | ForEach-Object FullName)
+    & javac --release 17 -encoding UTF-8 -cp 'dist\vbrasfoot-api.jar' -d $observer @observerSources
+    if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar observador contra SDK publico' }
+    & jar --create --file 'dist\career-observer.jar' -C $observer . -C 'examples\career-observer' vbrasfoot.mod.properties -C $PSScriptRoot LICENSE
+    if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar observador experimental' }
     $testSources = @(Get-ChildItem 'test' -Recurse -Filter '*.java' | ForEach-Object FullName)
     & javac --release 17 -encoding UTF-8 -cp $classes -d $tests @testSources
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar testes' }
@@ -33,6 +40,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes da fila da sonda falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerLifecycleSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de lifecycle interno falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerObservationsSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de assinaturas de carreira falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.QueryScopesSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de escopo de consulta falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.HookTransformerSelfTest

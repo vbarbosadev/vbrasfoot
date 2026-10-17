@@ -31,7 +31,7 @@ record ModManifest(Path jar, String id, String name, String version, String main
         if (!values.getProperty("manifestVersion", "1").equals("1")) throw new IOException("manifestVersion nao suportada: " + id);
         String minimum = values.getProperty("minLoaderVersion", "0.1.0");
         if (compareVersions(minimum, br.vbrasfoot.api.Sdk.VERSION) > 0) throw new IOException("Atualize o loader para " + minimum + ": " + id);
-        Set<String> capabilities = Set.of("game.read", "ui.register", "data.read", "data.write", "query.paged", "query.scoped");
+        Set<String> capabilities = Set.of("game.read", "ui.register", "data.read", "data.write", "query.paged", "query.scoped", "events.career.observed");
         Set<String> requiredCapabilities = Set.copyOf(split(values.getProperty("requiredCapabilities", "")));
         if (!capabilities.containsAll(requiredCapabilities)) throw new IOException("Capacidade indisponivel: " + id + " requer " + requiredCapabilities);
         if (!id.matches("[a-z0-9]+(?:[.-][a-z0-9]+)*")) throw new IOException("ID de mod invalido: " + id);
@@ -45,7 +45,7 @@ record ModManifest(Path jar, String id, String name, String version, String main
         if (!supported) throw new IOException("API nao suportada: " + id + "; use 1 ou intervalo [min,max) contendo 1");
         if (!required(values, "gameProfile").equals(Profile.ID)) throw new IOException("Mod de outra versao do jogo: " + id);
         Set<String> permissions = Set.copyOf(split(values.getProperty("permissions", "")));
-        if (!Set.of("game.read", "ui.register", "data.read", "data.write").containsAll(permissions)) {
+        if (!Set.of("game.read", "ui.register", "data.read", "data.write", "events.career.read").containsAll(permissions)) {
             throw new IOException("Permissao desconhecida ou de escrita na carreira: " + id);
         }
         return new ModManifest(jar, id, required(values, "name"), required(values, "version"),

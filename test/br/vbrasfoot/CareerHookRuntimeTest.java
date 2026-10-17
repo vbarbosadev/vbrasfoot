@@ -40,14 +40,27 @@ public final class CareerHookRuntimeTest {
         List<HookProbe.Observation> events = Collections.synchronizedList(new ArrayList<>());
         List<HookProbe.Observation> transcript = new ArrayList<>();
         List<String> callbackThreads = new ArrayList<>();
-        CareerLifecycle lifecycle = new CareerLifecycle();
-        try (var dispatcher = new ProbeDispatcher(128, java.time.Duration.ofMillis(500), event -> {
+        var hub = new CareerObservationHub();
+        CareerLifecycle lifecycle = new CareerLifecycle(hub);
+        List<String> modObservations = Collections.synchronizedList(new ArrayList<>());
+        var modLogger = java.util.logging.Logger.getLogger("real-io-observer-fixture"); modLogger.setUseParentHandlers(false);
+        var modHandler = new java.util.logging.Handler() {
+            public void publish(java.util.logging.LogRecord record) {
+                synchronized (modObservations) { modObservations.add(record.getMessage()); modObservations.notifyAll(); }
+            }
+            public void flush() { }
+            public void close() { }
+        };
+        modLogger.addHandler(modHandler);
+        try (hub; var observerMod = new ModLoader(modLogger, hub);
+             var dispatcher = new ProbeDispatcher(128, java.time.Duration.ofMillis(500), event -> {
                  synchronized (events) { events.add(event); transcript.add(event); callbackThreads.add(Thread.currentThread().getName()); events.notifyAll(); }
              });
              var attached = HookProbe.attach(dispatcher::offer);
              var guarded = HookProbe.attachLifecycle(lifecycle);
              LegacyRuntime plain = LegacyRuntime.prepare(Profile.verify(game), home.resolve("plain"));
              LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home.resolve("probe"), true)) {
+             observerMod.load(List.of(ModManifest.read(Path.of(args[2]))), null, null, home.resolve("mod-data"));
             Class<?> state = Class.forName("c.a", false, runtime);
             check(schema(Class.forName("c.a", false, plain)).equals(schema(state)), "c.a schema unchanged");
             Class.forName("best.M", true, runtime).getConstructor(boolean.class).newInstance(true);
@@ -133,12 +146,24 @@ public final class CareerHookRuntimeTest {
                 check(only(events, "root-setter").completed(), "original root setter instrumented");
                 check(lifecycle.snapshot().phase() == CareerLifecycle.Phase.UNKNOWN && lifecycle.snapshot().inFlight() == 0
                         && lifecycle.snapshot().healthy(), "setter conservatively invalidates without leaking attempt");
+                long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(3);
+                synchronized (modObservations) {
+                    while (modObservations.stream().filter(s -> s.contains("career-observer kind=INVALIDATED")).count() < lifecycle.snapshot().invalidations()) {
+                        long remaining = deadline - System.nanoTime();
+                        if (remaining <= 0) throw new AssertionError("SDK observer mod deadline");
+                        java.util.concurrent.TimeUnit.NANOSECONDS.timedWait(modObservations, remaining);
+                    }
+                    check(modObservations.stream().filter(s -> s.contains("career-observer kind=READ_COMPLETED")).count() == 3, "SDK-only mod receives three original reads including fallback once");
+                    check(modObservations.stream().filter(s -> s.contains("career-observer kind=PRIMARY_WRITE_COMPLETED")).count() == 2, "SDK-only mod receives two original primary writes, not failed save");
+                }
+                check(hub.state().reads() == 3 && hub.state().primaryWrites() == 2 && hub.state().phase() == br.vbrasfoot.api.CareerObservations.Phase.UNKNOWN,
+                        "public state matches original hook guard without exposing save paths");
                 check(callbackThreads.stream().allMatch("vbrasfoot-probe-dispatch"::equals), "actual I/O observations delivered off game thread");
                 check(dispatcher.stats().dropped() == 0 && dispatcher.stats().failed() == 0, "actual I/O dispatcher without losses or callback failures");
                 check(Profile.digest(original).equals(before) && Profile.digest(game.resolve("bf22-23.exe")).equals(executableBefore), "fixture input/exe unchanged");
                 Files.writeString(home.resolve("runtime-observations.txt"), "Checks=" + checks + "\nCoverage=Original I/O methods; synthetic frame bypasses full UI lifecycle; no gameplay/reopening EXE test\nInput.sha256=" + before + "\nProduced.sha256=" + Profile.digest(saves.resolve("output.s22")) + "\n" + transcript.stream().map(Object::toString).collect(java.util.stream.Collectors.joining("\n")) + "\n");
             } finally { CareerBridge.onEdt(() -> { frame.dispose(); return null; }); }
-        } finally { CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; }); }
+        } finally { lifecycle.close(); modLogger.removeHandler(modHandler); CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; }); }
         System.out.println("PASS: " + checks + " original career I/O probe checks; no gameplay gate approved.");
     }
 }
