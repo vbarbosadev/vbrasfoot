@@ -34,6 +34,8 @@ public final class HookProbeSelfTest {
             HookProbe.enterSave("aborted"); HookProbe.abortSave(new RuntimeException());
             check(events.get(3).aborted() && !events.get(3).completed());
             check(events.get(3).sequence() > events.get(2).sequence());
+            HookProbe.rootsReset();
+            check(events.get(4).operation().equals("roots-reset") && events.get(4).file() == null);
         }
         try (var subscription = HookProbe.attach(event -> { throw new AssertionError("broken observer"); })) {
             HookProbe.enterSave("isolated"); HookProbe.primaryClosed(); HookProbe.exitSave();

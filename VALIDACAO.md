@@ -410,3 +410,41 @@ Reabertura no EXE original: confirmacao do usuario, sem captura final fornecida.
 Esse teste corrobora os pontos de load/save na UI para esta sessao e ambiente;
 nao fecha carreira nova, unload/troca, fallback/falhas na UI completa ou todos os
 gates de P4. Nenhum evento publico ou persistencia por carreira liberado.
+
+### Entrega limitada da sonda e mapeamento de lifecycle
+
+Executado na mesma branch do PR #3, sem incorporar um CareerUnloaded por suposicao:
+
+- Scanner ampliado: 1.038 classes, 139 referencias selecionadas de I/O, construcao,
+  registro de janela, dispose e System.exit. Inclui dispose de Graphics/dialogos;
+  nao sao 139 eventos de unload. `best.S` usa EXIT_ON_CLOSE; `a.eg.rq` chama exit(0).
+  Construtor c.a e chamado por tres callers diretos e substitui raizes.
+- `roots-reset` injetado somente ao concluir construtor original; SHA/site guard
+  mantidos. Nao inicializa API de eventos nem afirma carreira nova pronta/unload.
+- `ProbeDispatcher` remove logging da thread do hook no launcher; fila 128,
+  offer sem espera, FIFO por entrada, drops/erros/descarte contabilizados.
+  Close 500ms; worker daemon sem espera pela EDT. Estatisticas em arquivo privado
+  separado de LogManager, nao garantia de delivery duravel ou fsync.
+- Build/testes: **69 gerais**, **13 tracking**, **11 dispatcher**, **13 bytecode
+  sintetico** aprovados localmente com Java 21. Inclui fila cheia, callback lento,
+  close idempotente, FIFO, callback falho, offer apos close e System.exit na EDT
+  em JVM filha propria com estatisticas preservadas.
+- `test-career-hooks.ps1`: **26 checks** aprovados nos metodos originais na EDT
+  com frame sintetico; inclui troca das referencias de raizes e snapshot vazio
+  depois de construtor, entrega assíncrona pelo dispatcher (callback fora da thread
+  do jogo) e ausencia de drops/falhas na fixture. Fixture:
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-hook-io-689ddf25f30745c6ab9e36d9721d5ec6`.
+- `test.ps1 -IncludeUi`: suites sinteticas e inspetor aprovados sem sonda.
+
+Source threads permanecem no record; callback de log agora roda no worker.
+Ordem FIFO nao significa ordem global de sequence entre hooks concorrentes.
+Callback ja executando que ignore interrupcao pode terminar depois do close;
+workerAlive explicita o limite. Nao usar essa fila best-effort para gravar sidecars.
+Corroboracao completa da UI/lifecycle/unload e bus publico confiavel continuam
+pendentes, portanto P3/P4 nao sao anunciados concluidos.
+
+Pacote `dist/portable-career-dispatch-20261017` gerado; matriz portable aprovada
+(`build/portable-career-dispatch.log`). Instalado/validado opt-in somente na copia
+completa; `probe-delivery.properties` da validacao registrou workerAlive=false,
+sem aceites/drops/falhas (nenhuma operacao de jogo executada nessa validacao).
+EXE/saves da origem e save corrente da copia mantiveram seus hashes anteriores.

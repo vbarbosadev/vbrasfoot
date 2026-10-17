@@ -32,7 +32,7 @@ public final class Main {
         }
         Files.createDirectories(home);
         try (SessionDiagnostics diagnostic = SessionDiagnostics.open(home, game, args)) {
-            try { launch(options, game, home, diagnostic.logger()); }
+            try { launch(options, game, home, diagnostic.logger(), diagnostic.directory()); }
             catch (Exception | LinkageError failure) {
                 diagnostic.logger().log(java.util.logging.Level.SEVERE, "stage=failed", failure);
                 failure.printStackTrace(System.err);
@@ -41,7 +41,7 @@ public final class Main {
         }
     }
 
-    private static void launch(Options options, Path game, Path home, Logger logger) throws Exception {
+    private static void launch(Options options, Path game, Path home, Logger logger, Path sessionDirectory) throws Exception {
         logger.info("stage=profile-verification");
         Path executable = Profile.verify(game);
         logger.info("stage=profile-verified sha256=" + Profile.SHA256);
@@ -54,7 +54,7 @@ public final class Main {
              FileLock lock = lockChannel.tryLock()) {
             if (lock == null) throw new IllegalStateException("Outra instancia do vbrasfoot esta usando este diretorio");
             logger.info("stage=runtime-preparation");
-            try (AutoCloseable probe = options.probe ? HookProbe.attach(observation -> logger.info("career-hook-probe=" + observation)) : () -> { };
+            try (AutoCloseable probe = options.probe ? new ProbeSession(logger, sessionDirectory.resolve("probe-delivery.properties")) : () -> { };
                  LegacyRuntime runtime = LegacyRuntime.prepare(executable, home, options.probe)) {
                 logger.info("stage=runtime-verified");
                 if (options.validate) {
@@ -79,7 +79,7 @@ public final class Main {
                     ClassLoader previous = current.getContextClassLoader();
                     current.setContextClassLoader(runtime);
                     try {
-                            logger.info("stage=game-entry safeMode=" + options.safe + " careerHookProbe=" + options.probe);
+                        logger.info("stage=game-entry safeMode=" + options.safe + " careerHookProbe=" + options.probe);
                         Class.forName(Profile.ENTRYPOINT, true, runtime).getMethod("main", String[].class)
                                 .invoke(null, (Object) options.gameArguments.toArray(String[]::new));
                         awaitWindows();

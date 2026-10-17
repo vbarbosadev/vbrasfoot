@@ -23,12 +23,22 @@ public final class CareerTransformer {
     static byte[] transformFixture(byte[] original) throws IOException {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        int[] counts = new int[5];
+        int[] counts = new int[6];
         reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
             @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 MethodVisitor method = super.visitMethod(access, name, descriptor, signature, exceptions);
                 boolean load = name.equals("c") && descriptor.equals("(Ljava/lang/String;Z)Z");
                 boolean save = name.equals("ae") && descriptor.equals("(Ljava/lang/String;)V");
+                boolean reset = name.equals("<init>") && descriptor.equals("()V");
+                if (reset) {
+                    counts[5]++;
+                    return new MethodVisitor(Opcodes.ASM8, method) {
+                        @Override public void visitInsn(int op) {
+                            if (op == Opcodes.RETURN) super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "rootsReset", "()V", false);
+                            super.visitInsn(op);
+                        }
+                    };
+                }
                 if (!load && !save) return method;
                 if ((access & Opcodes.ACC_STATIC) == 0) throw new IllegalArgumentException("Expected static method");
                 counts[load ? 0 : 1]++;

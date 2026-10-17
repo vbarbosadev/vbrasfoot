@@ -54,6 +54,8 @@ public final class HookTransformerSelfTest {
             check(propagated && events.get(4).aborted() && !events.get(4).completed());
             load.invoke(null, "ok", false);
             check(events.get(5).completed());
+            instrumented.getConstructor().newInstance();
+            check(events.get(6).operation().equals("roots-reset"));
         }
         System.out.println("PASS: " + checks + " transformed synthetic bytecode tests; no game execution.");
     }

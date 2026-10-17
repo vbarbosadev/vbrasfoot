@@ -37,6 +37,10 @@ public final class HookProbe {
     public static void enterLoad(String name, boolean backup) {
         try { loads.get().push(new Load(name, backup)); } catch (Throwable ignored) { }
     }
+    public static void rootsReset() {
+        try { emit("roots-reset", null, true, false, true, false, false); }
+        catch (Throwable ignored) { }
+    }
     public static void decodedLoad() {
         try { Load frame = loads.get().peek(); if (frame != null) frame.decoded = true; } catch (Throwable ignored) { }
     }

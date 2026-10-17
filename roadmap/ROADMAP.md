@@ -350,3 +350,15 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 - Sessao real da sonda: usuario confirmou load/save/reabertura original; logs
   mostram uma conclusao de cada operacao, load na EDT e save em Thread-1, stderr
   vazio. Unload/troca e politica de entrega ainda pendentes; nao habilitar P3.
+
+### P4 — entrega limitada e sinais de lifecycle (17/10/2026)
+
+- Dispatcher interno com fila 128, rejeicao nao bloqueante contabilizada, worker
+  daemon isolado, callback falho isolado e close com prazo 500ms, sem EDT no shutdown.
+  Estatisticas privadas em probe-delivery.properties; diagnostico nao duravel.
+- Mapeamento ampliado: 139 referencias selecionadas em 1.038 classes, incluindo
+  System.exit/EXIT_ON_CLOSE e recriacao de raizes. Nao ha unico unload corroborado.
+- `roots-reset` observado depois de concluir construtor original; nao e
+  CareerLoaded/Unloaded. Teste privado confirma raizes substituidas e snapshot vazio.
+- Cobertura sintetica/real-I/O documentada; UI de criar/trocar/fechar ainda precisa
+  corroborar lifecycle publico. API/P3 permanecem bloqueadas, sem sidecars neste passo.

@@ -22,6 +22,23 @@ Callbacks internos sao observacoes diagnosticas, com falhas isoladas; nao execut
 trabalho de mods/sidecars neles. Nenhum objeto legado vai para o record de observacao.
 Nomes de arquivo e threads entram no log privado: revisar antes de compartilhar.
 
+### Entrega limitada de diagnostico
+
+O launcher enfileira observacoes numa fila de **128 itens**, por `offer` sem
+esperar espaco; logging acontece numa thread daemon dedicada, nunca na thread do
+metodo do jogo. Fila cheia recusa o item novo e incrementa `dropped`. Ordem e FIFO
+de entrada na fila, nao promessa de ordenacao global por `sequence` entre threads
+concorrentes. Isso nao e um bus publico multiassinante nem entrega duravel.
+
+Fechamento desassina primeiro e espera no maximo **500 ms**, sem chamar Swing,
+objetos legados ou mods. Pendentes descartados sao contados; callback ja executando
+nao pode ser cancelado com garantia se ignorar interrupcao. Worker e daemon e
+`workerAlive` registra esse limite. `probe-delivery.properties` na sessao registra
+accepted/dropped/delivered/failed/discarded, independentemente de LogManager.
+`delivered` significa callback retornou, nao fsync nem garantia de que LogManager
+ainda aceitava linhas durante System.exit. Perdas nao podem ser usadas como base
+para persistencia de carreira. Nenhuma perda e anunciada como evento confiavel.
+
 ## Semantica observada
 
 - Load: marker depois do Input.close original, conclusao apenas se metodo termina
@@ -34,6 +51,9 @@ Nomes de arquivo e threads entram no log privado: revisar antes de compartilhar.
   Hook nao cancela, nao restaura e nao corrige falhas do jogo.
 - Sucesso aqui nao e garantia de durabilidade/fsync ou de `.info` escrito.
 - Nenhum CareerUnloaded, MatchFinished ou evento publico foi habilitado.
+- `roots-reset`: conclusao do construtor original `c.a`, que substitui SR/afQ
+  por raizes novas. Nao significa carreira nova pronta, unload ou troca confirmada;
+  a inicializacao completa pode acontecer depois. A sonda observa apenas seu retorno.
 
 ## Validar sem iniciar UI
 
@@ -55,12 +75,17 @@ Executa rotinas originais na EDT com frame sintetico registrado para evitar
 inicializacao completa da interface. Grava somente nomes novos na fixture.
 Falhas induzidas usam diretorios nos caminhos novos, nao corrompem saves do usuario.
 Resultados incluem shape/schema, leitura, save/backup, releitura, falha primaria,
-falha de backup, fallback recursivo e argumento null. EXE/input/origem sao hashados.
+falha de backup, fallback recursivo, argumento null e recriacao das raizes. EXE/input/origem sao hashados.
 
 Limitacao importante: frame sintetico faz a rotina pular a inicializacao completa
 de UI. Nao valida jogo novo, troca/descarregamento de carreira, ordem dos eventos
 com UI real, reabertura do EXE ou comportamento em gameplay. Sonda e observador
 tambem tem testes sinteticos sem classes proprietarias (fixtures sao codigo proprio).
+
+O teste de I/O original tambem usa dispatcher: metodos executam na EDT da fixture
+e os records sao entregues na thread vbrasfoot-probe-dispatch, sem drops/falhas nos
+casos exercitados. Isso corrobora o fluxo de entrega nesses metodos, nao transforma
+a fila diagnostica em protocolo transacional/duravel.
 
 ## Sessao guiada em copia completa
 

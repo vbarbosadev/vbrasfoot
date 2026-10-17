@@ -11,9 +11,17 @@ import javax.swing.JFrame;
 public final class CareerHookRuntimeTest {
     private static int checks;
     private static void check(boolean condition, String label) { if (!condition) throw new AssertionError(label); checks++; }
-    private static HookProbe.Observation only(List<HookProbe.Observation> events, String operation) {
-        check(events.size() == 1 && events.get(0).operation().equals(operation), "exactly one " + operation);
-        return events.get(0);
+    private static HookProbe.Observation only(List<HookProbe.Observation> events, String operation) throws InterruptedException {
+        long deadline = System.nanoTime() + 3_000_000_000L;
+        synchronized (events) {
+            while (events.isEmpty()) {
+                long remaining = deadline - System.nanoTime();
+                if (remaining <= 0) throw new AssertionError("asynchronous observation timeout");
+                java.util.concurrent.TimeUnit.NANOSECONDS.timedWait(events, remaining);
+            }
+            check(events.size() == 1 && events.get(0).operation().equals(operation), "exactly one " + operation);
+            return events.get(0);
+        }
     }
     private static List<String> schema(Class<?> type) {
         List<String> result = new ArrayList<>();
@@ -29,9 +37,13 @@ public final class CareerHookRuntimeTest {
         }
         Path saves = game.resolve("sav"), original = saves.resolve("input.s22");
         String before = Profile.digest(original), executableBefore = Profile.digest(game.resolve("bf22-23.exe"));
-        List<HookProbe.Observation> events = new ArrayList<>();
+        List<HookProbe.Observation> events = Collections.synchronizedList(new ArrayList<>());
         List<HookProbe.Observation> transcript = new ArrayList<>();
-        try (var attached = HookProbe.attach(event -> { events.add(event); transcript.add(event); });
+        List<String> callbackThreads = new ArrayList<>();
+        try (var dispatcher = new ProbeDispatcher(128, java.time.Duration.ofMillis(500), event -> {
+                 synchronized (events) { events.add(event); transcript.add(event); callbackThreads.add(Thread.currentThread().getName()); events.notifyAll(); }
+             });
+             var attached = HookProbe.attach(dispatcher::offer);
              LegacyRuntime plain = LegacyRuntime.prepare(Profile.verify(game), home.resolve("plain"));
              LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home.resolve("probe"), true)) {
             Class<?> state = Class.forName("c.a", false, runtime);
@@ -84,6 +96,13 @@ public final class CareerHookRuntimeTest {
                 events.clear();
                 CareerBridge.onEdt(() -> (boolean) load.invoke(null, null, false));
                 check(!only(events, "load").completed(), "null argument is not decoded save");
+                events.clear();
+                Object previousRoot = state.getField("SR").get(null);
+                CareerBridge.onEdt(() -> { state.getConstructor().newInstance(); return null; });
+                check(only(events, "roots-reset").completed(), "actual root reallocation completed");
+                check(previousRoot != state.getField("SR").get(null) && !new CareerBridge(runtime).snapshot().loaded(), "new roots replace old career but do not imply loaded career");
+                check(callbackThreads.stream().allMatch("vbrasfoot-probe-dispatch"::equals), "actual I/O observations delivered off game thread");
+                check(dispatcher.stats().dropped() == 0 && dispatcher.stats().failed() == 0, "actual I/O dispatcher without losses or callback failures");
                 check(Profile.digest(original).equals(before) && Profile.digest(game.resolve("bf22-23.exe")).equals(executableBefore), "fixture input/exe unchanged");
                 Files.writeString(home.resolve("runtime-observations.txt"), "Checks=" + checks + "\nCoverage=Original I/O methods; synthetic frame bypasses full UI lifecycle; no gameplay/reopening EXE test\nInput.sha256=" + before + "\nProduced.sha256=" + Profile.digest(saves.resolve("output.s22")) + "\n" + transcript.stream().map(Object::toString).collect(java.util.stream.Collectors.joining("\n")) + "\n");
             } finally { CareerBridge.onEdt(() -> { frame.dispose(); return null; }); }

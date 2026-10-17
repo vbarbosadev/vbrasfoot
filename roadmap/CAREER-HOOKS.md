@@ -90,6 +90,31 @@ Fingerprints de cada caller e Code ficam no TSV privado, ligados ao mesmo EXE.
 
 ## Reproduzir
 
+### Extensao de fechamento/recriacao
+
+Inventario ampliado percorreu as mesmas 1.038 classes e retornou **139 referencias**
+selecionadas: construtores de c.a, setter/field da janela, `dispose()` e System.exit,
+alem do I/O anterior. `dispose()` tambem inclui Graphics/dialogos: resultados sao
+candidatos, nao 139 pontos de descarregamento.
+
+Corroborado estaticamente por javap:
+
+- `best.S` cria JFrame, configura **EXIT_ON_CLOSE (3)** e registra a janela por
+  `best.n.a(JFrame)`. Somente um caller direto desse setter foi encontrado no ZIP
+  principal; cC recebe null somente no inicializador estatico no recorte inspecionado.
+- `a.eg.rq()` chama `System.exit(0)`. Nao ha retorno garantido nem evento
+  WindowClosed garantido nesse caminho; callback de unload na EDT no hook de
+  shutdown pode travar o encerramento e nao sera adicionado por suposicao.
+- `c.a.<init>()` e chamado em `a.gq.mi()`, `best.h.mh()` e
+  `forms.q.actionPerformed(...)`, substituindo raizes antes de mais inicializacao.
+  O retorno desse construtor nao comprova carreira totalmente inicializada.
+- Nenhum endpoint unico de CareerUnloaded/troca foi corroborado. O caminho da
+  janela nao foi transformado; observacoes `roots-reset` permanecem diagnosticas.
+
+Sonda de roots-reset testada nos metodos originais com frame sintetico; detalhes
+em CAREER-PROBE.md. Necessario observar a UI real de criar/trocar/fechar antes de
+definir lifecycle publico. Inventario nao cobre reflexao/JNI ou toda biblioteca.
+
 ```powershell
 .\inspect-career-hooks.ps1
 ```
