@@ -1034,3 +1034,26 @@ nao confundir build/template SDK-only com gate instalado.
 Nao publica SDK/tag/release, nao substitui autor terceiro humano nem confirma
 100% de suporte a mods. Identidade P3/criacao pronta/P4 completo/gameplay P6
 permanecem gates. Nenhum save/equipe/EXE alterado nesta entrega.
+
+## P4 — sonda diagnostica de fronteiras da criacao
+
+Base main cdcef50. Tres caminhos AB/AC/pn mapeados no javap local do EXE conhecido
+da copia Documents, sem executar as rotinas; bytecode privado Temp/opencode/
+vbrasfoot-creation-path-989037c5a98b4aad99a994faa9e126fd. Full-ClassSHA e access/
+descriptor/um RETURN validados fail-closed. Metodo original/schemas preservados.
+Sonda emit creation-candidate-* em fila diagnostica existente sem publicar eventos
+de mods, marcar guard ACTIVE ou completed=true. UNKNOWN permanece UNKNOWN; retorno
+de AC antes do torneio nao vira carreira pronta. Excecao original repropagada,
+falha sink isolada. Normal/seguro nao aplicam novos hooks; validate probe liga
+classes sem instanciar/inicializar esses paineis. Sem bypass registro/licenca.
+
+Build aprovado: 11 novos checks bytecode e 16 tracking (13+3 conservacao guard),
+demais suites existentes. Primeira compilacao do teste importava ASM interno com
+--release17; substituido por constantes reflection Modifier no teste, sem ampliar
+exports fora da sonda. 44 checks de I/O original aprovados na fixture privada
+Temp/opencode/vbrasfoot-hook-io-e09f1ccf1a434723b0455f406e990714; regressao final
+com dois checks shape a.bV/a.cR passou **46 checks** em
+Temp/opencode/vbrasfoot-hook-io-b1a7f77677ce4a2d95d91a7e8306ba21. Logs locais
+creation-probe-build.log/creation-probe-original-io.log ignorados.
+Nenhum save de usuario/EXE alterado. UI original dos candidatos ainda pendente;
+nao definir CareerLoaded/identidade/sidecars P3/gameplay P6 por estes resultados.

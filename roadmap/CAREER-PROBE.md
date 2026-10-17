@@ -5,11 +5,34 @@ Nao habilita sidecars/P3, descarregamento ou gameplay. Use somente copia isolada
 
 ## Integracao
 
-`LegacyRuntime` transforma somente `c.a` durante `defineClass` quando a opcao
+`LegacyRuntime` transforma `c.a` e, no incremento de candidatos, `a.bV`/`a.cR`
+durante `defineClass` quando a opcao
 `--probe-career-hooks` e solicitada. EXE, cache extraido e schemas permanecem
 originais; nao modifica nomes, campos, descriptors ou hierarquia. Fingerprint
 SHA-256 completo da classe e contagem exata de sites devem coincidir; falha recusa
 a sonda antes de definir a classe, sem fallback silencioso para hooks por tentativa.
+
+### Candidatos de conclusao da criacao — diagnostico, nao evento
+
+Tres corpos originais selecionados: a.bV.AB()V e a.cR.AC()/pn()V. Fingerprints
+de classe inteira, nome/acesso/descriptor e um RETURN exato por metodo validados
+antes de defineClass. Transformacao so em memoria, somente na sonda17/21.
+Entrada/retorno/falha emitidos como creation-candidate-start/return/failed;
+`file` nesse record interno identifica o metodo candidato, nao nome de save.
+`completed=false` sempre: retorno do caminho nao comprova carreira nova pronta.
+AC pode retornar apos selecionar painel10 antes de terminar o amistoso; os paths
+de a.cR tambem podem servir inicio de temporada. Nao interpreta escolha/dialogo.
+
+Sinais passam pela fila diagnostica128 existente, sem I/O/callback de mods no
+metodo original. Falha do observador isolada; excecao original repropagada e
+handlers legados tem precedencia. Nenhuma raiz/flag/lifecycle guard alterado,
+nenhum READ_COMPLETED ou capacidade publica emitida. UNKNOWN permanece UNKNOWN.
+
+Corroboracao pendente: criar uma carreira sem amistoso e outra com a opcao, se
+oferecida, usando nomes novos na copia. Registrar escolha, momento de chegada ao
+elenco e se candidato ainda rodava/retornou. Cancelar etapas nao deve virar pronta.
+Nao jogar partidas/sobrescrever saves apenas para testar. Instalacao/validate-only
+sem jogo verifica classes transformadas, nao executa os caminhos originais.
 
 Tecnica: ASM interno do JDK, explicitamente exportado **somente para a sonda**.
 Nao e dependencia publica do SDK, nem contrato estavel entre versoes Java. Sonda

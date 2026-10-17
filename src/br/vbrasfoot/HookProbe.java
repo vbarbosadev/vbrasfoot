@@ -62,6 +62,16 @@ public final class HookProbe {
         if (sink != null) sink.accept(new Observation(operation, file, completed, backup, returned, fallback, aborted,
                 Thread.currentThread().getName(), sequence.incrementAndGet()));
     }
+    public static void creationPathStarted(String label) {
+        try { emit("creation-candidate-start", label, false, false, false, false, false); } catch (Throwable ignored) { }
+    }
+    public static void creationPathReturned(String label) {
+        // Return of a UI candidate is not proof that creation finished; do not touch the lifecycle guard.
+        try { emit("creation-candidate-return", label, false, false, true, false, false); } catch (Throwable ignored) { }
+    }
+    public static void creationPathFailed(String label) {
+        try { emit("creation-candidate-failed", label, false, false, false, false, true); } catch (Throwable ignored) { }
+    }
     public static void enterLoad(String name, boolean backup) {
         try {
             ArrayDeque<Load> stack = loads.get();
