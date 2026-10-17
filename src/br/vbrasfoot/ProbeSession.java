@@ -64,6 +64,21 @@ final class ProbeSession implements AutoCloseable {
             candidates.setProperty(prefix + "readableAfter", Boolean.toString(entry.readableAfter()));
             candidates.setProperty(prefix + "outcome", entry.outcome());
         }
+        int stepIndex = 0;
+        for (var step : HookProbe.creationSteps()) {
+            String prefix = "step." + stepIndex++ + ".";
+            candidates.setProperty(prefix + "label", step.label());
+            candidates.setProperty(prefix + "stage", step.stage());
+            candidates.setProperty(prefix + "generation", Long.toString(step.generation()));
+            candidates.setProperty(prefix + "clubs", Integer.toString(step.clubs()));
+            candidates.setProperty(prefix + "humans", Integer.toString(step.humans()));
+            candidates.setProperty(prefix + "dayIndex", Integer.toString(step.dayIndex()));
+            candidates.setProperty(prefix + "year", Integer.toString(step.year()));
+            candidates.setProperty(prefix + "month", Integer.toString(step.month()));
+            candidates.setProperty(prefix + "day", Integer.toString(step.day()));
+            candidates.setProperty(prefix + "calendarAvailable", Boolean.toString(step.calendarAvailable()));
+        }
+        candidates.setProperty("step.count", Integer.toString(stepIndex));
         try (var writer = Files.newBufferedWriter(report.resolveSibling("creation-candidates.properties"))) { candidates.store(writer, "Bounded creation content metadata, no game objects or filenames"); }
         catch (Exception failure) { System.err.println("Falha ao registrar candidatos de criacao: " + failure); }
         // Internal session disposal, NOT CareerUnloaded delivered to a mod.

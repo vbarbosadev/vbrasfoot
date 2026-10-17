@@ -156,3 +156,31 @@ inventar identidade/contagens. Nova sonda captura metadados de conteudo/raizes/
 listas na EDT, com weak refs e tres reports primitivos, nunca CareerLoaded/ACTIVE.
 Reporte em creation-candidates.properties exige futura observacao original; tests
 de conteudo sintetico e shape/I/O nao substituem esse gate.
+
+## Rodada real com conteudo e etapas internas
+
+Usuario confirmou data e saldo iguais a UI original e nova criacao sem erro.
+Sessao session-c163429c-ffe7-44f9-8d7a-e95cebd2e369, report final apos fechamento:
+AB starts1/returns1/failures0/rejected0, roots/lists/generationStable=true,
+clubs4153/humans1 antes **e** depois, RETURNED_WITH_CONTENT. AC/pn nao executados;
+guard UNKNOWN antes de fechar, healthy=true, inFlight0/stale0/unbound0.
+Logo contagens/preenchimento ja existem no inicio e nao distinguem commit de
+criacao. Nao inferir variante amistoso, cancelamento ou evento confiavel.
+
+Javap original mostra AB: cursor, az()I e V()V, depois retorno. az escolhe indice
+de competicao, V ramifica para ap/aa; caminhos sao reutilizados. AC pode retornar
+apos selecionar painel de amistoso sem chamar V. Cancelamento pelo dialogo pode
+seguir condicao nao-sim do legado; nao chamar cancelamento de pronta por retorno.
+
+Incremento delimita call sites exatos de az/V **dentro dos tres candidatos**,
+com ClassSHA/access/descriptor/contagens de sites fail-closed. Nao transforma
+best.f ou navega UI, nao publica etapas fora de candidato ativo. Captura etapas
+before/after-az/V, indice/calendario clonado e contagens na EDT. Max8steps por
+ultima tentativa/3labels; indisponibilidade explicitada, metadados sem objetos.
+Preserva receiver/int return na pilha e Throwable original. Nenhuma alteracao
+de root/flag/guard/evento. Report de retorno com conteudo ainda nao CareerLoaded.
+
+Proxima evidencia: observar etapas internas e diferencas entre ramo sem amistoso,
+ramo com amistoso e cancelamento, quando oferecidos pela UI, sem salvar/jogar.
+Se etapas/valores tambem iguais, isso rejeita esses campos como commit, nao
+autoriza inventar novo sinal. UI de saldo/data confirmada nao fecha P3/P4/P6.

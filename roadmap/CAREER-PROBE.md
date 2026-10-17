@@ -44,6 +44,14 @@ shutdown; o report final copia apenas metadados. Stack por thread limitada8,
 overflow descarta pareamento em vez de atribuir retorno interno a inicio externo.
 Conteudo consultavel nao prova inicializacao completa; nao promove fase ou evento.
 
+Etapas internas: antes/depois de chamadas az()I/V()V nos corpos selecionados,
+capturadas apenas com candidato pareado ativo. Sites exatos: AB/AC um az e um V;
+pn nenhum az e um V. Mesmo SHA de classe, sitecounts recusam divergencia. Marcadores
+preservam receiver/resultado int, nao substituem chamadas. Report inclui indice/
+campos calendar clonados e disponibilidade, no max8etapas por label3. Excecao
+conserva somente etapas executadas, nao gera after de chamada que lancou.
+Sem transformar classe serializada best.f adicionalmente/polling ou eventos.
+
 Tecnica: ASM interno do JDK, explicitamente exportado **somente para a sonda**.
 Nao e dependencia publica do SDK, nem contrato estavel entre versoes Java. Sonda
 restrita a Java 17/21; modos normais nao precisam desse export. Sua substituicao

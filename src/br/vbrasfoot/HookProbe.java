@@ -69,6 +69,13 @@ public final class HookProbe {
     }
     private static long generation() { CareerLifecycle.Ticket value = ticket(); return value == null ? -1 : value.generation(); }
     static java.util.List<CreationContentTracker.Report> creationContent() { return creationContent.snapshot(); }
+    static java.util.List<CreationContentTracker.Step> creationSteps() { return creationContent.steps(); }
+    public static void creationPathStep(String label, String stage, Object primary, Object secondary) {
+        try {
+            creationContent.step(label, stage, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
+                    javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation());
+        } catch (Throwable ignored) { }
+    }
     public static void creationPathStarted(String label, Object primary, Object secondary) {
         try { creationContent.enter(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
                 javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation()); } catch (Throwable ignored) { }
