@@ -387,3 +387,26 @@ Regressao portable aprovada com a sonda desligada: logs privados em
 `build/portable-career-probe-20261017.log`, fixture
 `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-2cbd948ecd7d40f0a1c9ba14f6d43ddc`.
 `test.ps1 -IncludeUi` tambem reexecutado: suites sinteticas e inspetor aprovados.
+
+### Sonda — corroboracao pela UI real
+
+Usuario confirmou carregar Flamengo, salvar normalmente, fechar e reabrir pelo
+EXE original da copia com sucesso. Sessao privada
+`session-cb6c1f69-ade3-4a83-b275-9b1f070fd870` conferida independentemente:
+
+- `careerHookProbe=true`; uma observacao load completa, sem fallback/backup,
+  `AWT-EventQueue-0`, sequence 1.
+- Uma observacao save completa, backup=true, **Thread-1**, sequence 2.
+  Portanto gravacao real nao esta necessariamente na EDT; API/eventos futuros
+  nao podem prometer EDT para todos os hooks nem gravar sidecars com essa suposicao.
+- Stderr vazio e encerramento `jvm-shutdown`.
+- EXE da origem/copia intactos; saves da origem mantem hash
+  `c645b7eaf7d5a04a60349fa98d8575092c9643515059854d55cf63ad230c19ef`.
+- Save da copia manteve hash `52837913efd1f59661f0d45a177033fcb497d3c8e64753b6908fe49a9872eeed`
+  depois dessa gravacao sem avancar. Save bem-sucedido nao exige mudanca de hash;
+  a observacao foi baseada no fechamento original de Output, nao timestamp/hash.
+
+Reabertura no EXE original: confirmacao do usuario, sem captura final fornecida.
+Esse teste corrobora os pontos de load/save na UI para esta sessao e ambiente;
+nao fecha carreira nova, unload/troca, fallback/falhas na UI completa ou todos os
+gates de P4. Nenhum evento publico ou persistencia por carreira liberado.

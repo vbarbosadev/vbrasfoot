@@ -76,6 +76,12 @@ threads/ordem e save resultante. Nao usar a pasta original para sondas de falha.
 O modo seguro explicitamente recusa a opcao; `--check-save` tambem, mantendo o
 verificador offline sem transformacoes.
 
+Sessao guiada ja corroborada para carregar/salvar Flamengo e reabrir no EXE
+original da copia (confirmacao do usuario). Log mostrou load em AWT-EventQueue-0
+e save em **Thread-1**, ambos completos e save com backup; stderr vazio.
+Nao assumir EDT para todos os hooks. Save sem avancar manteve hash, reforcando
+que mudanca de timestamp/hash nao e criterio de evento. Detalhes em VALIDACAO.md.
+
 ## Pendencias antes da API
 
 Corroborar UI real e fallback/falhas em todos os caminhos, mapear unload/troca,

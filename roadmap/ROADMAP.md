@@ -347,3 +347,6 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 - Testes sinteticos de observador/transformador e I/O real na EDT com frame
   sintetico; UI completa/gameplay/unload/troca ainda pendentes. CAREER-PROBE.md.
 - Nao marcar CareerLoaded/Unloaded/Saved implementados para mods antes dos gates.
+- Sessao real da sonda: usuario confirmou load/save/reabertura original; logs
+  mostram uma conclusao de cada operacao, load na EDT e save em Thread-1, stderr
+  vazio. Unload/troca e politica de entrega ainda pendentes; nao habilitar P3.
