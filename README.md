@@ -12,6 +12,9 @@ Instalacao portable dentro da pasta do jogo: [guia](roadmap/PORTABLE.md).
 Contrato publico do SDK/API major 1: [especificacao](roadmap/SDK-CONTRACT.md).
 P0 e os gates reais de P1/P2 ainda nao estao aprovados.
 
+Sonda experimental opt-in de carregar/salvar: [guia e limites](roadmap/CAREER-PROBE.md).
+Desativada por padrao, nao habilita eventos de mods nem persistencia por carreira.
+
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 
 ```powershell
@@ -40,9 +43,11 @@ Antes de iniciar o jogo normalmente (inclusive em modo seguro), o launcher cria 
 - Perfil aceito: SHA-256 `2fa65476a92611419ce28c0cfd158a0c7f741af235aa988b0bed00c44443bb1c`.
 - Entrada original: `best.h2`.
 - Bibliotecas originais: Kryo 4.0.2, minlog 1.3.0, objenesis 2.1 e reflectasm 1.10.1.
-- Classes originais nao sao transformadas nem recebem campos/metodos adicionais.
+- Por padrao, classes originais nao sao transformadas. A sonda opt-in altera
+  somente corpos de metodos em memoria, sem campos/metodos/schema adicionais.
 - Save original: duas raizes Kryo, `best.f` e `best.ay`, nessa ordem; `.sbck` e o backup legado.
-- O loader nao intercepta o carregamento nem a gravacao do jogo. O jogo continua gravando normalmente quando voce manda salvar.
+- O modo normal nao intercepta carregar/gravar; a sonda opt-in observa pontos
+  comprovados de I/O, sem substituir a rotina original. Nenhum evento publico disponivel.
 - Dados dos mods ficam em `vbrasfoot/data/<id>/`, fora de `sav/`. Nesta versao sao dados globais do mod, **nao associados automaticamente a uma carreira**.
 
 O verificador copia o save para `verification/save-*/input.s22`, decodifica ambas as raizes, regrava somente `roundtrip.s22`, decodifica novamente e compara os snapshots de clubes/jogadores. O relatorio inclui os hashes do original antes/depois e se o round-trip foi identico em bytes. Ele **nao substitui** o teste de jogar, salvar e reabrir uma copia no executavel original.

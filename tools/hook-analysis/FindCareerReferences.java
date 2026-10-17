@@ -92,9 +92,14 @@ public final class FindCareerReferences {
                                 int[] ref = (int[])pool[index], signature = (int[])pool[ref[1]];
                                 String targetOwner = (String)pool[(Integer)pool[ref[0]]];
                                 String targetName = (String)pool[signature[0]], targetDescriptor = (String)pool[signature[1]];
-                                if (targetOwner.equals("c/a") && ((op == 179 && (targetName.equals("SR") || targetName.equals("afQ")))
-                                        || (op != 179 && (targetName.equals("c") || targetName.equals("ae") || targetName.equals("a"))))) {
-                                    result.add((op == 179 ? "putstatic" : "invoke") + "\t" + targetName + targetDescriptor + "\t" + owner + "." + method + descriptor
+                                boolean career = targetOwner.equals("c/a") && ((op == 179 && (targetName.equals("SR") || targetName.equals("afQ")))
+                                        || (op != 179 && (targetName.equals("c") || targetName.equals("ae") || targetName.equals("a") || targetName.equals("<init>"))));
+                                boolean window = targetOwner.equals("best/n") && ((op == 179 && targetName.equals("cC"))
+                                        || (op != 179 && targetName.equals("a") && targetDescriptor.equals("(Ljavax/swing/JFrame;)V")));
+                                boolean close = op != 179 && ((targetName.equals("dispose") && targetDescriptor.equals("()V"))
+                                        || (targetOwner.equals("java/lang/System") && targetName.equals("exit") && targetDescriptor.equals("(I)V")));
+                                if (career || window || close) {
+                                    result.add((op == 179 ? "putstatic" : "invoke") + "\t" + targetOwner + "." + targetName + targetDescriptor + "\t" + owner + "." + method + descriptor
                                             + "\t" + p + "\tpreviousOpcode=" + previous + "\tclass.sha256=" + hash(bytes) + "\tcode.sha256=" + hash(attribute));
                                 }
                             }

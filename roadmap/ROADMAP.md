@@ -337,3 +337,28 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
   controlada ainda pendentes; esse mapeamento nao e aceite de P4 ou liberacao de P3.
 - CI da revisao e9ff212 aprovado com Actions v5 pinadas e Java 17/21; checks agora
   obrigatorios na main, mantendo excecao somente de revisao para administrador.
+
+### P4 — sonda opt-in (17/10/2026)
+
+- `--probe-career-hooks` transforma somente corpos de c.a em memoria, SHA da
+  classe e sites exatos validados; normal/seguro/verificador preservam caminho sem hooks.
+- Tracking interno distingue retorno, conclusao primaria, backup e fallback
+  recursivo. Eventos publicos/capacidades de mods continuam indisponiveis.
+- Testes sinteticos de observador/transformador e I/O real na EDT com frame
+  sintetico; UI completa/gameplay/unload/troca ainda pendentes. CAREER-PROBE.md.
+- Nao marcar CareerLoaded/Unloaded/Saved implementados para mods antes dos gates.
+- Sessao real da sonda: usuario confirmou load/save/reabertura original; logs
+  mostram uma conclusao de cada operacao, load na EDT e save em Thread-1, stderr
+  vazio. Unload/troca e politica de entrega ainda pendentes; nao habilitar P3.
+
+### P4 — entrega limitada e sinais de lifecycle (17/10/2026)
+
+- Dispatcher interno com fila 128, rejeicao nao bloqueante contabilizada, worker
+  daemon isolado, callback falho isolado e close com prazo 500ms, sem EDT no shutdown.
+  Estatisticas privadas em probe-delivery.properties; diagnostico nao duravel.
+- Mapeamento ampliado: 139 referencias selecionadas em 1.038 classes, incluindo
+  System.exit/EXIT_ON_CLOSE e recriacao de raizes. Nao ha unico unload corroborado.
+- `roots-reset` observado depois de concluir construtor original; nao e
+  CareerLoaded/Unloaded. Teste privado confirma raizes substituidas e snapshot vazio.
+- Cobertura sintetica/real-I/O documentada; UI de criar/trocar/fechar ainda precisa
+  corroborar lifecycle publico. API/P3 permanecem bloqueadas, sem sidecars neste passo.

@@ -15,9 +15,17 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 final class LegacyRuntime extends URLClassLoader {
-    private LegacyRuntime(URL[] urls) { super(urls, LegacyRuntime.class.getClassLoader()); }
+    private final boolean probe;
+    private LegacyRuntime(URL[] urls, boolean probe) { super(urls, LegacyRuntime.class.getClassLoader()); this.probe = probe; }
 
     static LegacyRuntime prepare(Path executable, Path home) throws Exception {
+        return prepare(executable, home, false);
+    }
+
+    static LegacyRuntime prepare(Path executable, Path home, boolean probe) throws Exception {
+        if (probe && !Object.class.getModule().isExported("jdk.internal.org.objectweb.asm", LegacyRuntime.class.getModule())) {
+            throw new IOException("Sonda exige --add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED");
+        }
         // Java ZipFile understands the PE prefix; .NET ZipArchive does not without rebasing.
         Path cache = home.resolve("cache").resolve(Profile.SHA256);
         Files.createDirectories(cache);
@@ -62,9 +70,26 @@ final class LegacyRuntime extends URLClassLoader {
         }
         // Check again after copying to guard against a changed input during preparation.
         if (!Profile.SHA256.equals(Profile.digest(executable))) throw new IOException("Executavel mudou durante preparacao");
-        LegacyRuntime runtime = new LegacyRuntime(urls.toArray(URL[]::new));
+        LegacyRuntime runtime = new LegacyRuntime(urls.toArray(URL[]::new), probe);
         try { runtime.verify(); return runtime; }
         catch (Exception | Error failure) { runtime.close(); throw failure; }
+    }
+
+    @Override protected Class<?> findClass(String name) throws ClassNotFoundException {
+        if (!probe || !name.equals("c.a")) return super.findClass(name);
+        URL resource = findResource("c/a.class");
+        if (resource == null) throw new ClassNotFoundException(name);
+        try (var input = resource.openStream()) {
+            byte[] original = input.readNBytes(1024 * 1024 + 1);
+            if (original.length > 1024 * 1024) throw new IOException("Classe de hook grande demais");
+            byte[] transformed = (byte[]) Class.forName("br.vbrasfoot.hooks.CareerTransformer").getMethod("transform", byte[].class)
+                    .invoke(null, (Object) original);
+            return defineClass(name, transformed, 0, transformed.length,
+                    new java.security.CodeSource(getURLs()[0], (java.security.cert.Certificate[]) null));
+        } catch (Exception | LinkageError failure) {
+            // Do not fall back to an uninstrumented class after an explicitly requested probe fails.
+            throw new IllegalStateException("Sonda recusada antes de definir c.a", failure);
+        }
     }
 
     void verify() throws Exception {

@@ -22,6 +22,9 @@ public final class SelfTest {
         write(temp.resolve("bf22-23.exe"), new byte[] {1, 2, 3});
         rejects(() -> Profile.verify(temp), "wrong executable version");
         check(Main.Options.parse(new String[] {"--safe-mode", "--validate-only"}).safe, "safe validation");
+        check(Main.Options.parse(new String[] {"--probe-career-hooks", "--validate-only"}).probe, "probe validation opt-in");
+        rejects(() -> Main.Options.parse(new String[] {"--probe-career-hooks", "--safe-mode"}), "probe prohibited in safe mode");
+        rejects(() -> Main.Options.parse(new String[] {"--probe-career-hooks", "--check-save", "x.s22"}), "offline verifier does not probe methods");
         check(Main.Options.parse(new String[] {"--", "--game-option"}).gameArguments.equals(List.of("--game-option")), "pass through");
         rejects(() -> Main.Options.parse(new String[] {"--wat"}), "unknown option");
         rejects(() -> Main.Options.parse(new String[] {"--home"}), "missing option value");

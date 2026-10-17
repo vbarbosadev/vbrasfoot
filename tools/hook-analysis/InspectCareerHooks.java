@@ -25,7 +25,8 @@ public final class InspectCareerHooks {
         return ((name.equals("ae") || name.equals("ad")) && descriptor.equals("(Ljava/lang/String;)V"))
                 || (name.equals("c") && descriptor.equals("(Ljava/lang/String;Z)Z"))
                 || (name.equals("vK") && descriptor.equals("()V"))
-                || (name.equals("a") && descriptor.equals("(Lbest/f;)V"));
+                || (name.equals("a") && descriptor.equals("(Lbest/f;)V"))
+                || (name.equals("<init>") && descriptor.equals("()V"));
     }
 
     public static void main(String[] args) throws Exception {
@@ -94,7 +95,7 @@ public final class InspectCareerHooks {
                     selected++;
                 }
             }
-            if (selected != 5) throw new IOException("Expected five exact career-method candidates, got " + selected);
+            if (selected != 6) throw new IOException("Expected six exact career-method candidates, got " + selected);
             report.setProperty("methods.selected", Integer.toString(selected));
         }
         if (!GAME_SHA.equals(hash(Files.readAllBytes(executable)))) throw new IOException("Input changed during inspection");

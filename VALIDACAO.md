@@ -341,3 +341,110 @@ CI remoto **38997162116** (push) e **38997165762** (PR) aprovados, Windows/Temur
 17 e 21. Os dois checks foram tornados obrigatorios na main (app GitHub Actions
 15368, strict/up-to-date); protecoes anteriores e excecao de review por PR mantidas.
 Nenhum PR integrado automaticamente. Revisoes seguintes tambem exigem checks.
+
+## Proxima entrega P4 — sonda opt-in (17/10/2026)
+
+Branch `feat/career-hook-probe`, baseada no merge do PR #2. Sonda desativada por
+padrao; nenhum evento publico/capacidade de mods, unload ou persistencia P3.
+
+Tecnica documentada em `roadmap/CAREER-PROBE.md`: transforma somente corpos de
+`c.a` em memoria, apos hash exato e contagem de sites; nao altera EXE/cache/schema.
+ASM interno do JDK 17/21 explicitamente exportado somente no opt-in. Nao afirma
+que esse mecanismo seja contrato de producao ou portavel a outros JDKs.
+
+Executado localmente com Java 21:
+
+- Build: **69 testes gerais**, **12 de tracking/observador**, **12 de bytecode
+  sintetico transformado** aprovados, sem jogo nas suites sinteticas.
+- `run.ps1 --probe-career-hooks --validate-only`: classe transformada verificada
+  sem iniciar UI/carreira/mods. Tentativa inicial encontrou VerifyError de frame
+  no handler legado; corrigida, reexecutada e passou. Nunca foi aplicada por fallback.
+- `test-career-hooks.ps1`: **21 checks** aprovados chamando metodos originais de
+  I/O na EDT em fixture nova. Frame sintetico evita inicializacao da UI completa.
+  Load/save/reload, backup, falha primaria capturada pelo jogo, falha de backup,
+  fallback `.s22` invalido/`.sbck` valido deduplicado e argumento null verificados.
+- Schema de c.a original/transformada igual por nome, campos, assinaturas,
+  modificadores e superclass. Contagens de clubes/jogadores preservadas apos save/reload;
+  igualdade completa do grafo/gameplay **nao** declarada por esse teste.
+- Excecoes esperadas de falha primaria/backup/fallback aparecem no log; nao foram
+  mascaradas. Falha do backup nao virou falha de save primario nem sucesso de backup.
+- EXE/input da fixture e EXE/save da origem com hashes antes/depois iguais.
+
+Fixture aprovada reexecutada com transcript:
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-hook-io-720847240c304ae182ed8b45132f1dd4`.
+Todos os outputs/falhas sao nomes novos nessa fixture, sem restauracao ou mutacao
+de save da origem. Transcript privado `loader/runtime-observations.txt` registra
+sete observacoes na AWT-EventQueue-0, incluindo fallback completo com retorno
+externo false, falha primaria sem completed e falha de backup com primario completed.
+Frame sintetico nao e teste
+de UI/gameplay, troca/unload, EXE original ou durabilidade fisica do arquivo.
+Sonda ainda requer sessao real guiada antes de habilitar eventos/sidecars.
+
+Pacote `dist/portable-career-probe-20261017` gerado e instalado **somente** na
+copia completa isolada existente. Validacao instalada opt-in aprovada sem iniciar
+jogo; EXE/saves da origem e save atual da copia permanecem nos hashes anteriores.
+Regressao portable aprovada com a sonda desligada: logs privados em
+`build/portable-career-probe-20261017.log`, fixture
+`%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-2cbd948ecd7d40f0a1c9ba14f6d43ddc`.
+`test.ps1 -IncludeUi` tambem reexecutado: suites sinteticas e inspetor aprovados.
+
+### Sonda — corroboracao pela UI real
+
+Usuario confirmou carregar Flamengo, salvar normalmente, fechar e reabrir pelo
+EXE original da copia com sucesso. Sessao privada
+`session-cb6c1f69-ade3-4a83-b275-9b1f070fd870` conferida independentemente:
+
+- `careerHookProbe=true`; uma observacao load completa, sem fallback/backup,
+  `AWT-EventQueue-0`, sequence 1.
+- Uma observacao save completa, backup=true, **Thread-1**, sequence 2.
+  Portanto gravacao real nao esta necessariamente na EDT; API/eventos futuros
+  nao podem prometer EDT para todos os hooks nem gravar sidecars com essa suposicao.
+- Stderr vazio e encerramento `jvm-shutdown`.
+- EXE da origem/copia intactos; saves da origem mantem hash
+  `c645b7eaf7d5a04a60349fa98d8575092c9643515059854d55cf63ad230c19ef`.
+- Save da copia manteve hash `52837913efd1f59661f0d45a177033fcb497d3c8e64753b6908fe49a9872eeed`
+  depois dessa gravacao sem avancar. Save bem-sucedido nao exige mudanca de hash;
+  a observacao foi baseada no fechamento original de Output, nao timestamp/hash.
+
+Reabertura no EXE original: confirmacao do usuario, sem captura final fornecida.
+Esse teste corrobora os pontos de load/save na UI para esta sessao e ambiente;
+nao fecha carreira nova, unload/troca, fallback/falhas na UI completa ou todos os
+gates de P4. Nenhum evento publico ou persistencia por carreira liberado.
+
+### Entrega limitada da sonda e mapeamento de lifecycle
+
+Executado na mesma branch do PR #3, sem incorporar um CareerUnloaded por suposicao:
+
+- Scanner ampliado: 1.038 classes, 139 referencias selecionadas de I/O, construcao,
+  registro de janela, dispose e System.exit. Inclui dispose de Graphics/dialogos;
+  nao sao 139 eventos de unload. `best.S` usa EXIT_ON_CLOSE; `a.eg.rq` chama exit(0).
+  Construtor c.a e chamado por tres callers diretos e substitui raizes.
+- `roots-reset` injetado somente ao concluir construtor original; SHA/site guard
+  mantidos. Nao inicializa API de eventos nem afirma carreira nova pronta/unload.
+- `ProbeDispatcher` remove logging da thread do hook no launcher; fila 128,
+  offer sem espera, FIFO por entrada, drops/erros/descarte contabilizados.
+  Close 500ms; worker daemon sem espera pela EDT. Estatisticas em arquivo privado
+  separado de LogManager, nao garantia de delivery duravel ou fsync.
+- Build/testes: **69 gerais**, **13 tracking**, **11 dispatcher**, **13 bytecode
+  sintetico** aprovados localmente com Java 21. Inclui fila cheia, callback lento,
+  close idempotente, FIFO, callback falho, offer apos close e System.exit na EDT
+  em JVM filha propria com estatisticas preservadas.
+- `test-career-hooks.ps1`: **26 checks** aprovados nos metodos originais na EDT
+  com frame sintetico; inclui troca das referencias de raizes e snapshot vazio
+  depois de construtor, entrega assíncrona pelo dispatcher (callback fora da thread
+  do jogo) e ausencia de drops/falhas na fixture. Fixture:
+  `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-hook-io-689ddf25f30745c6ab9e36d9721d5ec6`.
+- `test.ps1 -IncludeUi`: suites sinteticas e inspetor aprovados sem sonda.
+
+Source threads permanecem no record; callback de log agora roda no worker.
+Ordem FIFO nao significa ordem global de sequence entre hooks concorrentes.
+Callback ja executando que ignore interrupcao pode terminar depois do close;
+workerAlive explicita o limite. Nao usar essa fila best-effort para gravar sidecars.
+Corroboracao completa da UI/lifecycle/unload e bus publico confiavel continuam
+pendentes, portanto P3/P4 nao sao anunciados concluidos.
+
+Pacote `dist/portable-career-dispatch-20261017` gerado; matriz portable aprovada
+(`build/portable-career-dispatch.log`). Instalado/validado opt-in somente na copia
+completa; `probe-delivery.properties` da validacao registrou workerAlive=false,
+sem aceites/drops/falhas (nenhuma operacao de jogo executada nessa validacao).
+EXE/saves da origem e save corrente da copia mantiveram seus hashes anteriores.

@@ -5,6 +5,8 @@ if (Test-Path -LiteralPath (Join-Path $installRoot '.update-pending')) { throw '
 $java = Get-Command java -ErrorAction Stop
 Push-Location $gameRoot
 try {
-    & $java.Source '--add-exports=java.desktop/sun.java2d=ALL-UNNAMED' '-Xmx1536m' -jar (Join-Path $PSScriptRoot 'vbrasfoot.jar') --home $installRoot --game-dir $gameRoot @args
+    $probeArgs = @()
+    if ($args -contains '--probe-career-hooks') { $probeArgs = @('--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED') }
+    & $java.Source '--add-exports=java.desktop/sun.java2d=ALL-UNNAMED' @probeArgs '-Xmx1536m' -jar (Join-Path $PSScriptRoot 'vbrasfoot.jar') --home $installRoot --game-dir $gameRoot @args
     exit $LASTEXITCODE
 } finally { Pop-Location }
