@@ -53,14 +53,19 @@ o Brasfoot22-23 identificado pelo perfil SHA-256 documentado.
 
 ## Revisao e merge
 
-A `main` exige PR, uma aprovacao de outro revisor, conversas resolvidas e historico
-linear. Novos commits invalidam aprovacoes antigas; a ultima alteracao precisa de
-aprovacao por outra pessoa. Administradores tambem seguem essas regras.
+A `main` exige PR, conversas resolvidas e historico linear. Para colaboradores,
+exige uma aprovacao de outro revisor; novos commits invalidam aprovacoes antigas
+e a ultima alteracao precisa de aprovacao por outra pessoa. Administradores tem
+excecao de revisao somente para merge via PR (limitacao do GitHub para repositorio
+pessoal); push direto, force-push e exclusao continuam bloqueados.
 Prefira squash ou rebase ao integrar. Nao use force-push na `main`.
 
-Ainda nao ha checks de CI obrigatorios configurados; os comandos e resultados
-devem constar no PR. Nao declare que testes foram executados apenas por existir
-um checklist preenchido.
+O workflow `Build and unit tests` compila loader/SDK/exemplo e executa testes
+sinteticos no Windows com Temurin 17/21, sem jogo/saves. Checks obrigatorios na
+protecao da branch so devem ser adicionados apos a primeira execucao aprovada.
+Os comandos locais, resultados e gates reais devem constar no PR; CI nao aprova
+gameplay, interface real ou compatibilidade de saves. Nao declare testes executados
+apenas por existir um checklist preenchido.
 
 ## Licenciamento
 

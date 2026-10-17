@@ -131,3 +131,177 @@ usa apenas o JAR publico. Os 64 testes unitarios foram reexecutados na revisao.
 Nao ha ampliacao por suposicao de calendario/financas/historicos, servicos entre
 mods, cancelamento de tarefas ou eventos de carreira. P0/P1/P2 nao aprovados como
 fases completas. Guias: `roadmap/PORTABLE.md` e `roadmap/SDK-CONTRACT.md`.
+
+## Fechamento de bloqueios P0/P1 — 17/10/2026
+
+- `prepare-validation.ps1` concluiu a copia completa: **34.342 arquivos**,
+  **258.044.198 bytes**, com hash da origem antes/depois e do destino. A copia usa
+  helper proprio C# com quatro tarefas no maximo; nao executa o jogo.
+- Copia privada: `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-p0-complete-20261017`.
+  `baseline.json` registra o inventario. Pacote instalado e atualizado somente
+  nessa copia; inspetor 0.2.0 reconhecido no `--validate-only` instalado.
+- Conferencia adicional apos instalar/atualizar: todos os **34.342 arquivos** do
+  baseline permanecem identicos na origem e na copia; nenhuma divergencia.
+  Evidencia privada: `pre-session-integrity.json` no diretorio da copia.
+- `test.ps1 -IncludeUi`: **66 testes** aprovados e Swing sintetico aprovado,
+  incluindo bloqueio do Main antes de escrever logs em instalacao incompleta.
+- `test-portable.ps1` com `dist/portable-gates-20261017`: matriz anterior aprovada,
+  mais falha real de substituicao por arquivo bloqueado, publicacao parcial,
+  preservacao de journal, launcher bloqueado e rollback explicito dos arquivos
+  gerenciados. Hash anterior da licenca da fixture restaurado e reinstalacao aprovada.
+- Recuperacao com backup corrompido recusada antes de alterar o alvo;
+  `-Complete` recusou geracao parcialmente publicada. Preview preservou journal.
+  Saves e dados do usuario nao sao alvos de nenhuma recuperacao.
+- Log privado do teste: `build/portable-gates-20261017-rerun.log`.
+  Fixture: `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-eb0b2efddfe84291916d873e7a7bcb87`.
+
+Recuperacao por journal nao promete transacao atomica de toda a release. Caminho
+de conclusao depois de publicacao completa e limpeza interrompida implementado,
+mas nao testado em cada ponto de interrupcao. Matriz total de falta de espaco,
+somente leitura e JVMs suportadas continua pendente.
+
+O usuario escolheu sessao real guiada. Ambiente instalado pronto, mas **nenhuma
+partida/interface real ou reabertura no original foi aprovada nesta rodada**.
+P0 segue aberto; P3/P4/P6 nao foram implementados sem os gates/evidencias exigidos.
+
+### Sessao guiada — referencia visual no EXE original
+
+Usuario informou abertura por `original.cmd` da copia isolada e forneceu a captura
+privada `logs/imgs/teste01.png` (nao versionada). Observado na imagem:
+
+- Carreira Flamengo carregada, data **23/01/2022**.
+- Financas exibidas: **18 milhoes 356 mil**; elenco **27/35**.
+- Proximo jogo: Sampaio Correa - RJ, Carioca, primeira rodada, em casa.
+- Confianca da diretoria 95%, torcida 85%; controles originais visiveis.
+- Captura de 1920 x 1080; escala do Windows nao informada.
+
+Isso estabelece somente a referencia visual fornecida pelo usuario para o original.
+Ainda nao comprova menu do loader, consulta, avancar/salvar/reabrir, outras escalas,
+nem comparacao completa de calendario, competicoes e historicos. Proximo passo:
+fechar sem salvar e carregar a mesma carreira pelo launcher **instalado** da copia.
+
+### Sessao guiada — menu interno e inspetor
+
+Usuario confirmou o botao e forneceu `logs/imgs/teste02-inspetor.png` (privada,
+nao versionada). A captura mostra:
+
+- Botao vbrasfoot na barra interna, imediatamente antes de Opcoes; nenhuma barra
+  externa adicional observada no recorte.
+- Data 23/01/2022; inspetor aberto com filtro `flamengo`, seis clubes encontrados,
+  Flamengo identificado como clube humano e jogadores apresentados na tabela.
+- Exemplos visiveis: Agustin Rossi, idade 30, goleiro, valor 26.364.000; Dyogo
+  Alves, idade 22; nomes/idades correspondentes aos trechos da referencia visual.
+
+O recorte nao mostra financas/elenco total nem todos os controles da barra.
+Troca para Agenda/retorno sem duplicacao, outras resolucoes/escalas, ausencia de
+erros em logs e salvar/reabrir ainda precisam de confirmacao. `logs/imgs/as.png`
+mostra outro estado (financas/elenco diferentes) sem associacao declarada a esta
+sessao; nao foi usada como referencia nem como prova de divergencia do loader.
+
+Usuario confirmou na sessao guiada: retorno de Agenda ao elenco sem duplicacao
+do botao, financas 18 milhoes 356 mil e elenco 27/35 iguais a referencia original,
+sem erro relatado nessas acoes. Confirmacao do usuario, nao captura independente
+de todos esses passos nem verificacao completa de campos/logs. Proximo gate:
+concluir partida na copia, salvar pelo launcher e reabrir no EXE original da copia.
+
+### Sessao guiada — salvar pelo launcher e reabrir no original
+
+Usuario confirmou sucesso do roteiro de concluir partida, salvar, fechar e reabrir
+Flamengo pelo EXE original da copia, incluindo os dados solicitados. Nao forneceu
+capturas pos-partida/reabertura nem valores finais de data/saldo/placar: resultado
+interativo registrado como **confirmacao do usuario**, nao medicao independente.
+
+Conferencias independentes apos a confirmacao:
+
+- EXE original da origem e da copia: mesmo SHA-256 esperado, intactos.
+- Saves Flamengo.s22/.sbck da origem mantem SHA-256 `c645b7eaf7d5a04a60349fa98d8575092c9643515059854d55cf63ad230c19ef`.
+- Save da copia mudou para SHA-256 `43085fa25b9d96fa8fed420f9c1e1468cbc32053d1a53fecb08639a2e51d937b`.
+- Sessao instalada `session-1dee82b3-4e11-4761-aedc-f28e009d408f`: perfil, backup,
+  inspetor ativo, entrada real e instalacao de menu registrados; stderr vazio;
+  encerramento `jvm-shutdown`. Dois registros de instalacao do menu podem decorrer
+  de recriacao do painel; nao comprovam sozinhos duplicacao. Usuario confirmou
+  previamente ausencia de botao duplicado apos troca de tela.
+- Verificador offline do save produzido aprovado: 8.395 clubes / 193.831 jogadores,
+  round-trip identico em bytes. Relatorio privado na copia em
+  `vbrasfoot/verification/save-7108773662264221777/report.properties`.
+
+Ainda falta repetir em modo seguro/sem mods, resolucoes/escalas diferentes,
+comparacao ampla de calendario/competicoes/historicos e investigacao semantica
+da divergencia antiga. P0 nao aprovado integralmente por este teste unico.
+
+### Sessao guiada — modo seguro/sem mods
+
+Usuario confirmou sucesso da repeticao pelo launcher seguro: carregar, concluir
+outra partida, salvar, fechar e reabrir no EXE original da copia, sem erro relatado.
+Nao forneceu valores finais numericos ou capturas apos reabertura; evidencia
+interativa registrada como confirmacao do usuario.
+
+Conferencias independentes:
+
+- Sessao `session-40d51d91-e5e6-4515-a6af-0b2432777423`: `safeMode=true`, perfil e
+  backup verificados; nenhum carregamento de mod/menu registrado; stderr vazio
+  e encerramento `jvm-shutdown`.
+- Save da copia passou a SHA-256 `52837913efd1f59661f0d45a177033fcb497d3c8e64753b6908fe49a9872eeed`.
+- EXE e saves da origem continuam com os hashes anteriores, intactos.
+
+Os dois cenarios reais foram confirmados na mesma copia, sequencialmente (o modo
+seguro partiu do save produzido no cenario normal, nao de um baseline restaurado).
+Nao houve restauracao automatica. Ainda pendentes outras resolucoes/escalas,
+comparacao ampla de historicos/competicoes/calendario e causa da diferenca antiga.
+
+### Sessao guiada — resolucao menor
+
+Usuario informou que o jogo nao permite reduzir a janela. O teste foi feito
+alterando a resolucao de exibicao e reabrindo o launcher instalado da copia:
+**1280 x 720**, com confirmacao de que vbrasfoot, Opcoes e demais botoes continuam
+acessiveis. Confirmacao do usuario; captura dessa resolucao nao fornecida e escala
+do Windows nao informada. A referencia anterior foi captura de 1920 x 1080.
+Cobertura de resolucao menor registrada; multiplas escalas continuam pendentes.
+
+## Investigacao da diferenca antiga e testes de erro — 17/10/2026
+
+Executado `analyze-save.ps1` nas copias antigas preservadas. Inputs com hashes
+conferidos antes/depois, intactos. Sete autotestes do comparador passaram.
+
+- Primeiro offset divergente 8.911.369 localizado em `best.F.dm` (String de nome
+  vazia). Trecho original `01 81`, round-trip `B1 37`: nova String vazia versus
+  referencia ja existente. Fixture com duas Strings vazias distintas reproduziu
+  identidades fundidas na leitura, valores preservados e bytes diferentes ao gravar.
+- Output da sonda instrumentada foi **identico por SHA-256** ao round-trip anterior
+  nao instrumentado: `fc23e9d74ee92d12e4da9565f9c8c2b70e28249f731a1898bd7bec09a3990b47`.
+- Comparacao offline dos grafos decodificados: 31.742.740 comparacoes, 20.578.147
+  campos serializados, 5.228.120 objetos mutaveis unicos somados por raiz;
+  nenhuma divergencia, tipo nao suportado encontrado ou budget excedido.
+- Sonda inicial limitada a 30 milhoes de comparacoes foi explicitamente incompleta;
+  o resultado acima e da reexecucao com budget ampliado, sem truncamento observado.
+
+Cobertura/exclusoes e comando reproduzivel em `roadmap/SAVE-ANALYSIS.md`.
+Campos Kryo serializados, listas/arrays e aliases mutaveis comparados; String
+por valor, Calendar/TimeZone por propriedades documentadas. Nao contempla campos
+transient/static nem atribui cada diferenca binaria restante a um mecanismo unico;
+nao e garantia universal de compatibilidade. Nenhuma instrumentacao dessas sondas
+foi inserida no launcher ou SDK.
+
+Relatorios privados em `build/save-analysis-d1b7a42db9754a2faaf5de094321024a/`.
+
+`test-portable.ps1 -Package dist/portable-gates-errors-20261017` aprovado:
+
+- Permissao de escrita negada por ACL NTFS real em app da fixture; ACL original
+  restaurada em finally; instalacao recusada e recuperacao explicita aprovada.
+- Falha real por arquivo bloqueado, journal preservado, launcher recusado,
+  rollback explicito e reinstalacao aprovados.
+- Backup gerenciado corrompido e journal com alvo `sav/Flamengo.s22` recusados
+  antes de alterar os alvos; nao existem saves reais nessa fixture.
+- Conclusao de limpeza apos publicacao completa e staging antes do journal:
+  aprovados em **estados sinteticos**, nao queda de energia real.
+- Espaco: reserva maior que disco disponivel recusada antes de criar staging;
+  nao esgotou o disco nem simulou ENOSPC durante escrita.
+- Demais cenarios de portable (preview, mover, modo seguro, hashes, locks,
+  desinstalacao preservando dados e junction) continuam aprovados.
+
+Fixture privada: `%LOCALAPPDATA%\Temp\opencode\vbrasfoot-install-b87e10c9a3d0465c8ae2ffac8f65400e`.
+Log: `build/portable-gates-errors-20261017.log`. Build: 66 testes aprovados.
+
+P0/P1/P7 permanecem com cobertura incompleta de escalas, JVMs e falhas em todos os
+pontos. Os resultados acima fecham a investigacao delimitada da diferenca antiga
+e ampliam recuperacao; nao aprovam automaticamente todas as fases do roadmap.

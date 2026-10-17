@@ -5,7 +5,7 @@ if (Test-Path -LiteralPath $Output) { throw 'Escolha um destino novo para o paco
 if ($LASTEXITCODE -ne 0) { throw 'Build falhou' }
 [IO.Directory]::CreateDirectory((Join-Path $Output 'app')) | Out-Null
 Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot.jar" -Destination (Join-Path $Output 'app\vbrasfoot.jar')
-foreach ($name in @('install.ps1', 'uninstall.ps1', 'launch.ps1', 'vbrasfoot.cmd', 'vbrasfoot-safe.cmd')) {
+foreach ($name in @('install.ps1', 'uninstall.ps1', 'recover-update.ps1', 'launch.ps1', 'vbrasfoot.cmd', 'vbrasfoot-safe.cmd')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "packaging\$name") -Destination $Output
 }
 Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'app\LICENSE')

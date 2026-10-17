@@ -59,25 +59,13 @@ if (Get-CimInstance Win32_Process | Where-Object {
 New-Item -ItemType Directory -Path $destinationPath | Out-Null
 $copy = Join-Path $destinationPath 'Brasfoot22-23'
 $loaderHome = Join-Path $destinationPath 'loader'
-New-Item -ItemType Directory -Path $copy, $loaderHome | Out-Null
-foreach ($directory in @($entries | Where-Object PSIsContainer)) {
-    $relative = $directory.FullName.Substring($game.TrimEnd('\').Length + 1)
-    [IO.Directory]::CreateDirectory((Join-Path $copy $relative)) | Out-Null
+New-Item -ItemType Directory -Path $loaderHome | Out-Null
+if (-not ('Vbrasfoot.Validation.VerifiedGameCopy' -as [type])) {
+    Add-Type -Path (Join-Path $PSScriptRoot 'tools\VerifiedGameCopy.cs')
 }
-$baseline = [Collections.Generic.List[object]]::new()
-$copied = 0
-foreach ($file in $files) {
-    $relative = $file.FullName.Substring($game.TrimEnd('\').Length + 1)
-    $target = Join-Path $copy $relative
-    $before = Read-Hash $file.FullName
-    [IO.File]::Copy($file.FullName, $target, $false)
-    if ((Read-Hash $target) -ne $before -or (Read-Hash $file.FullName) -ne $before) {
-        throw "Arquivo mudou durante copia: $relative. Destino incompleto preservado para revisao."
-    }
-    $baseline.Add([pscustomobject]@{ Path = $relative; SHA256 = $before; Bytes = $file.Length })
-    $copied++
-    if ($copied % 500 -eq 0) { Write-Host "Copiados e verificados: $copied / $($files.Count)" }
-}
+Write-Host 'Copiando e verificando hashes com concorrencia limitada (4 arquivos)...'
+$baseline = [Vbrasfoot.Validation.VerifiedGameCopy]::Copy($game, $copy)
+Write-Host "Copiados e verificados: $($baseline.Count)"
 Copy-Item -LiteralPath $launcher -Destination (Join-Path $loaderHome 'vbrasfoot.jar')
 New-Item -ItemType Directory -Path (Join-Path $loaderHome 'mods') | Out-Null
 if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'mods\inspector.jar')) {

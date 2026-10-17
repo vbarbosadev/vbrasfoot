@@ -3,7 +3,8 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $game = Split-Path $root -Parent
 # Fixed allowlist: never trust deletion paths supplied by an editable manifest.
-$allowed = @('vbrasfoot\app\vbrasfoot.jar','vbrasfoot\app\LICENSE','vbrasfoot\app\launch.ps1','vbrasfoot\app\uninstall.ps1','vbrasfoot.cmd','vbrasfoot-safe.cmd')
+$allowed = @('vbrasfoot\app\vbrasfoot.jar','vbrasfoot\app\LICENSE','vbrasfoot\app\launch.ps1','vbrasfoot\app\uninstall.ps1','vbrasfoot\app\recover-update.ps1','vbrasfoot.cmd','vbrasfoot-safe.cmd')
+if (Test-Path -LiteralPath (Join-Path $root '.update-pending')) { throw 'Recupere a atualizacao pendente antes de desinstalar.' }
 $manifestPath = Join-Path $root 'install-manifest.json'
 foreach ($item in @($game, $root, $PSScriptRoot, $manifestPath)) {
     for ($p = $item; $p; $p = Split-Path $p -Parent) {
