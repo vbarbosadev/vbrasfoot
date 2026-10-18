@@ -52,6 +52,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de associacao explicita de saves falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerRecoverySelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de recuperacao do diario e exclusao de save falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.DecodedSaveProvenanceSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de vinculo entre stream decodificado e roots falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerAssociationCoordinatorSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do coordenador de associacao explicita falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandGateSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da reserva de comandos falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandJournalSelfTest

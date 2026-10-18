@@ -1,5 +1,67 @@
 # Validacao — 16/10/2026
 
+## Stream decodificado, coordenador e painel de revisao — 18/10/2026
+
+`CareerTransformer` conserva fingerprint exato de c.a e schemas, acrescentando
+observacao do path realmente passado a FileInputStream e wrapper somente no
+InputStream original fornecido a Kryo. Exige1site de cada construtor. Hash/count
+cobrem bytes alimentados no buffer, nao leitura extra nem prova de interpretacao
+semantica de cada byte. Leitura/close originais preservados; skip/mark/reset,
+cross-thread, falhas ou >256MiB recusam evidencia sem truncar o stream original.
+
+`DecodedSaveProvenance` retém uma unica evidencia fraca, ligada a sessao/geracao/
+roots de carga aceita. Fallback propaga origem/bytes do backup. Invalidacoes de
+load/reset/root/save/detach e revisao esperada impedem completion antigo de
+substituir estado mais novo. `LoadedSaveVerifier` compara path real+hash+tamanho
+do arquivo observado e roots na EDT com timeout; nao e autoridade de escrita.
+
+`CareerAssociationCoordinator` revalida evidencia/metadata ao revisar e confirmar.
+Review privada, por instancia e one-shot; nenhuma identidade inferida sem handle
+explicito ou confirmacao nova. Registro limitado aos owners configurados, NAO
+inventario global. Quarentena usa owner/token revisados; revision mismatch ou
+corrupcao nao se tornam diario vazio. Nao instala CareerCommandGate.Context,
+nao migra journal entre saves e nao resolve APPLIED/UNKNOWN como sucesso/fracasso.
+
+Main registra painel de metadata SOMENTE em modo sonda. Abrir/Atualizar nao
+escrevem; dialogo exige acao explicita com Cancelar padrao. UUIDs editados revogam
+review, todo I/O fica em SwingWorker e commit incerto conserva Handle tentado.
+Metadados em data/.career-state, separados de ModStore publico. Source em codigo
+novo, nao instalado. Novo report local decoded-save-provenance.properties inclui
+status/motivo/hash/tamanho/geracao/backup/initialization, writeAuthority=false,
+sem paths/objetos exportados. Novo painel ainda sem aceite visual humano.
+
+Evidencia local aprovada em `build/decoded-coordinator-final-io.log`:
+-36checks de provenance em fixture propria
+ `Temp/opencode/decoder-provenance-4182109270792433907`;
+-36checks de coordenador/UI report em fixture propria
+ `Temp/opencode/career-association-coordinator-13708892728670936148`;
+-142checks I/O/schema originais em copia privada
+ `Temp/opencode/vbrasfoot-hook-io-83bbdfc528cd442097ee36aca14d230d`:
+ stream primario completo, path/hash/tamanho, roots/geracao, fallback real,
+ metadata explicitamente ARTIFICIAL da fixture, journals sem criacao automatica
+ e recusa de review depois do writer. JFrame sintetico continua pulando init UI;
+ initializationPathObserved=false e public IO load UNKNOWN, sem contexto de comandos.
+-26checks financeiros originais continuam aprovados, evidencia em
+ `build/decoded-coordinator-final-finance.log`, fixture privada
+ `Temp/opencode/vbrasfoot-finance-b064aa37f6674150913687520ad596b8`.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos aprovados em
+ `build/decoded-coordinator-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-6ba72963e8c54dd5af83a2c0022ea129`.
+ Archive local dist/sdk-0.9.3-decoded-coordinator.zip, sem release/tag/upload.
+
+REA binary_session nao anunciou ferramenta JVM elegivel nesta sessao; providers
+nativos nao disponiveis/configurados. Reutilizados javap/JDK e bytecode privado
+anterior do perfil SHA conhecido. Sem instalar engines/configuracoes nem publicar
+bytecode/saves. Wrappers conferiram hashes de origem EXE/save; jogo instalado,
+mods e saves nao foram atualizados.
+
+Nao e conclusao de "tudo": faltam qualificacao/global graph real e aceite humano,
+writer preflight/gate de producao, reconciliacao por operacao entre revisoes,
+discovery/quotas/compactacao/migracoes globais, categorias/UI financeira, calendario,
+partidas/temporadas, mercado/ofertas/interceptacao/contrapropostas/commit e API
+publica de escrita. Nao inventar sucesso para essas lacunas. Contrato completo:
+`roadmap/DECODED-SAVE-COORDINATOR.md`.
+
 ## Recuperacao conservadora do diario e exclusao durante save — 18/10/2026
 
 - `CareerCommandJournal.inspectRecovery` compara ancora registrada conhecida e

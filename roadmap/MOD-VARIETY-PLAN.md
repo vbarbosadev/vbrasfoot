@@ -8,6 +8,7 @@ autorizar inferencia de gates ou modificar saves de usuario para obter aceite.
 | Mais leituras | 0.9.0: sete habilidades e scout somente leitura | Campos adicionais: mapear rotulos, getters sem efeito e testar individualmente |
 | Criacao pronta | Trace0.8.2 corroborou78markers AB/V/ap/at/ax e painel2; UNKNOWN | Distinguir AB de temporada/cancelamento/falha; painel nao prova prontidao |
 | Persistencia por carreira | Nao liberada; armazenamento global nao substitui sidecar | Identidade/associacao/copia/rename/restore, protocolo de recuperacao e testes de conflito |
+| Origem decodificada e revisao | Stream/roots/geracao e painel opt-in de metadata implementados | Inicializacao/global graph real, aceite humano, reconciliacao de efeitos e contexto de escrita |
 | Eventos de calendario | Consulta atual existe; eventos nao liberados | Fronteiras reais e falhas/reentrada; sem inventar evento por polling |
 | Eventos de partida/temporada | Nao liberados | Mapear execucao original e confirmar variantes sem jogar automaticamente |
 | Comandos de gameplay | Nao liberados | Um comando por vez, regras/rollback/conflitos, copia de save, reabertura original e aceite humano |
@@ -70,3 +71,12 @@ comandos cooperativos durante janela obtida ANTES do writer e invalida contexto
 apos retorno/falha. Ainda nao conectado ao startup/hooks. Nao resolve efeitos
 incertos por confirmacao humana ou igualdade de bytes. Veja
 JOURNAL-RECOVERY-AND-SAVE-FENCES.md para evidencia e integracao restante.
+
+Incremento de integracao:stream real alimentado ao decoder agora tem SHA/tamanho
+ligados a roots fracas e geracao aceitas, incluindo fallback de backup. Verificador
+com timeout cruza arquivo/origem/roots, sem transformar esse fato em prontidao.
+Coordenador e painel opt-in revisam associacao explicita e diarios dos owners
+configurados; confirmacao one-shot e revalidada antes de metadata/quarentena.
+Veja DECODED-SAVE-COORDINATOR.md. Esta parte da UI/metadados foi conectada ao Main
+somente em modo sonda; API de escrita/contexto de comandos continuam desconectados.
+Fixture original nao executa init UI:nao resolve gates de calendario/mercado/gameplay.

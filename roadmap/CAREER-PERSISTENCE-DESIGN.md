@@ -4,10 +4,14 @@ Progresso interno: CareerSidecarStore/CareerCommandJournal implementam envelopes
 CAS,previous explicito,intents e testes sinteticos. Entrega posterior adiciona
 SaveFileObserver/CareerSaveAssociations para decisoes explicitas sobre bytes de
 save e metadados externos;veja EXPLICIT-SAVE-ASSOCIATIONS.md. Nao estao ligados
-a ModContext/UI/contexto do jogo e nao habilitam P3. Veja LOADER-WRITE-FOUNDATIONS.md.
+a ModContext/contexto de comandos e nao habilitam P3. Painel de metadados opt-in
+foi acrescentado posteriormente conforme abaixo. Veja LOADER-WRITE-FOUNDATIONS.md.
 Inspecao/quarentena de journals e exclusao cooperativa antes do writer foram
 adicionadas internamente; contratos/limites em JOURNAL-RECOVERY-AND-SAVE-FENCES.md.
 Nao significam reconciliacao de efeitos concluida ou startup integrado.
+Incremento seguinte conecta stream real do decoder a roots/geracao e um coordenador
+com painel de confirmacao opt-in: DECODED-SAVE-COORDINATOR.md. Revisao de owners
+explicitamente selecionados nao e inventario global nem contexto pronto para escrita.
 
 ## Invariantes antes de implementar P3
 

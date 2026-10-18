@@ -1,7 +1,9 @@
 # Associacoes explicitas de save — servico interno, nao ativacao de carreira
 
-Implementacao: SaveFileObserver + CareerSaveAssociations,sem ModContext/Main/UI
-conectados. NAO gera mods de patrocinio/negociacao,nao escolhe uma carreira por
+Implementacao inicial: SaveFileObserver + CareerSaveAssociations,sem ModContext
+ou contexto de comandos. Incremento DECODED-SAVE-COORDINATOR.md conecta revisao e
+confirmacao de metadata a um painel Main opt-in, nao ao gameplay.
+NAO gera mods de patrocinio/negociacao,nao escolhe uma carreira por
 hash/nome e nao instala comandos no jogo. Loader instalado/API continuam0.9.3.
 
 ## Observar nao e carregar ou identificar carreira
@@ -92,3 +94,8 @@ humana/UI ou prova de identidade automaticamente inferida de carreira original.
 Proximo gate:coordenador e UI de confirmacao,mais evidencia vinculando bytes
 exatamente decodificados ao contexto de roots/geracao original. Sem isso,mesmo
 EXACT_OBSERVATION nao pode ser apresentado como CurrentCareer ou liberar pagamentos.
+
+Entrega posterior: DECODED-SAVE-COORDINATOR.md implementa vinculo de bytes do
+stream do decoder a roots/geracao e coordenador+painel opt-in de revisao/confirmacao
+de metadados. Nao instala contexto de comandos nem qualifica inicializacao/global
+graph. Discovery global, reconciliacao de efeitos e gates de escrita continuam pendentes.

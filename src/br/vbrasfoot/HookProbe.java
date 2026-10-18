@@ -16,6 +16,7 @@ public final class HookProbe {
     private static final AsyncCreationTracker asyncCreation = new AsyncCreationTracker();
     private static final CreationDialogTracker creationDialogs = new CreationDialogTracker();
     private static final CreationEntryTracker creationEntries = new CreationEntryTracker();
+    private static final DecodedSaveProvenance decodedProvenance = new DecodedSaveProvenance();
     private static final ThreadLocal<ArrayDeque<Load>> loads = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Save>> saves = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Reset>> resets = ThreadLocal.withInitial(ArrayDeque::new);
@@ -25,6 +26,11 @@ public final class HookProbe {
         CareerLifecycle.Ticket decodedTicket, actualTicket;
         CareerLifecycle.Ticket assignedTicket;
         CareerLifecycle.Attempt attempt;
+        java.nio.file.Path source, actualSource;
+        LoadInputTrace trace;
+        LoadInputTrace.Result actualStream;
+        Object decodedPrimary, decodedSecondary, actualPrimary, actualSecondary;
+        long provenanceRevision, actualProvenanceRevision;
         Load(String name, boolean backup) { this.name = name; this.backup = backup; }
     }
     private static final class Reset { CareerLifecycle.Attempt attempt; }
@@ -48,13 +54,15 @@ public final class HookProbe {
     static AutoCloseable attachLifecycle(CareerLifecycle state) {
         java.util.Objects.requireNonNull(state);
         if (!lifecycle.compareAndSet(null, state)) throw new IllegalStateException("Lifecycle guard ja ativo");
-        return () -> lifecycle.compareAndSet(state, null);
+        decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED);
+        return () -> { if (lifecycle.compareAndSet(state, null)) decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED); };
     }
     private static CareerLifecycle.Ticket ticket() {
         CareerLifecycle state = lifecycle.get();
         return state == null ? null : state.ticket();
     }
     public static void rootAssigned() {
+        decodedProvenance.invalidate(DecodedSaveProvenance.Reason.ROOT_CHANGED);
         creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
         try {
             CareerLifecycle state = lifecycle.get();
@@ -115,6 +123,7 @@ public final class HookProbe {
         try { emit("creation-candidate-failed", label, false, false, false, false, true); } catch (Throwable ignored) { }
     }
     public static void enterLoad(String name, boolean backup) {
+        decodedProvenance.invalidate(DecodedSaveProvenance.Reason.LOAD_STARTED);
         creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
         try {
             ArrayDeque<Load> stack = loads.get();
@@ -176,6 +185,7 @@ public final class HookProbe {
     static long creationProgressOutside() { return asyncCreation.progressOutside(); }
     static AsyncCreationTracker.Snapshot asyncCreationSnapshot() { return asyncCreation.capture(); }
     public static void enterReset() {
+        decodedProvenance.invalidate(DecodedSaveProvenance.Reason.RESET_STARTED);
         creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
         try {
             Reset frame = new Reset(); resets.get().push(frame);
@@ -206,9 +216,29 @@ public final class HookProbe {
         catch (Throwable ignored) { }
     }
     public static void decodedLoad() {
+        decodedLoad(null, null);
+    }
+    public static void loadSource(String source) {
+        try { Load frame = loads.get().peek(); if (frame != null) frame.source = java.nio.file.Path.of(source); }
+        catch (Throwable ignored) { }
+    }
+    public static java.io.InputStream traceLoadInput(java.io.InputStream input) {
         try {
             Load frame = loads.get().peek();
-            if (frame != null) { frame.decodedTicket = frame.assignedTicket; frame.decoded = true; }
+            if (frame != null && lifecycle.get() != null) {
+                if (frame.trace != null) { frame.source = null; return input; }
+                frame.trace = new LoadInputTrace(input); return frame.trace;
+            }
+        } catch (Throwable ignored) { }
+        return input;
+    }
+    public static void decodedLoad(Object primary, Object secondary) {
+        try {
+            Load frame = loads.get().peek();
+            if (frame != null) { frame.decodedTicket = frame.assignedTicket; frame.decoded = true;
+                frame.decodedPrimary = primary; frame.decodedSecondary = secondary;
+                frame.provenanceRevision = decodedProvenance.snapshot().revision();
+            }
         } catch (Throwable ignored) { }
     }
     public static void loadInitializationPathFinished() {
@@ -225,6 +255,9 @@ public final class HookProbe {
                 frame.successful = true; frame.actualName = frame.name; frame.actualBackup = frame.backup;
                 frame.actualTicket = frame.decodedTicket;
                 frame.actualInitializedPath = frame.initializedPath;
+                frame.actualSource = frame.source; frame.actualStream = frame.trace == null ? null : frame.trace.finish();
+                frame.actualPrimary = frame.decodedPrimary; frame.actualSecondary = frame.decodedSecondary;
+                frame.actualProvenanceRevision = frame.provenanceRevision;
             }
             if (!stack.isEmpty()) {
                 if (frame.successful && !aborted) {
@@ -232,22 +265,34 @@ public final class HookProbe {
                     parent.successful = true; parent.actualName = frame.actualName; parent.actualBackup = frame.actualBackup;
                     parent.actualTicket = frame.actualTicket;
                     parent.actualInitializedPath = frame.actualInitializedPath;
+                    parent.actualSource = frame.actualSource; parent.actualStream = frame.actualStream;
+                    parent.actualPrimary = frame.actualPrimary; parent.actualSecondary = frame.actualSecondary;
+                    parent.actualProvenanceRevision = frame.actualProvenanceRevision;
                 }
                 return;
             }
             loads.remove();
             CareerLifecycle state = lifecycle.get();
-            if (state != null) state.loaded(frame.attempt, frame.actualTicket, frame.actualName, frame.actualBackup, frame.successful && !aborted, frame.actualInitializedPath);
+            boolean accepted = state != null && state.loaded(frame.attempt, frame.actualTicket, frame.actualName, frame.actualBackup, frame.successful && !aborted, frame.actualInitializedPath);
+            var now = state == null ? null : state.ticket();
+            accepted &= now != null && frame.actualTicket != null && now.session().equals(frame.actualTicket.session()) && now.generation() == frame.actualTicket.generation();
+            decodedProvenance.accept(frame.actualProvenanceRevision, now, frame.actualSource, frame.actualStream, frame.actualBackup,
+                    frame.actualInitializedPath, frame.actualPrimary, frame.actualSecondary, accepted);
             emit("load", frame.successful ? frame.actualName : frame.name, frame.successful && !aborted,
                     frame.successful ? frame.actualBackup : frame.backup, returned, frame.successful && frame.actualBackup && !frame.backup, aborted);
         } catch (Throwable ignored) { /* Never interrupt legacy code for probe/log failures. */ }
     }
     public static void enterSave(String name) {
+        decodedProvenance.invalidate(DecodedSaveProvenance.Reason.SAVE_STARTED);
         creationInterference(CreationPathQualification.Reason.SAVE_OBSERVED);
         try {
             Save frame = new Save(name); saves.get().push(frame);
             CareerLifecycle state = lifecycle.get(); if (state != null) frame.attempt = state.beginSave();
         } catch (Throwable ignored) { }
+    }
+    static DecodedSaveProvenance.Snapshot decodedProvenance() { return decodedProvenance.snapshot(); }
+    static boolean currentProvenance(DecodedSaveProvenance.Binding binding, Object primary, Object secondary) {
+        return decodedProvenance.current(binding, ticket(), primary, secondary);
     }
     public static void metadataClosed() {
         try { Save frame = saves.get().peek(); if (frame != null) frame.metadata = true; } catch (Throwable ignored) { }
