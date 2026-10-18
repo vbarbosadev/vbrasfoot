@@ -51,6 +51,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Hook inventory compilation failed' }
           java -cp build/hook-analysis FindCareerReferencesSelfTest
           if ($LASTEXITCODE -ne 0) { throw 'Exact reference selector tests failed' }
+          java -cp build/hook-analysis MapCareerBoundariesSelfTest
+          if ($LASTEXITCODE -ne 0) { throw 'Career boundary classifier tests failed' }
       - name: Parse PowerShell scripts without executing game operations
         run: |
           $failures = @()
