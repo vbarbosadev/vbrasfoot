@@ -48,3 +48,11 @@ calendario/mercado read-only em map-gameplay-boundaries.ps1. Nao sao mod de
 patrocinio/negociacao,nem API publica ou capabilities prontas. Associacao da carreira,
 dispatcher/contexto verificado,calendario,efeitos financeiros e interceptacao de
 transferencia ainda exigem gates. Detalhes em LOADER-WRITE-FOUNDATIONS.md.
+
+Incremento seguinte:dispatcher interno liga intentduravel->gate->EDT->handler e
+resultado persistente. Adaptador financeiro fingerprintado creditRAW6/debitRAW7
+validado por snapshot completo de saldo/ledger e write/reload originais em COPIA
+privada. Nao define categoria patrocinio nem oferece API publica;contexto e binding
+da fixture sao artificiais/explícitos,nao associacao automatica do jogo instalado.
+Timeout/races/uncertain impedem replay;restauracao/copia/revisao de save e eventos/
+negociacao ainda nao resolvidos. Nenhum mod foi criado ou instalado nesta entrega.

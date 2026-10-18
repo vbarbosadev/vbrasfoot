@@ -69,8 +69,9 @@ automaticamente. Falha antes de retornar Lease nao autoriza handler; falha apos
 commit pode deixar intent incerto e bloqueado,mesmo se nenhum efeito ocorreu.
 Conservador intencional: nao sacrificar seguranca para reexecutar automaticamente.
 
-Ainda NAO ha dispatcher que combine journal+gate+comando original,protocolo publico
-de reconciliacao,carregamento do ledger em startup ou commit conjunto com save.
+Entrega posterior adicionou dispatcher e adaptador original LIMITADOS conforme
+secao5abaixo. Ainda NAO ha protocolo publico de reconciliacao,carregamento do
+ledger vinculado automaticamente em startup ou commit conjunto com save.
 Mesmo APPLIED pode significar efeito em memoria nao salvo. Restore/copia do save
 exigem decisao explicita; nenhum teste atual estabelece exactly-once interarquivos.
 
@@ -108,3 +109,47 @@ javap/scanner Java existente,sem baixar/configurar engines.
 8. API publica/documentacao/permissionamento,testes humanos e autoria externa.
 
 Nenhuma etapa dessa lista e declarada concluida por estas fundacoes isoladas.
+
+## 5. Dispatcher e adaptador financeiro limitados — entrega posterior
+
+CareerCommandDispatcher liga journal+gate+EDT+handler interno. Inicio fora da EDT,
+preflight de roots na EDT com timeout,validacao de owner/UUIDs de binding e de
+operation/digest aceitos pelo handler (handler generico nao aceita nada por default).
+Reserva antes de persistir intent; somente Lease retornada permite enfileirar efeito.
+Root/contexto/permissao checados de novo imediatamente antes do handler. Handler
+roda fora de locks dos registries,na EDT;disk I/O do journal fora da EDT.
+
+Resultados EXECUTED/NO_EFFECT/RECORDED_ONLY/DENIED/UNCERTAIN. Reabrir journal com
+APPLIED nao prova aplicar ao grafo recem-decodificado:retorna RECORDED_ONLY,nao
+executa handler e invalida contexto ate reconciliacao. Duplicata no gate tambem
+nao reemite permit. Erros de journal nunca enfileiram handler apos prepare falho;
+erro depois do efeito e UNCERTAIN,invalida contexto e nao presume rollback.
+Interrupcao de espera nao abandona silenciosamente callback agendado;preserva
+flag do caller apos gravar resultado. I/O interrompido ainda pode falhar incerto.
+
+Timeout antes de entrar callback cancela queued work e registra NO_EFFECT.
+Timeout de handler em andamento nao encerra a thread nem desfaz mutacoes:registra
+UNCERTAIN e impede instalar novo contexto enquanto handler original nao retornar.
+Resultado tardio nao apaga incerteza. Isto NAO e cancelamento cooperativo do jogo,
+exactly-once com save ou promessa de que callback legado sempre retorna.
+
+LegacyFinanceAdapter aceita apenas LegacyRuntime do perfil conhecido e SHAexatos
+de best.ah/C,sem modificar classes/EXE/schema. Usa getters e snapshot dos14campos
+numericos do ledger;require clube da lista humana atual/jZtrue,mesmas roots/ledger,
+estado esperado inalterado e plano one-shot. FinanceDelta valida amountintpositivo,
+saldo long,acumulador int da categoria,totais long e a soma IADD original dL+dM
+antes da conversao. Debito nao pode criar divida neste recorte.
+
+Somente CREDIT_RAW_6(v) e DEBIT_RAW_7(w). Nomes sao codigos do bytecode,NAO
+patrocinio/salario/ou categoria de negocio validada. Adapter verifica depois saldo
+e TODOS os campos do ledger;qualquer diferenca ou excecao apos chamar original
+e incerta,sem compensacao por setter bruto. Nenhum outro campo e escrito via
+reflexao;fields privados sao apenas lidos na verificacao. Plano/digest e temporario
+por instancia (nonce),nao contrato de request persistente/recriavel por mods.
+
+test-finance-commands.ps1 cria fixture marcada/fresh fora do jogo instalado,copia
+EXE/save por hash,executa credito/debito via dispatcher e writer/reload originais
+em arquivos finance-output novos. Nao inicia main do jogo,nao cria carreira/partida,
+nao grava no save de origem nem comprova reabertura pelo EXE standalone/aceite UI.
+Contexto/UUIDs sao autoridades artificiais EXPLICITAS da fixture,NAO geracao de
+identidade real ou prova de qualificacao do lifecycle. Public API continua read-only.

@@ -1,5 +1,65 @@
 # Validacao — 16/10/2026
 
+## Dispatcher com journal e adaptador financeiro original limitado
+
+CareerCommandDispatcher agora conecta intentpersistido->gate->EDT->handler->
+resultadopersistido. Exige owner/bindingUUIDs coerentes e handler que aceite
+operation/payloadDigest;callbacks genericos default nao autorizados. Root preflight
+na EDT/timeouts e nova checagem antes do efeito;I/O fora da EDT,sem callback sob
+lockdo gate. Diferencia EXECUTED/NO_EFFECT/RECORDED_ONLY/DENIED/UNCERTAIN.
+Journal previamente APPLIED nunca e apresentado como efeito no grafo recem-carregado;
+nao reexecuta. Timeoutqueued cancela sem efeito,timeoutRUNNING permanece incerto,
+nao termina EDT/threadoriginal. Executing-set impede instalar contexto enquanto
+handler antigo nao retornar,mesmo apos invalidacao. Resultado tardio nao desfaz
+uncertainty;falha no journal apos efeito suspende contexto. Interrupcao do caller
+e restaurada apos tentativa de finalizar journal,sem abandono silencioso de fila.
+
+LegacyFinanceAdapter fingerprintado best.ah/C,perfilconhecido,somente clubehumano
+exato e ledgerjZtrue. Planoweak/one-shot,expectedsnapshot14camposnumericos+saldo,
+roots/ledgeridentidade antes/depois. Usa v(int,int)categoria6 ou w(int,int)categoria7
+ORIGINAIS;nao escreve fields por reflexao e nao usa setter e(long) para rollback.
+Fields privados apenas lidos. CodigosRAW6/7 NAO sao categorias de patrocinio/salario
+semanticamente validadas;nenhuma API/capability/mod habilitado. Plano/digest nonce
+temporario,nao request persistente recriavel por mod.
+
+FinanceDelta valida amountintpositivo,saldolong,acumuladorint,totaislong e IADD
+dL+dM antes de conversao long;debito nao cria divida neste recorte. Sobrescrita
+por plano stale recusada antes da rotina original;falhaaposinvoke e incerta,nao
+promessa de transacao/reversao. Threadlegada pode ignorar EDT;postcheck detecta
+divergencia observavel,nao prova ausencia de corrida ou grafo inteiro consistente.
+
+Build final em finance-pipeline-reviewed.log:29dispatcherchecks+15aritmetica,
+mais suites existentes. Testes proprios incluem owner/binding/opdigest mismatches,
+duplicata/restart/recordedonly,staleRoots,journalCAS/faultbeforeaftercommit,
+EDTrefusal/interrupcao,queued/runningtimeout,latecallback e recusa de contexto
+enquanto handleroriginal simulado continua executando. Wrapper financeiro teve
+erro inicial $HOME read-only do PowerShell antes de iniciar runtime;corrigido
+para loaderHome e repetido em fixturesnovas,sem modificar arquivos de usuario.
+
+NOVO teste original test-finance-commands.ps1 aprovado:20checks em fixture
+Temp/opencode/vbrasfoot-finance-fd003f07f3e049f594dc05905e71bef8. EXE/savecopiados
+porhash,marker/cwdfresh,frameSINTETICO,loadoriginal. Credito123,debit23,credito5
+viajournal/gate/adapteroriginais produziram exatamente saldo+105 e ledger previsto.
+Oferta de op errada para handler negada sem journal,duplicata nao repetida,plano
+stale nao aplicado,negativo recusado,refsantigas recusadas apos reload. Writer
+original gravou finance-output.s22/sbck NOVOS com bytesiguais;loadoriginal reabriu,
+saldo e TODOS os14camposnumericos de ledger iguais aos esperados,contagemclubes
+preservada. Saveinput e EXEorigem conferidos inalterados. Nao inicia main/joga/
+cria carreira,nem testa EXEstandalone/aceiteUI/semantica patrocinio/roundtrip de
+todo o grafo. ContextoUUID/binding sao ARTIFICIAIS da fixture,nao associacao real.
+
+132checks I/O/schema originais anteriores tambem aprovados em fixture privada
+vbrasfoot-hook-io-0e352f6ffcb442fc933f4c35d07c923b. SDK-only5projetos/hashes/
+allowlist/negative/JSON aprovado fora checkout fixture40b7fb76407d4fb8abb774301f03f6ea,
+archive dist/sdk-0.9.3-journal-dispatch.zip local. Nada publicado/tagueado ou
+instalado;loader do usuario continua0.9.3SHA3662113df6f2277c7c3ab05d3e9bb0143664a707dcf798dbf3109f8b235004f7.
+Sem alterar saves/mods instalados ou gerar mods de patrocinio/negociacao.
+
+Continuam pendentes associacao aceita de carreira/save/revisao/copy/rename/restore,
+reconciliacao apos crash/save,journalcompactacao/eventoscalendario,categorias
+financeiras/UI/interceptacao de mercado,APIs publicas/autoriaexterna. Nao declarar
+o pedido inteiro concluido com esta entrega limitada.
+
 ## Bases internas de persistencia e comandos — sem novos mods ou API publica
 
 Pedido atual e ampliar loader para permitir patrocinio/negociacao futura,NAO
