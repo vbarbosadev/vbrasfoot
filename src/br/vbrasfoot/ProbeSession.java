@@ -134,6 +134,30 @@ final class ProbeSession implements AutoCloseable {
         }
         try (var writer = Files.newBufferedWriter(report.resolveSibling("creation-entry.properties"))) { entries.store(writer, "Bounded weak creation entry binding"); }
         catch (Exception failure) { System.err.println("Falha ao registrar creation entry: " + failure); }
+        var qualificationSnapshot = HookProbe.creationQualifications();
+        Properties qualification = new Properties();
+        qualification.setProperty("format", "1");
+        qualification.setProperty("coverage", "Strict online no-friendly/no-save synchronous path recognition only; not career readiness, global quiescence, durable save, lifecycle activation or persistent identity");
+        qualification.setProperty("lifecycleActivated", "false");
+        qualification.setProperty("count", Integer.toString(qualificationSnapshot.attempts().size()));
+        qualification.setProperty("dropped", Long.toString(qualificationSnapshot.dropped()));
+        qualification.setProperty("active", Integer.toString(qualificationSnapshot.active()));
+        qualification.setProperty("capacityRejected", Long.toString(qualificationSnapshot.capacityRejected()));
+        int qualificationIndex = 0;
+        for (var value : qualificationSnapshot.attempts()) {
+            String prefix = "attempt." + qualificationIndex++ + ".";
+            qualification.setProperty(prefix + "entry", Long.toString(value.entry()));
+            qualification.setProperty(prefix + "attempt", Long.toString(value.attempt()));
+            qualification.setProperty(prefix + "generation", Long.toString(value.generation()));
+            qualification.setProperty(prefix + "status", value.path().status().name());
+            qualification.setProperty(prefix + "reason", value.path().reason().name());
+            qualification.setProperty(prefix + "signals", Integer.toString(value.path().signals()));
+            qualification.setProperty(prefix + "methodEntries", Integer.toString(value.path().methodEntries()));
+            qualification.setProperty(prefix + "maxDepth", Integer.toString(value.path().maxDepth()));
+            qualification.setProperty(prefix + "panelReturns", Integer.toString(value.path().panelReturns()));
+        }
+        try (var writer = Files.newBufferedWriter(report.resolveSibling("creation-qualification.properties"))) { qualification.store(writer, "Strict observed path qualification, not career readiness"); }
+        catch (Exception failure) { System.err.println("Falha ao registrar creation qualification: " + failure); }
         Properties candidates = new Properties();
         candidates.setProperty("format", "1");
         candidates.setProperty("coverage", "Candidate path/content observations only; not CareerLoaded, commit, persistent identity or proof of initialization");

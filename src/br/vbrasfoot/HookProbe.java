@@ -55,6 +55,7 @@ public final class HookProbe {
         return state == null ? null : state.ticket();
     }
     public static void rootAssigned() {
+        creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
         try {
             CareerLifecycle state = lifecycle.get();
             if (state != null) {
@@ -78,6 +79,7 @@ public final class HookProbe {
     static java.util.List<CreationContentTracker.Report> creationContent() { return creationContent.snapshot(); }
     static java.util.List<CreationContentTracker.Step> creationSteps() { return creationContent.steps(); }
     public static void creationPathStep(String label, String stage, Object primary, Object secondary) {
+        try { creationEntries.step(label, stage, primary, secondary, generation()); } catch (Throwable ignored) { }
         try {
             creationContent.step(label, stage, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
                     javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation());
@@ -85,6 +87,7 @@ public final class HookProbe {
     }
     public static void creationPathStarted(String label, Object primary, Object secondary) {
         if (label.equals("a.bV.AB")) creationDialog("AB", "CANDIDATE_ENTER", 0, primary, secondary);
+        try { creationEntries.candidate(label, "ENTER", primary, secondary, generation()); } catch (Throwable ignored) { }
         try { asyncCreation.origin(label, primary, secondary, generation()); } catch (Throwable ignored) { }
         try { creationContent.enter(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
                 javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation()); } catch (Throwable ignored) { }
@@ -94,6 +97,7 @@ public final class HookProbe {
         creationPathReturned(label, null, null);
     }
     public static void creationPathReturned(String label, Object primary, Object secondary) {
+        try { creationEntries.candidate(label, "RETURN", primary, secondary, generation()); } catch (Throwable ignored) { }
         try { asyncCreation.endOrigin(label); } catch (Throwable ignored) { }
         try { creationContent.finish(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
                 javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation(), true); } catch (Throwable ignored) { }
@@ -104,12 +108,14 @@ public final class HookProbe {
         creationPathFailed(label, null, null);
     }
     public static void creationPathFailed(String label, Object primary, Object secondary) {
+        try { creationEntries.candidate(label, "FAILED", primary, secondary, generation()); } catch (Throwable ignored) { }
         try { asyncCreation.endOrigin(label); } catch (Throwable ignored) { }
         try { creationContent.finish(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
                 javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation(), false); } catch (Throwable ignored) { }
         try { emit("creation-candidate-failed", label, false, false, false, false, true); } catch (Throwable ignored) { }
     }
     public static void enterLoad(String name, boolean backup) {
+        creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
         try {
             ArrayDeque<Load> stack = loads.get();
             Load frame = new Load(name, backup);
@@ -120,6 +126,7 @@ public final class HookProbe {
         } catch (Throwable ignored) { }
     }
     public static void asyncScheduleStarted(String label) {
+        creationInterference(CreationPathQualification.Reason.ASYNC_OBSERVED);
         try { asyncCreation.scheduleStarted(label); } catch (Throwable ignored) { }
     }
     public static void asyncTaskCreated(String label, Object task, Object primary, Object secondary) {
@@ -132,6 +139,7 @@ public final class HookProbe {
         try { asyncCreation.scheduleFinished(label, false); } catch (Throwable ignored) { }
     }
     public static void asyncRunStarted(String label, Object task, Object primary, Object secondary) {
+        creationInterference(CreationPathQualification.Reason.ASYNC_OBSERVED);
         try { asyncCreation.runStarted(label, task, primary, secondary, generation()); } catch (Throwable ignored) { }
     }
     public static void asyncRunReturned(String label, Object task, Object primary, Object secondary) {
@@ -151,11 +159,16 @@ public final class HookProbe {
         try { creationEntries.preparation(stage, panel, primary, secondary, generation()); } catch (Throwable ignored) { }
     }
     public static void creationEntryAttempt(Object panel, Object primary, Object secondary) {
-        try { creationEntries.attempt(panel, primary, secondary, generation()); } catch (Throwable ignored) { }
+        try { creationEntries.attempt(panel, primary, secondary, generation(), javax.swing.SwingUtilities.isEventDispatchThread()); } catch (Throwable ignored) { }
     }
     static CreationEntryTracker.Snapshot creationEntries() { return creationEntries.capture(); }
+    static CreationEntryTracker.QualificationSnapshot creationQualifications() { return creationEntries.qualificationSnapshot(); }
+    private static void creationInterference(CreationPathQualification.Reason reason) {
+        try { creationEntries.interference(reason); } catch (Throwable ignored) { }
+    }
     static CreationDialogTracker.Snapshot creationDialogs() { return creationDialogs.capture(); }
     public static void creationProgress(String method, String stage, int panel, Object receiver, Object primary, Object secondary) {
+        try { creationEntries.progress(method, stage, panel, receiver, primary, secondary, generation()); } catch (Throwable ignored) { }
         try { asyncCreation.progress(method, stage, panel, receiver, primary, secondary, generation()); } catch (Throwable ignored) { }
     }
     static java.util.List<AsyncCreationTracker.Progress> creationProgress() { return asyncCreation.progress(); }
@@ -163,6 +176,7 @@ public final class HookProbe {
     static long creationProgressOutside() { return asyncCreation.progressOutside(); }
     static AsyncCreationTracker.Snapshot asyncCreationSnapshot() { return asyncCreation.capture(); }
     public static void enterReset() {
+        creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
         try {
             Reset frame = new Reset(); resets.get().push(frame);
             CareerLifecycle state = lifecycle.get();
@@ -229,6 +243,7 @@ public final class HookProbe {
         } catch (Throwable ignored) { /* Never interrupt legacy code for probe/log failures. */ }
     }
     public static void enterSave(String name) {
+        creationInterference(CreationPathQualification.Reason.SAVE_OBSERVED);
         try {
             Save frame = new Save(name); saves.get().push(frame);
             CareerLifecycle state = lifecycle.get(); if (state != null) frame.attempt = state.beginSave();

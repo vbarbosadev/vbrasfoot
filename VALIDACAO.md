@@ -1,5 +1,56 @@
 # Validacao — 16/10/2026
 
+## 0.9.3 — reconhecimento online estrito, nao prontidao
+
+Reutilizada rodada real0.9.2 0fad05d7-aaa6-487d-8da4-67c144ea5ccc:preparacao
+completa/entry1 e callback da mesma instancia/attempt2,bound1/unbound0,NO_OPTION1,
+AB/oq retornaram,roots/generation4/thread37 estaveis.9events entry/6dialog/
+78progress,V1/ap13/at12/ax12,painel2callreturn,VRETURN;sem drop/rejected/outside.
+GuardUNKNOWN/healthytrue,io0/0,sem save/pending/stale,dispatcher3/3. Erro de equipe
+E8CC1702 e hashforge_can.ban preexistente preservados. Registrado tambem na PR41.
+
+Implementada maquina de estados separada em CreationPathQualification e integrada
+aos hooks ja existentes via CreationEntryTracker. NAO adiciona sites de bytecode/transformacoes
+ou altera schema legado. Ordem online inclui binding fraca/primeira tentativa EDT,
+oq/pl/choice1/AB/az/V/stackLIFO38entradas,maxdepth38,painel2request/return,retornos
+V/AB/pl/oq. Receiver so requerido nas entradas; roots/epoch/geracao verificadas em
+todos os sinais. Outro shape completo e UNSUPPORTED_SHAPE,nao falha inventada do
+jogo. Formato creation-qualification.properties statusRUNNING/REJECTED/PATH_RETURNED,
+reason de primeira falha,limites2048sinais/64depth/64ativos/128concluidos,drop e
+capacityRejected explicitos. Snapshot detached inclui incompletos sem esperar EDT.
+
+PATH_RETURNED e historico de um percurso reconhecido,nao CareerReady/ACTIVE,
+identidade persistente ou grafo/quiescencia/durabilidade assegurados. Sem mudanca
+em CareerLifecycle,eventos/capabilities/metodos SDK. Interferencia observada de
+save/load/reset/root/scheduler/run e overlap,reentrada/progressao fora da thread
+rejeitam conservadoramente ativos;nao provam cobertura de todos os schedulers/
+reflexao/JNI. Binding pode continuar diagnosticamente bound,mas qualificador e
+single-use inclusive apos tentativa de validacao sem pl. A UI nao e bloqueada.
+
+281checks da maquina estrita e289integracao aprovados em
+qualification-final-build.log:remove/duplica cada sinal,No vsYes/cancel/
+close,failed em fronteiras,aa/AC/pn,outropainel,receiver,roots/geracao em cada sinal,
+bounds,eventringeviction,captureincompleta/reset,reuso e65threads proprias para
+limite64ativos. Bridge real na EDT com objetos proprios reconhece o shape e deixa
+guardinteiro igual antes/depois; hooks reais de save/async/root recusam qualificacao.
+Isso e teste SINTETICO,nao execucao de nova carreira original.
+
+132checks I/O/schema/detalhes originais aprovados com fonte final0.9.3 em
+Temp/opencode/vbrasfoot-hook-io-31b1b75fb71646d6a55bc4b4d50a9cc3,log privado
+qualification-reviewed-original.log. Nao cria carreira nem exercita os markers
+de qualificacao na UI original; garante apenas os recortes de regressao existentes.
+
+Relatorios anteriores tem namespaces/sequencias locais distintas; NAO foram
+reclassificados retroativamente como PATH_RETURNED. Corroboracao online original
+nova permanece pendente; nenhuma nova criacao/partida/save solicitada ao usuario
+para esta entrega e nenhuma feita automaticamente pelo agente.
+
+Portablefixture352fd733fa5a495892312dc14604608c e SDK-only5projetos/hashes/allowlist/
+negative/JSON fora checkout fixture2dd60da3902f4c0d835590488122b4d9 aprovados sob
+Temp/opencode;UiSmokeTest comparador sintetico aprovado. Pacotes locais
+dist/portable-0.9.3-qualification-reviewed e dist/sdk-0.9.3-qualification-reviewed.zip,
+sem tag/release/upload ou distribuicao de jogo/save/bytecode proprietario.
+
 ## 0.9.2 — vinculo fraco entre preparacao e callback de criacao
 
 Nova investigacao reutilizou a rodada4da73e9a-ff85-4272-963e-afea042d9551:

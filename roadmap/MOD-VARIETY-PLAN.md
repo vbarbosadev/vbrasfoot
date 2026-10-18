@@ -33,3 +33,10 @@ anterior.0.9.2 acrescenta binding fraco de hU.oq->dg->instancia bV->oq,recusando
 rotas sem essa preparacao/roots trocadas/reentrada. Apenas diagnostico; positivo
 original novo ainda pendente, prontidao/P3 continuam nao liberados. Nao repetir
 variantes de amistoso antes de examinar a evidencia do binding.
+
+0.9.2 real corroborou binding1/unbound0.0.9.3implementa qualificador online
+do shape estrito (38entradas,NO_OPTION,painel2 e retornos),rejeicoes/bounds
+e report separado,sem hooks novos ou eventos SDK. PATH_RETURNED nao ativa guard
+nemP3; reports anteriores nao provam ordem global para qualificacao retroativa.
+Novo runtime positivo pendente,sem pedir outra carreira nesta entrega. Leituras/
+scout permanecem utilizaveis sem depender deste gate; persistencia/gameplay nao.
