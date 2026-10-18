@@ -109,6 +109,20 @@ final class ProbeSession implements AutoCloseable {
         state.setProperty("loadedBackup", Boolean.toString(finalState.loadedBackup()));
         state.setProperty("loads", Long.toString(finalState.loads()));
         state.setProperty("saves", Long.toString(finalState.saves()));
+        state.setProperty("read.initializedPaths", Long.toString(finalState.initializedReadPaths()));
+        state.setProperty("save.completeSequences", Long.toString(finalState.completeSaveSequences()));
+        state.setProperty("save.partialSequences", Long.toString(finalState.partialSaveSequences()));
+        state.setProperty("save.failedSequences", Long.toString(finalState.failedSaveSequences()));
+        state.setProperty("save.inFlight.beforeClose", Integer.toString(finalState.inFlightSaves()));
+        var outcome = finalState.lastSaveOutcome();
+        if (outcome != null) {
+            state.setProperty("save.last.metadataClosed", Boolean.toString(outcome.metadataClosed()));
+            state.setProperty("save.last.primaryClosed", Boolean.toString(outcome.primaryClosed()));
+            state.setProperty("save.last.backupCopied", Boolean.toString(outcome.backupCopied()));
+            state.setProperty("save.last.returned", Boolean.toString(outcome.returned()));
+            state.setProperty("save.last.bound", Boolean.toString(outcome.bound()));
+            state.setProperty("save.last.completeSequence", Boolean.toString(outcome.completeSequence()));
+        }
         state.setProperty("invalidations", Long.toString(finalState.invalidations()));
         state.setProperty("staleCompletions", Long.toString(finalState.staleCompletions()));
         state.setProperty("unboundSaves", Long.toString(finalState.unboundSaves()));

@@ -23,7 +23,7 @@ public final class CareerTransformer {
     static byte[] transformFixture(byte[] original) throws IOException {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        int[] counts = new int[7];
+        int[] counts = new int[9];
         reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
             @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 MethodVisitor method = super.visitMethod(access, name, descriptor, signature, exceptions);
@@ -90,6 +90,12 @@ public final class CareerTransformer {
                         if (save && owner.equals("com/esotericsoftware/kryo/io/Output") && name.equals("close") && desc.equals("()V")) {
                             counts[3]++; call("primaryClosed", "()V");
                         }
+                        if (save && owner.equals("java/io/FileOutputStream") && name.equals("close") && desc.equals("()V")) {
+                            counts[7]++; call("metadataClosed", "()V");
+                        }
+                        if (load && owner.equals("best/f") && name.equals("ap") && desc.equals("()V")) {
+                            counts[8]++; call("loadInitializationPathFinished", "()V");
+                        }
                         if (save && owner.equals("java/nio/file/Files") && name.equals("copy")
                                 && desc.equals("(Ljava/nio/file/Path;Ljava/nio/file/Path;[Ljava/nio/file/CopyOption;)Ljava/nio/file/Path;")) {
                             counts[4]++; call("backupCopied", "()V");
@@ -126,6 +132,7 @@ public final class CareerTransformer {
         // Real c.a has five observed root writes (two constructor + two decoder + setter).
         // The private synthetic fixture does not define those original fields.
         if (reader.getClassName().equals("c/a") && counts[6] != 5) throw new IOException("Root-assignment sites changed; refused");
+        if (reader.getClassName().equals("c/a") && (counts[7] != 1 || counts[8] != 1)) throw new IOException("Metadata/load initialization sites changed; refused");
         return writer.toByteArray();
     }
 }

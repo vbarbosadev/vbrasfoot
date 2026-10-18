@@ -18,7 +18,7 @@ public final class HookProbe {
     private static final ThreadLocal<ArrayDeque<Reset>> resets = ThreadLocal.withInitial(ArrayDeque::new);
     private static final class Load {
         String name, actualName;
-        boolean backup, decoded, actualBackup, successful;
+        boolean backup, decoded, actualBackup, successful, initializedPath, actualInitializedPath;
         CareerLifecycle.Ticket decodedTicket, actualTicket;
         CareerLifecycle.Ticket assignedTicket;
         CareerLifecycle.Attempt attempt;
@@ -27,8 +27,8 @@ public final class HookProbe {
     private static final class Reset { CareerLifecycle.Attempt attempt; }
     private static final class Save {
         String name;
-        boolean closed, backup;
-        CareerLifecycle.Ticket ticket;
+        boolean metadata, closed, backup;
+        CareerLifecycle.SaveAttempt attempt;
         Save(String name) { this.name = name; }
     }
     private HookProbe() { }
@@ -143,6 +143,9 @@ public final class HookProbe {
             if (frame != null) { frame.decodedTicket = frame.assignedTicket; frame.decoded = true; }
         } catch (Throwable ignored) { }
     }
+    public static void loadInitializationPathFinished() {
+        try { Load frame = loads.get().peek(); if (frame != null) frame.initializedPath = true; } catch (Throwable ignored) { }
+    }
     public static void exitLoad(boolean returned) { finishLoad(returned, false); }
     public static void abortLoad(Throwable failure) { finishLoad(false, true); }
     private static void finishLoad(boolean returned, boolean aborted) {
@@ -153,24 +156,32 @@ public final class HookProbe {
             if (frame.decoded && returned && !aborted) {
                 frame.successful = true; frame.actualName = frame.name; frame.actualBackup = frame.backup;
                 frame.actualTicket = frame.decodedTicket;
+                frame.actualInitializedPath = frame.initializedPath;
             }
             if (!stack.isEmpty()) {
                 if (frame.successful && !aborted) {
                     Load parent = stack.peek();
                     parent.successful = true; parent.actualName = frame.actualName; parent.actualBackup = frame.actualBackup;
                     parent.actualTicket = frame.actualTicket;
+                    parent.actualInitializedPath = frame.actualInitializedPath;
                 }
                 return;
             }
             loads.remove();
             CareerLifecycle state = lifecycle.get();
-            if (state != null) state.loaded(frame.attempt, frame.actualTicket, frame.actualName, frame.actualBackup, frame.successful && !aborted);
+            if (state != null) state.loaded(frame.attempt, frame.actualTicket, frame.actualName, frame.actualBackup, frame.successful && !aborted, frame.actualInitializedPath);
             emit("load", frame.successful ? frame.actualName : frame.name, frame.successful && !aborted,
                     frame.successful ? frame.actualBackup : frame.backup, returned, frame.successful && frame.actualBackup && !frame.backup, aborted);
         } catch (Throwable ignored) { /* Never interrupt legacy code for probe/log failures. */ }
     }
     public static void enterSave(String name) {
-        try { Save frame = new Save(name); frame.ticket = ticket(); saves.get().push(frame); } catch (Throwable ignored) { }
+        try {
+            Save frame = new Save(name); saves.get().push(frame);
+            CareerLifecycle state = lifecycle.get(); if (state != null) frame.attempt = state.beginSave();
+        } catch (Throwable ignored) { }
+    }
+    public static void metadataClosed() {
+        try { Save frame = saves.get().peek(); if (frame != null) frame.metadata = true; } catch (Throwable ignored) { }
     }
     public static void primaryClosed() {
         try { Save frame = saves.get().peek(); if (frame != null) frame.closed = true; } catch (Throwable ignored) { }
@@ -187,7 +198,7 @@ public final class HookProbe {
             Save frame = stack.pop();
             if (stack.isEmpty()) saves.remove();
             CareerLifecycle state = lifecycle.get();
-            if (state != null && frame.closed && !aborted) state.saved(frame.ticket, frame.name);
+            if (state != null) state.finishSave(frame.attempt, frame.name, frame.metadata, frame.closed, frame.backup, !aborted);
             emit("save", frame.name, frame.closed && !aborted, frame.backup, !aborted, false, aborted);
         } catch (Throwable ignored) { }
     }

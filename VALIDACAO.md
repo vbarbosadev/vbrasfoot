@@ -1267,3 +1267,59 @@ reexecutados/aprovados. Pacotes revisados locais:
 dist/portable-0.7.2-native-reviewed e dist/sdk-0.7.2-native-reviewed.zip.
 SDK fora checkout: Temp/opencode/vbrasfoot-sdk-author-db757c6ef5774698b3e81982762febe0.
 Sem tag/upload/publicacao; guard de jogo aberto continua obrigatorio.
+
+## P4/0.7.3 — etapas de save e ramo de inicializacao de leitura
+
+Usuario confirmou visual0.7.2 melhor e adiou refinamentos, autorizando trabalho
+nos eventos confiaveis de carreira. Incremento interno, nao P4/P3 completos.
+
+REA binary_session consultado: sem alvo aberto, provedores Ghidra/IDA nao
+configurados, Hopper indisponivel em Windows e JEB sem provider. Nenhuma instalacao
+ou reconfiguracao feita. Inspecao suportada via javap local do EXE de SHA conhecido
+2fa65476a92611419ce28c0cfd158a0c7f741af235aa988b0bed00c44443bb1c;
+build/career-boundaries-javap.txt privado/ignorado, bytecode estatico, nao runtime.
+c.a.ae escreve .info primeiro e engole IOException; depois .s22 e copia .sbck.
+c.a.c pula inicializacao com frame existente e chama best.f.ap no ramo sem frame.
+Nenhum trecho de bytecode/artefato proprietario incluido no pacote publico.
+
+CareerTransformer mantem SHA inteiro c.a e schema; novos sites exatos:
+FileOutputStream.close no save (apos fechar .info) e best.f.ap na leitura.
+Guard SaveAttempt limitado64, ticket na entrada, recusa ambas conclusoes de saves
+sobrepostos/atrasados/foreign/duplicados/apos close. Sem cancelar/serializar saves
+originais. SaveOutcome distingue metadata/primary/backup/returned/bound/completo,
+sem I/O/mod callback no hook. Closure de JVM nao sintetiza completions.
+Saves com primaryClosed e falha .info/backup continuam PRIMARY_WRITE_COMPLETED
+experimentais, mas nao sequencia completa. Marcador de ramo de inicializacao so
+conta com leitura aceita; nao promove criacao/UNKNOWN nem prova fila/UI pronta.
+Report privado career-lifecycle.properties inclui counters/ultimo resultado/pendentes.
+
+test.ps1 -IncludeUi aprovado:39 guard checks e demais suites/modelos/overlay.
+test-career-hooks.ps1 aprovado:61 checks original I/O, incluindo .info como
+diretorio novo e falha primaria/backup/null/fallback/schema/releitura. Sequencia
+completa1, parciais2 (backup e .info), falhas2 (primario e null); frame sintetico
+observa zero ramos completos de UI. Origem EXE/save hashados e preservados.
+Fixture: Temp/opencode/vbrasfoot-hook-io-b452824e73f642968da9d62ad0abb665.
+
+Portable0.7.3 gerado/regressao aprovada:
+Temp/opencode/vbrasfoot-install-582fc2659e4f4e369d2b230e2751ad84.
+SDK-only0.7.3 zip fora checkout aprovado, quatro projetos API-only/hashes/allowlist/
+negative/JSON/no-init: Temp/opencode/vbrasfoot-sdk-author-f446c566eaf545bea9fb45c859886b3c.
+Comando agregado ultrapassou240s durante SDK test; nao inferir sucesso dessa
+execucao. SDK teste reexecutado separado e aprovado, log career-boundaries-sdk-final-test.log.
+Sem tag/upload/publicacao. Nao fsync/commit atomico/snapshot/identidade persistente,
+CareerLoaded/CareerSaved/CareerUnloaded publico ou desbloqueio de sidecars/P3.
+
+Proximo gate real: abrir copia Documents com --probe-career-hooks, carregar uma
+carreira existente, salvar normalmente e fechar. Conferir read.initializedPaths e
+save.last.* no relatorio; reabrir no EXE original. Sem criar carreira/jogar para
+validar este incremento. Falhas induzidas somente em fixture privada, nao no jogo
+do usuario. UNKNOWN da criacao e unload nao mapeado permanecem bloqueios separados.
+
+Inspecao estatica adicional de Output.close na biblioteca local Kryo4.0.2
+(SHAf32aceb5b2eb39be6f339da722c3bb043df163c38d51522acbb77ee4d6c4d362)
+mostra flush seguido de close do stream com IOException engolida. Saida privada
+build/career-output-close-javap.txt. Nenhuma falha dessa classe foi induzida em
+runtime nesta entrega. completeSequence segue sendo apenas sequencia de marcadores,
+nao prova de ausencia de erro subjacente. Este limite impede anunciar CareerSaved
+confiavel sem novo mapeamento/corroboracao; nao adicionar close/fsync ao jogo para
+mascarar o problema e nao instrumentar biblioteca sem fingerprint/schema/testes.

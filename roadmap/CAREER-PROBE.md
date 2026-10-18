@@ -150,6 +150,14 @@ que mudanca de timestamp/hash nao e criterio de evento. Detalhes em VALIDACAO.md
 
 ## Pendencias antes da API
 
+Incremento de etapas instrumenta fechamento do FileOutputStream de .info e
+retorno de best.f.ap no ramo completo da leitura. Guard registra sequencias
+completas/parciais/falhas de save e recusa tickets de saves sobrepostos.
+Sites exatos/fingerprint/schema preservados; nenhum evento publico promovido.
+Teste original induz falha .info em diretorio novo da fixture, confirmando que
+.s22 e backup podem concluir apesar dessa falha. Frame sintetico registra zero
+passagens pelo ramo completo de UI; isso nao valida o novo marcador em UI real.
+
 Incremento atual: [guard interno de lifecycle](CAREER-LIFECYCLE.md), independente
 da fila diagnostica, com invalidacao conservadora e relatorio privado. Permanece
 opt-in; nao substitui a corroboracao de UI nem implementa eventos publicos.

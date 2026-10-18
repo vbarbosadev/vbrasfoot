@@ -18,6 +18,11 @@ persistencia por carreira. Nunca usar nomes/geracoes como identidade de sidecar.
 | READ_COMPLETED | Decode/retorno aceitos na geracao atual e tentativa exclusiva; fallback externo gera um so evento |
 | PRIMARY_WRITE_COMPLETED | Output.close original e conclusao aceitos para ticket ativo atual; nao garante backup/.info/fsync |
 
+Incremento interno recusa primary write quando houve sobreposicao de saves.
+Diagnostico separado observa .info/backup/retorno, sem ampliar a semantica deste
+Kind ou adicionar um evento CareerSaved. Resultado completo observado nao e
+durabilidade. Veja CAREER-LIFECYCLE.md; API/manifesto permanecem os mesmos.
+
 `State` tem session, generation, revision, phase, reads, primaryWrites e healthy.
 Nao contem nomes/caminhos, referencias legadas ou referencias mutaveis. Sessao e
 geracao pertencem ao guard, **nao** sao a CareerScope do SDK. EMPTY significa nao
@@ -64,7 +69,7 @@ em modo normal. Declara somente events.career.read, registra dados sem caminhos.
 
 33 checks sinteticos de replay/ordem, stale completion, perda, callback falho,
 worker lento, limites, close, permissao e ownership. Teste original de I/O usa
-esse JAR SDK-only e verifica tres reads (incluindo fallback uma vez) e duas writes
+esse JAR SDK-only e verifica tres reads (incluindo fallback uma vez) e tres writes
 primarias; frame sintetico, nao partida/UI completa. Suites/gates em VALIDACAO.md.
 
 Pendente: criar/trocar/descarregar pela UI, todas as rotas originais, save commit

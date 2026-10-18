@@ -671,6 +671,12 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 
 ### P2/P5 — composicao visual0.7.0
 
+Usuario confirmou visual0.7.2 bem melhor e adiou refinamentos esteticos. Seguinte
+entrega prioriza P4, nao novo redesign: guard de saves sobrepostos e observacao
+separada de .info/.s22/.sbck/retorno, com marcador do ramo completo de leitura.
+39 checks guard sintetico e61 I/O original aprovados; UI completa/criacao/unload/
+durabilidade ainda nao demonstrados. Nao habilita P3 ou eventos completos.
+
 Revisao0.7.2: comparador900x590, X superior, menos faixas, botoes com relevo LAF
 e cabecalhos normais para aproximar captura nativa fornecida. Smoke exige tamanho
 compacto e listas visiveis; SDK-only aprovado. Portable gerado/regressao bloqueada
