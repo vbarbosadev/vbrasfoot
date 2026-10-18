@@ -54,6 +54,7 @@ public final class ModContextLifecycleSelfTest {
         rejected(() -> retainedGame.snapshot(), "previously obtained game facade revoked");
         rejected(() -> retainedGame.scopedCalendar(), "calendar facade revoked after cleanup");
         rejected(() -> retainedGame.scopedClubBalance(null), "balance facade revoked before delegating");
+        rejected(() -> retainedGame.scopedPlayerDetails(null, 0, 1), "detail facade revoked before delegating");
         rejected(() -> retainedObservations.state(), "previously obtained observation facade revoked");
         rejected(() -> retainedObservations.subscribe(update -> { }), "retained observation subscribe revoked");
         rejected(() -> retained.registerAction("later", "Later", () -> calls++), "late action rejected");

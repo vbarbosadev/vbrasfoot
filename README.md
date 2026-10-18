@@ -1,4 +1,8 @@
-# vbrasfoot 0.8.2 (experimental)
+# vbrasfoot 0.9.0 (experimental)
+
+Novo: [detalhes de jogadores](roadmap/PLAYER-DETAILS.md) e
+[scout somente leitura](examples/player-scout/README.md). As demais frentes
+seguem com gates explicitos no [plano de variedade](roadmap/MOD-VARIETY-PLAN.md).
 
 [Criar mods com ajuda de IA](roadmap/AI-MOD-AUTHORING.md): capacidades reais,
 prompt inicial, testes e validador `--describe-sdk` / `--json mod.jar` sem jogo.

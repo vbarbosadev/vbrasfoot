@@ -89,6 +89,24 @@ final class CareerBridge implements GameAccess {
         });
     }
 
+    @Override public ScopedPlayerDetailsPage scopedPlayerDetails(ClubRef reference, int offset, int limit) {
+        GameAccess.validatePage(offset, limit);
+        java.util.Objects.requireNonNull(reference, "club reference");
+        return scopedRead(() -> {
+            ReadState state = readState(); scopes.requireScope(reference.scope());
+            if (!state.loaded()) throw new GameQueryException(GameQueryException.Reason.NO_CAREER, "Nenhuma carreira identificada");
+            Object club = state.clubs().get(scopes.resolve(reference, state.clubs()));
+            List<?> players = (List<?>) call(club, "kc"); int count = players.size();
+            boolean enabled = (Boolean) call(state.primary(), "isHabilidadeIndividual");
+            List<PlayerDetails> result = new ArrayList<>();
+            for (int i = offset; i < count && result.size() < limit; i++) result.add(PlayerSnapshots.copy(players.get(i), enabled));
+            unchanged(state); scopes.resolve(reference, state.clubs());
+            if (call(club, "kc") != players || players.size() != count || enabled != (Boolean) call(state.primary(), "isHabilidadeIndividual"))
+                throw new GameQueryException(GameQueryException.Reason.STATE_CHANGED, "Elenco/configuracao mudou durante leitura");
+            return new ScopedPlayerDetailsPage(state.scope(), reference, result, offset, count);
+        });
+    }
+
     private List<?> activeClubs() throws Exception {
         Object game = Class.forName("c.a", false, runtime).getField("SR").get(null);
         if (game == null || Class.forName("c.a", false, runtime).getField("afQ").get(null) == null) return List.of();

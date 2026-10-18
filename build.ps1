@@ -66,6 +66,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes do tracker async falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CalendarSnapshotsSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de calendario/saldo falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.PlayerSnapshotsSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de detalhes de jogadores falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ProbeDispatcherSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da fila da sonda falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerLifecycleSelfTest
@@ -101,4 +103,8 @@ try {
     & java -jar "$PSScriptRoot\dist\vbrasfoot-validator.jar" --json "$PSScriptRoot\examples\career-dashboard\dist\career-dashboard.jar"
     if ($LASTEXITCODE -ne 0) { throw 'Validador recusou painel de carreira' }
     Write-Host 'Build e testes concluidos. Execute .\run.ps1 --validate-only'
+    & "$PSScriptRoot\examples\player-scout\build.ps1" -Sdk "$PSScriptRoot\dist\vbrasfoot-api.jar"
+    if ($LASTEXITCODE -ne 0) { throw 'Build independente do scout falhou' }
+    & java -jar "$PSScriptRoot\dist\vbrasfoot-validator.jar" --json "$PSScriptRoot\examples\player-scout\dist\player-scout.jar"
+    if ($LASTEXITCODE -ne 0) { throw 'Validador recusou scout' }
 } finally { Pop-Location }
