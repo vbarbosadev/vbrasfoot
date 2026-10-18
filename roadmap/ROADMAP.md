@@ -671,6 +671,12 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 
 ### P2/P5 — composicao visual0.7.0
 
+P4/0.8.2: rodada0.8.1 capturou AB/az/V, nao tasks; erro preexistente de equipe
+confirmado e guardUNKNOWN/unbound1. Nova sonda body-only de V/aa/ap/at/ax e
+panelrequests/returns em best.f, ring512/candidato causal, sem schemachange/
+eventos pronta. Receiver so na entrada (stackmaps legados descartam this),
+rootsMatched separado de matched. Pendentes UI nova trace/readiness/unload/P3.
+
 P4/0.8.1: sonda weak-identity de schedules/runs cR/cS/hk/ho com IDs causais
 candidato->task->descendente e roots/geracao, limite64live/128reports/8frames.
 19tracker+7bytecode+75schema/I/O originais aprovados; tasks originais na UI

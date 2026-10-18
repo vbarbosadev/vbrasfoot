@@ -76,7 +76,7 @@ final class LegacyRuntime extends URLClassLoader {
     }
 
     @Override protected Class<?> findClass(String name) throws ClassNotFoundException {
-        if (!probe || (!name.equals("c.a") && !name.equals("a.bV") && !name.equals("a.cR") && !name.equals("a.cS") && !name.equals("a.hk") && !name.equals("a.ho")
+        if (!probe || (!name.equals("c.a") && !name.equals("best.f") && !name.equals("a.bV") && !name.equals("a.cR") && !name.equals("a.cS") && !name.equals("a.hk") && !name.equals("a.ho")
                 && !name.equals("com.esotericsoftware.kryo.io.Output"))) return super.findClass(name);
         URL resource = findResource(name.replace('.', '/') + ".class");
         if (resource == null) throw new ClassNotFoundException(name);
@@ -85,6 +85,8 @@ final class LegacyRuntime extends URLClassLoader {
             if (original.length > 1024 * 1024) throw new IOException("Classe de hook grande demais");
             byte[] transformed = name.equals("c.a")
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.CareerTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
+                    : name.equals("best.f")
+                    ? (byte[]) Class.forName("br.vbrasfoot.hooks.CreationProgressTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
                     : name.equals("com.esotericsoftware.kryo.io.Output")
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.OutputCloseTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
                     : name.equals("a.cR") || name.equals("a.cS") || name.equals("a.hk") || name.equals("a.ho")

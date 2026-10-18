@@ -73,12 +73,39 @@ public final class AsyncCreationTrackerSelfTest {
         }
         check(ledger.snapshot().size() == 128, "completed report ledger bounded128"); ledger.endOrigin("ledger");
         check(!ledger.snapshot().toString().contains(primary.toString()), "snapshot never exposes root/task objects");
+        var trace = new AsyncCreationTracker(); trace.reset();
+        trace.progress("V", "ENTER", -1, primary, primary, secondary, 1);
+        check(trace.progress().isEmpty() && trace.progressOutside() == 1, "unbound progression never attributed to candidate");
+        trace.origin("trace-origin", primary, secondary, 1);
+        trace.progress("ap", "ENTER", -1, primary, primary, secondary, 1);
+        trace.progress("ap", "PANEL_REQUEST", 2, primary, primary, secondary, 1);
+        check(trace.progress().get(1).panel() == 2 && trace.progress().get(1).matched(), "matched origin and panel argument");
+        trace.progress("at", "RETURN", -1, new Object(), primary, secondary, 1);
+        trace.progress("ax", "FAILED", -1, primary, primary, secondary, 2);
+        check(!trace.progress().get(2).matched() && !trace.progress().get(3).matched(), "wrong receiver or changed generation recorded as mismatch");
+        trace.progress("unknown", "RETURN", 0, primary, primary, secondary, 1);
+        check(trace.rejected() == 1 && trace.progress().size() == 4, "unknown method label not recorded");
+        for (int i = 0; i < 600; i++) trace.progress("V", "ENTER", -1, primary, primary, secondary, 1);
+        check(trace.progress().size() == 512 && trace.progressDropped() == 92 && trace.progress().get(0).sequence() == 93, "bounded512 ring retains sequence and reports evictions");
+        trace.endOrigin("trace-origin"); trace.reset(); check(trace.progress().isEmpty(), "trace reset contains no prior session metadata");
+        trace.origin("receiver-unknown", primary, secondary, 1);
+        trace.progress("aa", "RETURN", -1, null, primary, secondary, 1);
+        check(trace.progress().get(0).rootsMatched() && !trace.progress().get(0).receiverKnown() && !trace.progress().get(0).matched(),
+                "discarded receiver is explicitly unknown, never fabricated as matched");
+        var capture = trace.capture();
+        trace.progress("aa", "RETURN", -1, null, primary, secondary, 1);
+        check(capture.progress().size() == 1 && trace.progress().size() == 2, "atomic capture detached from later progression markers");
+        trace.endOrigin("receiver-unknown");
         var guard = new CareerLifecycle(); guard.rootsChanged(); var before = guard.snapshot();
         try (var attach = HookProbe.attachLifecycle(guard); var sink = HookProbe.attach(event -> { })) {
             HookProbe.creationPathStarted("a.bV.AB", primary, secondary);
             HookProbe.asyncScheduleStarted("a.hk.timer"); HookProbe.asyncTaskCreated("a.hk.timer", task, primary, secondary);
             HookProbe.asyncScheduleReturned("a.hk.timer"); HookProbe.creationPathReturned("a.bV.AB", primary, secondary);
             HookProbe.asyncRunStarted("a.hk.timer", task, primary, secondary); HookProbe.asyncRunReturned("a.hk.timer", task, primary, secondary);
+            HookProbe.creationPathStarted("a.bV.AB", primary, secondary);
+            HookProbe.creationProgress("V", "ENTER", -1, primary, primary, secondary);
+            HookProbe.creationProgress("V", "RETURN", -1, primary, primary, secondary);
+            HookProbe.creationPathReturned("a.bV.AB", primary, secondary);
             check(HookProbe.asyncCreationReports().size() == 1 && guard.snapshot().equals(before), "causal diagnostics never activate lifecycle/qualified I/O events");
         }
         System.out.println("PASS: " + checks + " bounded async candidate tracker checks; no readiness or unload events.");

@@ -84,6 +84,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes da sonda de candidatos de criacao falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.AsyncCreationTransformerSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do bytecode async falharam' }
+    & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.CreationProgressTransformerSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do bytecode de progressao falharam' }
     & "$PSScriptRoot\templates\read-only-mod\build.ps1" -Sdk "$PSScriptRoot\dist\vbrasfoot-api.jar"
     if ($LASTEXITCODE -ne 0) { throw 'Build independente do template falhou' }
     & java -jar "$PSScriptRoot\dist\vbrasfoot.jar" --validate-mod "$PSScriptRoot\templates\read-only-mod\dist\meu-mod.jar"

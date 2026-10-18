@@ -49,11 +49,28 @@ final class ProbeSession implements AutoCloseable {
         try { subscription.close(); } catch (Exception failure) { logger.warning("Could not detach probe subscription"); }
         try { lifecycleSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach lifecycle guard"); }
         Properties async = new Properties();
-        async.setProperty("coverage", "Causal candidate tasks only; not exclusive new-career origin, readiness, unload or durable lifecycle");
-        async.setProperty("rejected", Long.toString(HookProbe.asyncCreationRejected()));
-        async.setProperty("unbound", Long.toString(HookProbe.asyncCreationUnbound()));
-        var asyncReports = HookProbe.asyncCreationReports();
+        var asyncSnapshot = HookProbe.asyncCreationSnapshot();
+        async.setProperty("coverage", "Causal candidate tasks/progression only; not exclusive new-career origin, readiness, unload or durable lifecycle");
+        async.setProperty("rejected", Long.toString(asyncSnapshot.rejected()));
+        async.setProperty("unbound", Long.toString(asyncSnapshot.unbound()));
+        var asyncReports = asyncSnapshot.tasks();
         async.setProperty("count", Integer.toString(asyncReports.size()));
+        var progression = asyncSnapshot.progress();
+        async.setProperty("progress.count", Integer.toString(progression.size()));
+        async.setProperty("progress.dropped", Long.toString(asyncSnapshot.dropped()));
+        async.setProperty("progress.outside", Long.toString(asyncSnapshot.outside()));
+        int progressIndex = 0;
+        for (var value : progression) {
+            String prefix = "progress." + progressIndex++ + ".";
+            async.setProperty(prefix + "sequence", Long.toString(value.sequence()));
+            async.setProperty(prefix + "origin", Long.toString(value.origin())); async.setProperty(prefix + "parent", Long.toString(value.parent()));
+            async.setProperty(prefix + "originLabel", value.originLabel()); async.setProperty(prefix + "method", value.method());
+            async.setProperty(prefix + "stage", value.stage()); async.setProperty(prefix + "panel", Integer.toString(value.panel()));
+            async.setProperty(prefix + "generation", Long.toString(value.generation())); async.setProperty(prefix + "thread", Long.toString(value.thread()));
+            async.setProperty(prefix + "matched", Boolean.toString(value.matched()));
+            async.setProperty(prefix + "rootsMatched", Boolean.toString(value.rootsMatched()));
+            async.setProperty(prefix + "receiverKnown", Boolean.toString(value.receiverKnown()));
+        }
         int asyncIndex = 0;
         for (var value : asyncReports) {
             String prefix = "task." + asyncIndex++ + ".";

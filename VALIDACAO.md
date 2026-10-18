@@ -1539,3 +1539,57 @@ copia Documents em --probe-career-hooks; informar ramo/opcoes e acesso ao elenco
 fechar normalmente sem jogar/forcar save. Original pode autosalvar; nao prometer
 nenhum I/O. Primeiro observar origin/taskchain, depois decidir variante amistoso/
 cancelamento/temporada. Nao promover lifecycle nem repetir carreiras sem report.
+
+## Criacao real0.8.1 — ramo AB sem tarefas capturadas
+
+Usuario confirmou feito apos criar carreira na copia. Sessao privada
+7124ea6e-777a-42cd-b080-11be81238907: AB start/return1,4steps az/V,
+roots/listas/gen estaveis,4153clubes/1humano. az indice1->4/data2->5Jan2022,
+V4->22/data5->23Jan. AC/pn nao observados. Async count/rejected/unbound0:
+nao ha evidencia positiva das tasks selecionadas; isso nao prova ausencia global
+de tarefas/continuacoes. GuardUNKNOWN generation4/healthytrue, io counts0/0,
+sem pendentes/stale,unboundSave1. Metadata/primary/stream/backup/return observados
+com streamFailurefalse, mas bound/completesequencefalse pela criacao nao qualificada.
+Dispatcher4/4 sem perdas. Stderr NAO vazio: erro preexistente E8CC1702 na leitura
+de equipe best.U.w; forge_can.ban SHAb7c0769f76e70c1cfd66b0bb34faa384558f447d4c70ab4e4779d09fa730adff
+conferido igual ao historico e preservado. Loader1694541b... conforme instalado.
+Nenhuma opcao de amistoso inferida do feito; nenhum save/mod alterado pelo agente.
+
+## P4/0.8.2 — trace sincronica por contexto, nao pronta
+
+CreationProgressTransformer observa best.f V/aa/ap/at/ax somente em memoria
+com probe17/21, SHA classe conhecido e method/access/descriptor/RETURN/panelsites
+exatos. Sem campo/metodo/assinatura/hierarquia novo; root serializada exige
+schema/I/O original. Preserva int do panel request e JPanel de retorno na stack,
+legacy handlers e Throwable. Capture causal apenas sob AB/AC/pn/task associada,
+ring512sequencia/threadID/origin/parent/label/stage/panel/geracao; eviccoes/outside
+explicitos. Task e trace+counters capturados atomicamente; nao consulta Swing/
+getters/I/O ou altera lifecycle. Nao interpretar painel2/5/6 como pronta.
+
+Primeiro teste original detectou VerifyError: aa stackmap dropa local0 para TOP
+antes de RETURN. Corrigido antes de empacotar/instalar: so ENTER le this; outros
+markers/catch nao dependem de locals descartados, frame catch vazio. Report
+receiverKnown=false/matched=false nesses pontos e rootsMatched separado. Nao
+fabricar receiver a partir da raiz estatica. Pequeno erro de aridade de fixture
+tambem detectado/corrigido antes da suite final. Logs privados sync-progression-
+original.log/sync-final-build.log ignorados; nenhuma versao quebrada instalada.
+
+27tracker checks e11bytecode proprio aprovados: contexto/unbound/stale/caps/reset/
+receiver desconhecido/captura detached,normal/exception/panel constructor failure,
+nenhum PANEL_RETURN inventado em falha, schema/sitio alterado/fingerprint.
+Build/suites e UiSmokeTest separados aprovados (sync-final-build/ui.log).
+76I/O/schema original checks aprovados em
+Temp/opencode/vbrasfoot-hook-io-2d4a99a326344fd7aac93a22b355d7b6,
+incluindo best.f original vs transformado e save/reload/contagens/fallback/
+metadados/close existentes preservados. Verificacao de classes nao prova execucao
+das novas rotas V/aa/ap/at/ax na UI; essa corroboracao ainda pendente.
+Nenhum arquivo proprietario/TSV/bytecode/save publicado; Profile/EXE preservados.
+APImajor1/metodos/capabilities inalterados, sem sidecars/identidade/unload/pronta/
+durabilidade/atomicidade/gameplay por suposicao.
+
+Portable0.8.2 build/regressao fixture aprovados:
+Temp/opencode/vbrasfoot-install-64aa01142b30404ea714d268dc946054.
+SDK0.8.2 ZIP/API-only4projetos/hashes/allowlist/negative/JSON aprovados fora
+checkout: Temp/opencode/vbrasfoot-sdk-author-123d92385efa4421a7bfb48bb87a4ef2.
+dist/portable-0.8.2-sync-final e dist/sdk-0.8.2-sync-final.zip sao pacotes locais,
+sem release/tag/upload/publicacao. UI nova trace pendente antes de qualquer aceite.
