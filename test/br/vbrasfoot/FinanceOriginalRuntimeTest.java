@@ -33,8 +33,12 @@ public final class FinanceOriginalRuntimeTest {
                 Object human = CareerBridge.onEdt(() -> ((List<?>) CareerBridge.call(roots.primary(), "aN")).get(0));
                 var before = CareerBridge.onEdt(() -> adapter.snapshot(human));
                 int clubCount = new CareerBridge(runtime).snapshot().clubs().size();
-                var revision = new CareerSidecarStore.SaveRevision(inputHash, Files.size(game.resolve("sav/input.s22")));
-                UUID career = UUID.randomUUID(), binding = UUID.randomUUID(); var key = new CareerSidecarStore.Key(career, binding, "br.owned.finance-original");
+                var observer = new SaveFileObserver(); var sourceObservation = observer.observe(game.resolve("sav"), "input.s22");
+                var associations = new CareerSaveAssociations(home.resolve("association-metadata"));
+                var associated = associations.create(sourceObservation, CareerSaveAssociations.Confirmation.CREATE_NEW_CAREER);
+                check(associated.save().sha256().equals(inputHash) && associations.inspect(associated.handle()).token().equals(associated.token()), "original bytes observed and explicitly associated only inside private fixture");
+                var revision = sourceObservation.revision();
+                UUID career = associated.handle().career(), binding = associated.handle().binding(); var key = new CareerSidecarStore.Key(career, binding, "br.owned.finance-original");
                 var journal = new CareerCommandJournal(new CareerSidecarStore(home.resolve("finance-journal")), key);
                 try (var gate = new CareerCommandGate()) {
                     var owner = gate.owner(key.mod(), Set.of(CareerCommandGate.Operation.FINANCE_CREDIT, CareerCommandGate.Operation.FINANCE_DEBIT));
@@ -80,6 +84,18 @@ public final class FinanceOriginalRuntimeTest {
                     Object restoredHuman = CareerBridge.onEdt(() -> ((List<?>) CareerBridge.call(restoredRoots.primary(), "aN")).get(0));
                     check(CareerBridge.onEdt(() -> adapter.snapshot(restoredHuman)).equals(beforeSave), "exact balance and all ledger fields survive original write/reload");
                     check(new CareerBridge(runtime).snapshot().clubs().size() == clubCount, "club count retained after original finance roundtrip");
+                    var outputObservation = observer.observe(game.resolve("sav"), "finance-output.s22");
+                    check(!outputObservation.revision().equals(sourceObservation.revision())
+                            && associations.assess(associated, outputObservation) != CareerSaveAssociations.Match.EXACT_OBSERVATION,
+                            "newly written original save is not silently the old file/revision association");
+                    boolean needsReconciliation = false;
+                    try { associations.acceptRevision(associated.handle(), associated.token(), outputObservation, CareerSaveAssociations.Confirmation.ACCEPT_CHANGED_REVISION); }
+                    catch (CareerSidecarStore.Failure expected) { needsReconciliation = expected.reason() == CareerSidecarStore.Reason.RECONCILIATION_REQUIRED; }
+                    check(needsReconciliation && associations.inspect(associated.handle()).token().equals(associated.token()), "save-as with new name and bytes requires separate policy, cannot silently move association");
+                    boolean journalMismatch = false;
+                    try { journal.read(outputObservation.revision()); }
+                    catch (CareerSidecarStore.Failure expected) { journalMismatch = expected.reason() == CareerSidecarStore.Reason.SAVE_REVISION_MISMATCH; }
+                    check(journalMismatch, "journal not silently reanchored to financially modified output save");
                     var oldPlanResult = dispatcher.execute(owner, context, changed.intent("old-roots"), journal.read(revision).token(), changed);
                     check(oldPlanResult.kind() == Kind.DENIED && oldPlanResult.receipt().reason() == CareerCommandGate.Reason.STALE_CONTEXT, "old decoded roots cannot authorize new financial command");
                 }

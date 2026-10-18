@@ -48,6 +48,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de inventario somente leitura falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerSidecarStoreSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do nucleo de sidecar falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerSaveAssociationsSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de associacao explicita de saves falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandGateSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da reserva de comandos falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandJournalSelfTest

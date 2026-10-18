@@ -1,8 +1,10 @@
 # Persistencia por carreira — proposta, NAO capacidade disponivel
 
 Progresso interno: CareerSidecarStore/CareerCommandJournal implementam envelopes,
-CAS,previous explicito,intents e testes sinteticos. NAO associam carreira/save,
-nao estao ligados a ModContext e nao habilitam P3. Veja LOADER-WRITE-FOUNDATIONS.md.
+CAS,previous explicito,intents e testes sinteticos. Entrega posterior adiciona
+SaveFileObserver/CareerSaveAssociations para decisoes explicitas sobre bytes de
+save e metadados externos;veja EXPLICIT-SAVE-ASSOCIATIONS.md. Nao estao ligados
+a ModContext/UI/contexto do jogo e nao habilitam P3. Veja LOADER-WRITE-FOUNDATIONS.md.
 
 ## Invariantes antes de implementar P3
 

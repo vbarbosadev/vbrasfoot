@@ -56,3 +56,10 @@ privada. Nao define categoria patrocinio nem oferece API publica;contexto e bind
 da fixture sao artificiais/explícitos,nao associacao automatica do jogo instalado.
 Timeout/races/uncertain impedem replay;restauracao/copia/revisao de save e eventos/
 negociacao ainda nao resolvidos. Nenhum mod foi criado ou instalado nesta entrega.
+
+Incremento de associacao:observacao read-only com doublehash/metadados e servico
+interno create/fork/rename/revision/restoreprevious com confirmacoes explicitas,
+CAS e lineage. WindowsfileKey pode faltar:strongrename continua indisponivel;
+existe escolha humana separada,sem fabricar prova. Nao migra moddata/journal ou
+ativa comandos automaticamente. EXPLICIT-SAVE-ASSOCIATIONS.md lista gates de
+UI/coordenador/bytesdecodificados,discovery/quotasglobais e reconciliacao pendentes.
