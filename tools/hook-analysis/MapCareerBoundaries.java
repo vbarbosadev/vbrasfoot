@@ -13,6 +13,7 @@ public final class MapCareerBoundaries {
             "javax/swing/JFrame.setDefaultCloseOperation(I)V");
     static final Set<String> ORIGIN_TARGETS = Set.of("a/bV.<init>(Ljavax/swing/JFrame;)V", "a/cR.<init>(Ljavax/swing/JFrame;)V",
             "a/bV.pl()V", "a/bV.AB()V", "a/cR.pl()V", "a/cR.AC()V", "a/cR.pn()V");
+    static final Set<String> PREPARATION_TARGETS = Set.of("a/hU.oq()V", "best/p.dg()V", "a/bV.oq()V", "best/S.aZ(I)V");
     private MapCareerBoundaries() { }
     private static String hash(Path file) throws Exception {
         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file)));
@@ -28,6 +29,7 @@ public final class MapCareerBoundaries {
         if (fields[0].equals("putstatic") && (target.equals("c/a.SRLbest/f;") || target.equals("c/a.afQLbest/ay;"))) return "root-write-not-ready-or-unload";
         if (!fields[0].equals("invoke")) return null;
         if (ORIGIN_TARGETS.contains(target)) return target.contains(".<init>") ? "candidate-panel-construction-not-origin-proof" : "candidate-origin-caller-not-exclusive";
+        if (PREPARATION_TARGETS.contains(target)) return "settings-panel-callback-candidate-not-ready";
         if (target.equals("c/a.<init>()V")) return "root-reset-caller";
         if (target.equals("c/a.c(Ljava/lang/String;Z)Z")) return "existing-read-caller";
         if (target.equals("c/a.ae(Ljava/lang/String;)V")) return "save-caller";
@@ -52,7 +54,7 @@ public final class MapCareerBoundaries {
         int classes = 0;
         List<String> results = new ArrayList<>();
         Map<String, Integer> counts = new TreeMap<>();
-        Set<String> selected = new HashSet<>(TARGETS); selected.addAll(ORIGIN_TARGETS);
+        Set<String> selected = new HashSet<>(TARGETS); selected.addAll(ORIGIN_TARGETS); selected.addAll(PREPARATION_TARGETS);
         try (var zip = new ZipFile(executable.toFile())) {
             var entries = zip.entries();
             while (entries.hasMoreElements()) {

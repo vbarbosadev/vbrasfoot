@@ -39,6 +39,10 @@ public final class MapCareerBoundariesSelfTest {
         }
         check(MapCareerBoundaries.role(reference("invoke", "a/bV.AB(I)V")) == null);
         check(MapCareerBoundaries.role(reference("invoke", "a/bV.<init>()V")) == null);
+        for (String target : MapCareerBoundaries.PREPARATION_TARGETS) {
+            check(MapCareerBoundaries.role(reference("invoke", target)).equals("settings-panel-callback-candidate-not-ready"));
+            check(MapCareerBoundaries.role(reference("putstatic", target)) == null);
+        }
         System.out.println("PASS: " + checks + " static career-boundary classifier checks (owned records, no runtime lifecycle).");
     }
 }

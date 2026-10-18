@@ -27,3 +27,9 @@ incluindo dialogo cujo retorno diferente de0segue AB (nao/cancelar/fechar ainda
 indistintos na trace). Proximo marker concreto definido em
 CREATION-UNLOAD-BOUNDARIES.md. Proposta de invariantes/matriz de recuperacao para
 P3 em CAREER-PERSISTENCE-DESIGN.md; nao e implementacao nem gate aprovado.
+
+0.9.1 real confirmou retorno1 do dialogo,AB e retornos de oq/pl,mas nao origem
+anterior.0.9.2 acrescenta binding fraco de hU.oq->dg->instancia bV->oq,recusando
+rotas sem essa preparacao/roots trocadas/reentrada. Apenas diagnostico; positivo
+original novo ainda pendente, prontidao/P3 continuam nao liberados. Nao repetir
+variantes de amistoso antes de examinar a evidencia do binding.

@@ -1,5 +1,51 @@
 # Validacao — 16/10/2026
 
+## 0.9.2 — vinculo fraco entre preparacao e callback de criacao
+
+Nova investigacao reutilizou a rodada4da73e9a-ff85-4272-963e-afea042d9551:
+dialogo real retorno1/NO_OPTION,resultKnowntrue,6events oq/pl/AB com retornos,
+generation4/thread37/rootsMatchedtrue,dropped/rejected/outside0;progress78 com
+V1/ap13/at12/ax12 entradas/retornos,aaausente,painel2callrequest39/callreturn40,
+VRETURN78,tasks0. GuardUNKNOWN,healthytrue,io0/0,sem save/pending/stale;
+dispatcher3/3. Stderr E8CC1702 preexistente; hashforge_can.ban conferido igual
+b7c0769f76e70c1cfd66b0bb34faa384558f447d4c70ab4e4779d09fa730adff. Nenhum
+arquivo do jogo/mod/save alterado ao inspecionar reports. Evidencia tambem PR40.
+
+Javap privado local identificou hU.oq->p.dg->aY(1),assignment best.S.gL da
+instancia bV e callback cc->bV.oq. Mapper read-only ampliado:45checks sinteticos,
+1038classes/86referencias no EXE de SHA conhecido; p.dg tambem tem caller forms.p,
+portanto dg sozinho NAO e origem exclusiva. Corrigida interpretacao anterior:
+aY(2) retorna null,nao objeto de elenco. Marker PANEL_RETURN significa retorno
+da chamada; UI ainda pode ter revalidate/repaint pendentes e ap tem trabalho
+apos o site. Nem construction,RETURN ou painel nao-nulo certificam prontidao.
+
+Implementado CreationEntryTransformer em a.hU/best.S fingerprintados,metodos/
+access/descriptors/sites exatos; soma marker receiver na entrada bV.oq sem
+ler locals no retorno. Compoe sondas existentes e preserva fieldwrite/stack/
+null/Throwable/campos/metodos/schema/hierarquia. Probe opt-in17/21,memoria apenas.
+Tracker liga instancia fraca/roots/epoch/generation atraves de callbacks;
+64bindings/ring512/8frames por thread,counters explicitos. Falha,etapa ausente,
+reentrada/overflow,roots trocadas,painel diferente/reset nao fabricam binding.
+Mesmo painel reatribuido fora da preparacao revoga ligacao anterior. Sem getters/
+Swing/I/O/callback ou promocao do guard. Report creation-entry.properties separado;
+entry/attempt nao sao IDs de outros relatorios nem identidade de carreira.
+
+27tracker+15bytecode proprio aprovados em entry-reviewed-portable-build.log:
+estagios normais/missing/failure,identidade do painel,geracao/roots,cap/ring,
+reentrada/overflow/reset/cross-thread,guard inalterado;schema/fingerprint/sites,
+nullretorno/caller effects e mesmoThrowable propagado.132checks originais de
+I/O/schema aprovados, incluindo a.hU/best.S definidos/verificados e comparados
+com originais em fixture privada8a44e478713547a88fa7b28416126d23 sob Temp/opencode.
+NAO chama hU.oq/dg/aY para criar carreira; positivo novo de binding UI pendente.
+
+Portable0.9.2 fixture1619d160f76346ef92e88516aa04660d e SDK-only5projetos/
+hashes/allowlist/negative/JSON fora checkout fixture6b8dab2ee9124341b71f442863ff2c27
+aprovados sob Temp/opencode. UiSmokeTest comparador sintetico aprovado.
+Pacotes locais dist/portable-0.9.2-entry-reviewed e dist/sdk-0.9.2-entry-reviewed.zip,
+sem tag/release/upload ou distribuicao de TSV/javap/bytecode/save proprietario.
+APImajor1/metodos/capabilities publicos inalterados. Readiness/unload/P3/eventos
+de partida/calendario/gameplay e autoria externa continuam gates separados.
+
 ## 0.9.1 — diagnostico bruto do dialogo de torneio
 
 Implementado marcador fingerprintado oq/pl/showConfirmDialog em a.bV compondo

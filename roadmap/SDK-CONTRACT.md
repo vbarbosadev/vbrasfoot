@@ -1,4 +1,4 @@
-# SDK 0.9.1 — API major 1 (experimental)
+# SDK 0.9.2 — API major 1 (experimental)
 
 Contrato aditivo0.9.0: query.player.details / scopedPlayerDetails; veja
 PLAYER-DETAILS.md para Optional de habilidades, limites e recuperacao de erros.
