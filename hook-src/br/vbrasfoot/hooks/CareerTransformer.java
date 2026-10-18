@@ -23,7 +23,7 @@ public final class CareerTransformer {
     static byte[] transformFixture(byte[] original) throws IOException {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        int[] counts = new int[9];
+        int[] counts = new int[11];
         reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
             @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 MethodVisitor method = super.visitMethod(access, name, descriptor, signature, exceptions);
@@ -83,12 +83,23 @@ public final class CareerTransformer {
                         super.visitLabel(start);
                     }
                     @Override public void visitMethodInsn(int op, String owner, String name, String desc, boolean iface) {
+                        if (load && owner.equals("java/io/FileInputStream") && name.equals("<init>") && desc.equals("(Ljava/lang/String;)V")) {
+                            super.visitInsn(Opcodes.DUP); call("loadSource", "(Ljava/lang/String;)V"); counts[9]++;
+                        }
+                        if (load && owner.equals("com/esotericsoftware/kryo/io/Input") && name.equals("<init>") && desc.equals("(Ljava/io/InputStream;)V")) {
+                            call("traceLoadInput", "(Ljava/io/InputStream;)Ljava/io/InputStream;"); counts[10]++;
+                        }
                         if (save && owner.equals("com/esotericsoftware/kryo/io/Output") && name.equals("close") && desc.equals("()V")) {
                             super.visitInsn(Opcodes.DUP); call("primaryOutputClosing", "(Ljava/lang/Object;)V");
                         }
                         super.visitMethodInsn(op, owner, name, desc, iface);
                         if (load && owner.equals("com/esotericsoftware/kryo/io/Input") && name.equals("close") && desc.equals("()V")) {
-                            counts[2]++; call("decodedLoad", "()V");
+                            counts[2]++;
+                            if (reader.getClassName().equals("c/a")) {
+                                super.visitFieldInsn(Opcodes.GETSTATIC, "c/a", "SR", "Lbest/f;");
+                                super.visitFieldInsn(Opcodes.GETSTATIC, "c/a", "afQ", "Lbest/ay;");
+                                call("decodedLoad", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+                            } else call("decodedLoad", "()V");
                         }
                         if (save && owner.equals("com/esotericsoftware/kryo/io/Output") && name.equals("close") && desc.equals("()V")) {
                             counts[3]++; call("primaryClosed", "()V");
@@ -136,6 +147,7 @@ public final class CareerTransformer {
         // The private synthetic fixture does not define those original fields.
         if (reader.getClassName().equals("c/a") && counts[6] != 5) throw new IOException("Root-assignment sites changed; refused");
         if (reader.getClassName().equals("c/a") && (counts[7] != 1 || counts[8] != 1)) throw new IOException("Metadata/load initialization sites changed; refused");
+        if (reader.getClassName().equals("c/a") && (counts[9] != 1 || counts[10] != 1)) throw new IOException("Decoder input construction sites changed; refused");
         return writer.toByteArray();
     }
 }

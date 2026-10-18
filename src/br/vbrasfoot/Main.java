@@ -103,6 +103,12 @@ public final class Main {
                         mods.load(manifests, new CareerBridge(runtime), ui, home.resolve("data"));
                         ModManagerPanel.register(ui, home, sessionDirectory, mods::fileStates, mods::failures,
                                 DiagnosticExport.Environment.current(options.safe, options.probe));
+                        if (options.probe) {
+                            var associationOwners = manifests.stream().map(ModManifest::id).distinct().toList();
+                            if (associationOwners.size() <= 64) CareerAssociationPanel.register(ui,
+                                    new CareerAssociationCoordinator(game.resolve("sav"), home.resolve("data").resolve(".career-state"), runtime, associationOwners), logger);
+                            else logger.warning("career-association-panel=unavailable reason=configured-owner-capacity; no partial inventory or write authority");
+                        }
                         ui.start();
                     }
                     Thread current = Thread.currentThread();
@@ -172,7 +178,8 @@ public final class Main {
         System.out.println("vbrasfoot: use run.ps1 [--validate-only | --list-mods | --safe-mode | --check-save CAMINHO]");
         System.out.println("--validate-only nao inicia o jogo nem inicializa mods; --safe-mode ignora todos os mods.");
         System.out.println("--check-save verifica uma copia privada com o Kryo original; nao inicia a interface do jogo.");
-        System.out.println("--probe-career-hooks: sonda experimental opt-in de carregar/salvar (nao habilita eventos de mods).");
+        System.out.println("--probe-career-hooks: sonda experimental opt-in de carregar/salvar (nao habilita escrita ou prontidao da carreira).");
+        System.out.println("Com a sonda: menu Carreira e diarios verifica stream/roots e permite confirmar apenas metadados externos; nao habilita escritas no jogo.");
         System.out.println("--validate-mod JAR: valida manifesto/mainClass sem inicializar codigo; nao precisa do jogo nem grava cache/logs.");
         System.out.println("--storage-status: inventario somente leitura do home existente; sem jogo/mods, logs/cache/backup ou limpeza.");
         System.out.println("--disable-mod nome.jar | --enable-mod nome.jar: selecao para proximo inicio, com jogo fechado; sem hot reload.");

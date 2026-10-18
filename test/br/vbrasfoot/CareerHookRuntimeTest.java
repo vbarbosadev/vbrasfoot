@@ -145,6 +145,23 @@ public final class CareerHookRuntimeTest {
                         && lifecycle.snapshot().loads() == 1 && lifecycle.snapshot().inFlight() == 0, "original load binds synchronous guard");
                 check(lifecycle.snapshot().initializedReadPaths() == 0, "synthetic frame skips initialization path, not mistaken for complete UI load");
                 check(ioHub.state().existingLoads() == 0 && ioHub.state().phase() == br.vbrasfoot.api.CareerIoEvents.Phase.UNKNOWN, "public IO stream rejects synthetic-frame read as qualified load");
+                var decodedBinding = HookProbe.decodedProvenance().binding().orElseThrow();
+                check(decodedBinding.bytes().equals(new CareerSidecarStore.SaveRevision(before, Files.size(original)))
+                        && decodedBinding.source().equals(original) && !decodedBinding.backup(), "actual original Kryo input stream digest and path match whole private source");
+                var sourceObservation = new SaveFileObserver().observe(saves, "input.s22");
+                var verified = new LoadedSaveVerifier(runtime).verify(sourceObservation);
+                check(verified.generation() == lifecycle.ticket().generation() && !verified.initializationPathObserved(), "original decoder/file/roots verified without inventing initialized UI path");
+                var coordinator = new CareerAssociationCoordinator(saves, home.resolve("association-review-fixture"), runtime, List.of("br.owned.original-link"));
+                var originalReview = coordinator.review(Optional.empty());
+                check(originalReview.status() == CareerAssociationCoordinator.Status.ASSOCIATION_REQUIRED
+                        && originalReview.decoded().bytes().sha256().equals(before), "original decoder provenance reaches coordinator without automatic identity");
+                var fixtureHandle = coordinator.confirm(originalReview, CareerAssociationCoordinator.Action.CREATE_NEW, Optional.empty());
+                var fixtureReview = coordinator.review(Optional.of(fixtureHandle));
+                check(fixtureReview.status() == CareerAssociationCoordinator.Status.READ_ONLY_LINKED && !fixtureReview.decoded().initializationPathObserved(),
+                        "explicit private-fixture metadata association remains read-only and unqualified for gameplay");
+                check(fixtureReview.journals().get(0).recovery().orElseThrow().status() == CareerCommandJournal.RecoveryStatus.EMPTY
+                        && !Files.exists(home.resolve("association-review-fixture/journals")), "configured original-fixture journal inspection creates no empty journal or command");
+                var reviewBeforeSave = coordinator.review(Optional.of(fixtureHandle));
                 GameAccess.Snapshot baseline = new CareerBridge(runtime).snapshot();
                 check(baseline.loaded(), "decoded career readable");
                 CareerBridge bridge = new CareerBridge(runtime);
@@ -180,6 +197,11 @@ public final class CareerHookRuntimeTest {
                 check(scoped.scope().equals(bridge.scopedClubs("", 0, 1).scope()), "same roots keep query scope");
                 events.clear();
                 CareerBridge.onEdt(() -> { save.invoke(null, "output"); return null; });
+                check(HookProbe.decodedProvenance().binding().isEmpty(), "original save entry invalidates decoder provenance before potential root ID mutation");
+                boolean staleReviewRefused = false;
+                try { coordinator.confirm(reviewBeforeSave, CareerAssociationCoordinator.Action.ACCEPT_REVISION, Optional.empty()); }
+                catch (LoadedSaveVerifier.Failure expected) { staleReviewRefused = expected.reason() == LoadedSaveVerifier.Reason.NO_PROVENANCE; }
+                check(staleReviewRefused, "real original writer entry revokes reviewed metadata action before any reassociation");
                 observation = only(events, "save");
                 check(observation.completed() && observation.backup(), "primary close and legacy backup completed");
                 check(lifecycle.snapshot().saves() == 1 && lifecycle.snapshot().lastSavedFile().equals("output"), "original save binds current guard");
@@ -242,6 +264,14 @@ public final class CareerHookRuntimeTest {
                 observation = only(events, "load");
                 check(!outerResult && observation.completed() && observation.backup() && observation.fallback() && !observation.returnedSuccess(), "real recursive fallback deduplicated despite false outer return");
                 check(lifecycle.snapshot().loads() == 3 && lifecycle.snapshot().loadedBackup() && lifecycle.snapshot().inFlight() == 0, "original fallback bound once");
+                var fallbackBinding = HookProbe.decodedProvenance().binding().orElseThrow();
+                check(fallbackBinding.backup() && fallbackBinding.source().equals(saves.resolve("fallback.sbck"))
+                        && fallbackBinding.bytes().sha256().equals(Profile.digest(saves.resolve("fallback.sbck"))), "recursive original fallback carries backup stream proof, not failed primary bytes");
+                var fallbackVerified = new LoadedSaveVerifier(runtime).verify(new SaveFileObserver().observe(saves, "fallback.sbck"));
+                check(fallbackVerified.backup() && !fallbackVerified.initializationPathObserved(), "backup decoder provenance verified separately from readiness");
+                var fallbackReview = coordinator.review(Optional.of(fixtureHandle));
+                check(fallbackReview.status() != CareerAssociationCoordinator.Status.READ_ONLY_LINKED
+                        && fallbackReview.association().orElseThrow().name().equals("input.s22"), "original recursive fallback cannot silently retarget previously selected association");
                 events.clear();
                 CareerBridge.onEdt(() -> (boolean) load.invoke(null, null, false));
                 check(!only(events, "load").completed(), "null argument is not decoded save");

@@ -56,7 +56,10 @@ java -jar .\dist\vbrasfoot.jar --validate-mod .\templates\read-only-mod\dist\meu
 P0 e os gates reais de P1/P2 ainda nao estao aprovados.
 
 Sonda experimental opt-in de carregar/salvar: [guia e limites](roadmap/CAREER-PROBE.md).
-Desativada por padrao, nao habilita eventos de mods nem persistencia por carreira.
+Desativada por padrao, nao habilita eventos completos de gameplay nem persistencia por carreira para mods.
+No codigo atual, inclui [revisao de origem decodificada e associacoes](roadmap/DECODED-SAVE-COORDINATOR.md)
+no menu experimental. Confirmacoes alteram somente metadados externos; nao
+habilitam pagamentos/transferencias nem a API de escrita. Nao instalada automaticamente.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

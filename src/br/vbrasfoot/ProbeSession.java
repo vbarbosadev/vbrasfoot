@@ -46,8 +46,23 @@ final class ProbeSession implements AutoCloseable {
     private synchronized void finish() {
         if (closed) return;
         closed = true;
+        var provenance = HookProbe.decodedProvenance();
         try { subscription.close(); } catch (Exception failure) { logger.warning("Could not detach probe subscription"); }
         try { lifecycleSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach lifecycle guard"); }
+        Properties decoded = new Properties();
+        decoded.setProperty("format", "1");
+        decoded.setProperty("coverage", "Original decoder stream bytes and weak root generation only; not graph consistency, persistent identity or write readiness");
+        decoded.setProperty("revision", Long.toString(provenance.revision()));
+        decoded.setProperty("status", provenance.status().name()); decoded.setProperty("reason", provenance.reason().name());
+        provenance.binding().ifPresent(value -> {
+            decoded.setProperty("generation", Long.toString(value.generation()));
+            decoded.setProperty("bytes.sha256", value.bytes().sha256()); decoded.setProperty("bytes.size", Long.toString(value.bytes().size()));
+            decoded.setProperty("backup", Boolean.toString(value.backup()));
+            decoded.setProperty("initializationPathObserved", Boolean.toString(value.initializedPath()));
+        });
+        decoded.setProperty("writeAuthority", "false");
+        try (var writer = Files.newBufferedWriter(report.resolveSibling("decoded-save-provenance.properties"))) { decoded.store(writer, "Decoder provenance before probe detachment; no save paths or root objects exported"); }
+        catch (Exception failure) { System.err.println("Falha ao registrar provenance do decoder: " + failure); }
         Properties async = new Properties();
         var asyncSnapshot = HookProbe.asyncCreationSnapshot();
         async.setProperty("coverage", "Causal candidate tasks/progression only; not exclusive new-career origin, readiness, unload or durable lifecycle");

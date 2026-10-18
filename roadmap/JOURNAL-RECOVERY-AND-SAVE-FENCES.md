@@ -1,6 +1,8 @@
 # Recuperacao conservadora do diario e exclusao durante saves
 
-Implementacao interna, sem conexao com Main/ModContext ou hooks do jogo instalado.
+Implementacao inicial interna, sem ModContext ou hooks do writer no jogo instalado.
+Incremento DECODED-SAVE-COORDINATOR.md liga leitura/quarentena de diarios a painel
+de metadata opt-in no Main; nao a contexto de comandos ou startup automatico.
 Nao cria mods de patrocinio/negociacao. Complementa EXPLICIT-SAVE-ASSOCIATIONS.md;
 nao substitui qualificacao de roots/geracao ou reconciliacao de efeitos persistidos.
 
