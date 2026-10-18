@@ -26,6 +26,8 @@ public final class SdkValidatorJsonSelfTest {
     public static void main(String[] args) throws Exception {
         String description = run(0, "--describe-sdk");
         check(description.contains("\"sandbox\":false") && description.contains("career.sidecars") && description.contains("events.career.observed"), "limits and conditional capabilities");
+        check(description.contains("\"unsupported\":[\"gameplay.write\",\"career.identity.persistent\",\"career.sidecars\""), "internal storage/command cores do not silently advertise supported public gameplay or sidecars");
+        check(!ModManifest.KNOWN_CAPABILITIES.contains("career.sidecars") && !ModManifest.KNOWN_PERMISSIONS.contains("game.write"), "new internal primitives cannot be requested by a mod manifest yet");
         check(description.contains("GameAccess.scopedCalendar") && description.contains("GameAccess.scopedClubBalance") && description.contains("\"query.club.balance\":\"0.5.0\""), "new read methods and minimums described");
         check(run(1, "--json").contains("INVALID_ARGUMENTS"), "structured argument error");
         check(run(1, "--json", "--unsupported").contains("INVALID_ARGUMENTS"), "flag not treated as path");

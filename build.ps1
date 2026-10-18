@@ -46,6 +46,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de isolamento de JARs de mods falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.StorageInventorySelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de inventario somente leitura falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerSidecarStoreSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do nucleo de sidecar falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandGateSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes da reserva de comandos falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandJournalSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do diario de comandos falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkValidatorJsonSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes JSON do validador SDK falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.DiagnosticExportSelfTest
