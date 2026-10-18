@@ -10,8 +10,8 @@ public record UiTheme(Font font, Color background, Color foreground, Color contr
     /** Original, asset-free styling roles. Requires SDK/loader 0.7.0. */
     public enum Role { BODY, HEADER, TITLE, SECTION, PRIMARY_BUTTON, SECONDARY_BUTTON, INPUT, TABLE, STATUS }
     private static final String ROLE_PROPERTY = "vbrasfoot.ui.role";
-    private static final Color DARK = new Color(18, 18, 18), GREEN = new Color(36, 91, 45),
-            YELLOW = new Color(244, 193, 26), LINE = new Color(215, 220, 216);
+    private static final Color DARK = new Color(0, 35, 65), SURFACE = new Color(4, 66, 96), SECTION = new Color(3, 48, 67),
+            YELLOW = Color.YELLOW, LINE = new Color(187, 201, 208);
     public UiTheme {
         java.util.Objects.requireNonNull(font); java.util.Objects.requireNonNull(background); java.util.Objects.requireNonNull(foreground);
         java.util.Objects.requireNonNull(controlBackground); java.util.Objects.requireNonNull(controlForeground);
@@ -42,26 +42,32 @@ public record UiTheme(Font font, Color background, Color foreground, Color contr
     private void applyRole(javax.swing.JComponent component, Role role) {
         component.setFont(font.deriveFont(Font.PLAIN, 12f));
         switch (role) {
-            case BODY, INPUT -> { component.setBackground(Color.WHITE); component.setForeground(DARK); }
-            case HEADER -> {
-                component.setBackground(DARK); component.setForeground(Color.WHITE);
-                component.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 3, 0, GREEN), javax.swing.BorderFactory.createEmptyBorder(10, 14, 10, 14)));
+            case BODY -> { component.setBackground(SURFACE); component.setForeground(Color.WHITE); }
+            case INPUT -> {
+                component.setBackground(Color.WHITE); component.setForeground(DARK);
+                if (component instanceof javax.swing.JComboBox<?> combo) for (Component child : combo.getComponents()) {
+                    if (child instanceof javax.swing.AbstractButton button) { button.setBackground(new Color(230, 237, 243)); button.setForeground(DARK); }
+                }
             }
-            case TITLE -> { component.setBackground(DARK); component.setForeground(Color.WHITE); component.setFont(font.deriveFont(Font.BOLD, 18f)); }
+            case HEADER -> {
+                component.setBackground(SECTION); component.setForeground(Color.WHITE);
+                component.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10));
+            }
+            case TITLE -> { component.setBackground(SECTION); component.setForeground(Color.WHITE); component.setFont(font.deriveFont(Font.BOLD, 14f)); }
             case SECTION -> {
-                component.setBackground(GREEN); component.setForeground(Color.WHITE); component.setFont(font.deriveFont(Font.BOLD, 12f));
-                component.setBorder(javax.swing.BorderFactory.createEmptyBorder(7, 10, 7, 10));
+                component.setBackground(SECTION); component.setForeground(Color.WHITE); component.setFont(font.deriveFont(Font.BOLD, 12f));
+                component.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8));
             }
             case PRIMARY_BUTTON, SECONDARY_BUTTON -> {
-                component.setBackground(role == Role.PRIMARY_BUTTON ? GREEN : DARK); component.setForeground(Color.WHITE);
-                component.setFont(font.deriveFont(Font.BOLD, 12f)); component.setOpaque(true);
-                component.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(role == Role.PRIMARY_BUTTON ? GREEN.darker() : LINE), javax.swing.BorderFactory.createEmptyBorder(7, 12, 7, 12)));
+                component.setBackground(new Color(230, 237, 243)); component.setForeground(DARK);
+                component.setFont(font.deriveFont(Font.PLAIN, 12f)); component.setOpaque(true);
+                component.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(LINE), javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8)));
                 if (component instanceof javax.swing.AbstractButton button) { button.setContentAreaFilled(true); button.setFocusPainted(true); }
             }
             case TABLE -> {
                 component.setBackground(Color.WHITE); component.setForeground(DARK);
                 if (component instanceof javax.swing.JTable table) {
-                    table.setRowHeight(Math.max(23, table.getFontMetrics(table.getFont()).getHeight() + 6));
+                    table.setRowHeight(Math.max(20, table.getFontMetrics(table.getFont()).getHeight() + 4));
                     table.setGridColor(LINE); table.setSelectionBackground(YELLOW); table.setSelectionForeground(DARK);
                     table.setShowHorizontalLines(true); table.setShowVerticalLines(false);
                     table.getTableHeader().setBackground(new Color(237, 239, 237)); table.getTableHeader().setForeground(DARK);
@@ -69,7 +75,7 @@ public record UiTheme(Font font, Color background, Color foreground, Color contr
                     table.setFillsViewportHeight(true);
                 }
             }
-            case STATUS -> { component.setBackground(DARK); component.setForeground(YELLOW); component.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 12, 4, 12)); }
+            case STATUS -> { component.setBackground(SURFACE); component.setForeground(Color.WHITE); component.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8)); }
         }
     }
 }

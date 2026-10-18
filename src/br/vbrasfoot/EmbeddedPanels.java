@@ -25,13 +25,27 @@ final class EmbeddedPanels {
         try {
             JComponent content = java.util.Objects.requireNonNull(created.component(), "component");
             if (content.getParent() != null) throw new IllegalArgumentException("Componente do mod ja pertence a outra interface");
-            JPanel layer = theme.style(new JPanel(new BorderLayout(0, 0)), UiTheme.Role.BODY);
+            JPanel card = theme.style(new JPanel(new BorderLayout(0, 8)), UiTheme.Role.BODY);
+            card.setName("vbrasfoot.embedded-card");
+            card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(150, 173, 185), 2), BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+            JPanel layer = new JPanel(null) {
+                @Override public void doLayout() {
+                    Dimension preferred = card.getPreferredSize();
+                    int width = Math.max(1, Math.min(Math.min(preferred.width, 1200), getWidth() - 32));
+                    int height = Math.max(1, Math.min(Math.min(preferred.height, 740), getHeight() - 32));
+                    card.setBounds((getWidth() - width) / 2, (getHeight() - height) / 2, width, height);
+                }
+            };
+            layer.setOpaque(false);
             layer.setName("vbrasfoot.embedded-panel");
             JPanel header = theme.style(new JPanel(new BorderLayout(12, 0)), UiTheme.Role.HEADER);
             header.add(theme.style(new JLabel(title), UiTheme.Role.TITLE), BorderLayout.CENTER);
-            JButton back = theme.style(new JButton("VOLTAR AO JOGO"), UiTheme.Role.SECONDARY_BUTTON); back.setName("vbrasfoot.embedded-back");
-            back.addActionListener(event -> close()); header.add(back, BorderLayout.EAST);
-            layer.add(header, BorderLayout.NORTH); layer.add(content, BorderLayout.CENTER);
+            JButton back = theme.style(new JButton("Fechar"), UiTheme.Role.SECONDARY_BUTTON); back.setName("vbrasfoot.embedded-back");
+            back.setPreferredSize(new Dimension(116, 28));
+            back.addActionListener(event -> close());
+            JPanel footer = theme.style(new JPanel(new BorderLayout()), UiTheme.Role.BODY);
+            footer.add(back, BorderLayout.EAST);
+            card.add(header, BorderLayout.NORTH); card.add(content, BorderLayout.CENTER); card.add(footer, BorderLayout.SOUTH); layer.add(card);
             theme.apply(layer);
             layer.addMouseListener(new java.awt.event.MouseAdapter() { });
             layer.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() { });

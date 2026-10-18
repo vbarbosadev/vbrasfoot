@@ -671,6 +671,12 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 
 ### P2/P5 — composicao visual0.7.0
 
+Revisao0.7.1: capturas do usuario esclareceram preferencia por card central
+menor e azul-petroleo. Host transparente/card limitado1200x740, Fechar no rodape,
+campos/botoes claros; jogo visivel ao redor, sem mudar bounds ou consultas.
+Smoke sintetico verifica centro/transparencia/tamanho e1280x720; SDK-only e
+portable aprovados. Aprovacao humana do visual revisado permanece pendente.
+
 - Usuario confirmou overlay sem janela extra, mas avaliou visual distante do jogo.
   UiTheme.apply foi ajustado para preservar estilos explicitos e papeis semanticos,
   separando cabecalho escuro/corpo branco/secoes verdes/selection amarela/rodape.

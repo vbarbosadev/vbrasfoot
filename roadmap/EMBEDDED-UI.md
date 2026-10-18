@@ -1,4 +1,4 @@
-# SDK0.7.0 — painel dentro da janela do jogo (experimental)
+# SDK0.7.1 — painel dentro da janela do jogo (experimental)
 
 Declare minLoaderVersion=0.6.0, permissions=ui.register e
 requiredCapabilities=ui.panel.embedded. Para consultar dados, game.read e capacidades
@@ -50,6 +50,16 @@ SDK/ZIP nao inclui nenhuma imagem/fonte/recurso binario do jogo. Original local
 e necessario so para jogar, nao compilar o exemplo. Tema e local a cada abertura.
 
 ### Composicao visual por papeis (0.7.0)
+
+Atualizacao0.7.1: o usuario pediu composicao semelhante ao painel nativo mostrado
+na captura, nao a paleta preto/verde inicial. O host agora centraliza um card em
+glass pane transparente, limitado a1200x740 e a area disponivel menos32px.
+O jogo permanece visivel ao redor; sem janela externa ou mudanca de bounds.
+Corpo azul-petroleo, secoes azul escuro, campos/tabelas claros, botoes claros e
+Fechar no rodape direito. Escape e cleanup seguem o contrato anterior.
+Em1280x720 o card se ajusta a altura disponivel; nao promete margens amplas em
+telas pequenas, bloqueio modal completo, pausa ou fidelidade pixel-perfect.
+Comparador1.1.1 exige loader0.7.1. Paleta anterior abaixo e registro da entrega0.7.0.
 
 UiTheme.style(component, Role) distingue BODY/HEADER/TITLE/SECTION, botoes primario/
 secundario, INPUT/TABLE/STATUS. Composicao original sem assets: preto/carvao no

@@ -25,7 +25,7 @@ public final class EmbeddedPanelsSelfTest {
             JLabel section = theme.style(new JLabel("SECTION"), UiTheme.Role.SECTION); body.add(section);
             theme.apply(body); theme.apply(body);
             if (!table.getBackground().equals(Color.WHITE) || table.getSelectionBackground().equals(table.getBackground())
-                    || !table.getSelectionForeground().equals(new Color(18, 18, 18)) || table.getRowHeight() < 23
+                    || !table.getSelectionForeground().equals(new Color(0, 35, 65)) || table.getRowHeight() < 20
                     || !section.getFont().isBold() || section.getForeground().equals(section.getBackground())) throw new AssertionError("semantic roles/selection lost on theme application");
             return null;
         });
