@@ -36,6 +36,13 @@ sob Temp/opencode. Nenhum pacote anterior sobrescrito.
 
 ### Evidencia real0.8.2 incorporada
 
+Mapa subsequente somente leitura de chamadores:37checks sinteticos,
+1038classes/81referencias, build/creation-origin-callers.tsv privado. Confirma
+calls bV.oq->pl->AB e aa->cR.pl/AC,alem de cU->pn. Javap de bV.pl mostra
+que0pede painel10 e nao-zero chama AB; ainda NAO capturamos valor do dialogo,
+entao nao inferir opcao humana. Nenhum jogo/hook/sidecar executado por esse mapa.
+Invariantes de persistencia propostos separadamente, nao anunciar P3 implementado.
+
 Sessao bcfd9a1f-89e4-4ac1-9e55-670522992ba1:78markers/drop0/outside0/rejected0/
 unbound0,taskcount0,origin1/generation4/thread37/rootsMatchedtrue. V1,ap13,at12,
 ax12 entradas/retornos; aa nao observado. ap PANEL_REQUEST2 seq39, PANEL_RETURN

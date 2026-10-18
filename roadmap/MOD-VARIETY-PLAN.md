@@ -21,3 +21,9 @@ de escrita refletiva nem habilitar capacidade generica game.write.
 
 0.9.0 nao fecha este plano. Nao ha publicacao/tag estavel, promessa de prazo
 ou execucao em segundo plano apos a sessao.
+
+Investigacao adicional: mapa de chamadores de origem com81referencias/37checks,
+incluindo dialogo cujo retorno diferente de0segue AB (nao/cancelar/fechar ainda
+indistintos na trace). Proximo marker concreto definido em
+CREATION-UNLOAD-BOUNDARIES.md. Proposta de invariantes/matriz de recuperacao para
+P3 em CAREER-PERSISTENCE-DESIGN.md; nao e implementacao nem gate aprovado.
