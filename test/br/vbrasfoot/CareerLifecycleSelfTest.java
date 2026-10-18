@@ -158,6 +158,9 @@ public final class CareerLifecycleSelfTest {
                 && report.getProperty("save.inFlight.beforeClose").equals("0"), "save-stage report survives callback delivery independently");
         check(report.getProperty("save.last.streamClosed").equals("true") && report.getProperty("save.last.streamCloseFailed").equals("false")
                 && report.getProperty("save.streamCloseFailures").equals("0"), "underlying close flags/counter in private report");
+        var asyncReport = new java.util.Properties();
+        try (var reader = java.nio.file.Files.newBufferedReader(reportDirectory.resolve("creation-async.properties"))) { asyncReport.load(reader); }
+        check(asyncReport.getProperty("count").equals("0") && asyncReport.getProperty("coverage").contains("not exclusive"), "async report never fabricates tasks/readiness from shutdown");
         try (var next = HookProbe.attachLifecycle(new CareerLifecycle())) { check(true, "close releases synchronous subscription"); }
         System.out.println("PASS: " + checks + " lifecycle guard tests (internal, no public events).");
     }

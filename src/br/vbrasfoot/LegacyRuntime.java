@@ -76,7 +76,7 @@ final class LegacyRuntime extends URLClassLoader {
     }
 
     @Override protected Class<?> findClass(String name) throws ClassNotFoundException {
-        if (!probe || (!name.equals("c.a") && !name.equals("a.bV") && !name.equals("a.cR")
+        if (!probe || (!name.equals("c.a") && !name.equals("a.bV") && !name.equals("a.cR") && !name.equals("a.cS") && !name.equals("a.hk") && !name.equals("a.ho")
                 && !name.equals("com.esotericsoftware.kryo.io.Output"))) return super.findClass(name);
         URL resource = findResource(name.replace('.', '/') + ".class");
         if (resource == null) throw new ClassNotFoundException(name);
@@ -87,6 +87,8 @@ final class LegacyRuntime extends URLClassLoader {
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.CareerTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
                     : name.equals("com.esotericsoftware.kryo.io.Output")
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.OutputCloseTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
+                    : name.equals("a.cR") || name.equals("a.cS") || name.equals("a.hk") || name.equals("a.ho")
+                    ? (byte[]) Class.forName("br.vbrasfoot.hooks.AsyncCreationTransformer").getMethod("transform", String.class, byte[].class).invoke(null, name, original)
                     : (byte[]) Class.forName("br.vbrasfoot.hooks.CreationPathTransformer").getMethod("transform", String.class, byte[].class).invoke(null, name, original);
             URL source = resource.openConnection() instanceof java.net.JarURLConnection jar ? jar.getJarFileURL() : getURLs()[0];
             return defineClass(name, transformed, 0, transformed.length,
@@ -125,6 +127,10 @@ final class LegacyRuntime extends URLClassLoader {
             Class.forName("a.bV", false, this).getMethod("AB");
             Class.forName("a.cR", false, this).getMethod("AC");
             Class.forName("a.cR", false, this).getMethod("pn");
+            Class.forName("a.cR", false, this).getMethod("oR");
+            Class.forName("a.hk", false, this).getMethod("oR");
+            Class.forName("a.cS", false, this).getDeclaredMethod("run");
+            Class.forName("a.ho", false, this).getDeclaredMethod("run");
         }
     }
 

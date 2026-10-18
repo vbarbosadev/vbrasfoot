@@ -671,6 +671,12 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 
 ### P2/P5 — composicao visual0.7.0
 
+P4/0.8.1: sonda weak-identity de schedules/runs cR/cS/hk/ho com IDs causais
+candidato->task->descendente e roots/geracao, limite64live/128reports/8frames.
+19tracker+7bytecode+75schema/I/O originais aprovados; tasks originais na UI
+ainda nao executados nesta entrega. Report creation-async.properties; nenhum
+promover UNKNOWN/pronta/unload/ID/P3. Sonda instrui proximo gate curto real.
+
 P4/18out: mapa reproducivel de criacao/unload, sem novo evento ou versao do loader.
 MapCareerBoundaries/map-career-boundaries.ps1 identifica73referencias em1038classes,
 21checks sinteticos no CI. Continuacoes Timer a.cS->V e a.ho->ax tornam RETURN

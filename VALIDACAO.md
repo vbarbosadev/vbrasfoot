@@ -1491,3 +1491,51 @@ Wrapper testes negativos locais: output existente recusado com hash intacto;
 EXE falso de3bytes em fixture propria recusado antes de gerar TSV. Parser
 PowerShell aprovado, git diff --check limpo. Links/junctions guard implementado,
 nao exercitado nesta rodada (nao relatar teste de link como aprovado).
+
+## P4/0.8.1 — sonda causal de tarefas candidatas
+
+Pedido "faca" autorizou implementar sonda do mapa anterior. AsyncCreationTracker
+associa contexto AB/AC/pn a task construida e seu run por identidade fraca,
+origem temporaria/label/parent e roots/geracao. Contexto causal pode atravessar
+threads e descendentes; task pode iniciar antes de oR retornar. Sem getters/
+Swing/I/O/mod callbacks no tracker e sem ativar guard ou novos eventos SDK.
+Limites64tasks vivos/128reports/8frames; overflow/desconhecido/duplicata/stale
+recusados. Report creation-async.properties privado com flags primitivas, nao
+grafo/objetos/nomes de save. Sessao reset invalida epoch, sem persistencia.
+
+AsyncCreationTransformer guardSHA cR/cS/hk/ho e1method/return/sitecounts por
+metodo. cR combina candidato existente e oR em memoria apos verificar original.
+Nao altera delay/timer/cancel/thread/save/schema; falhas repropagadas. Tarefas
+fora de candidato ativo nao ganham origem por suposicao (unbound). Candidatos
+podem ser usados em temporada: origem AB/AC/pn nao prova nova carreira exclusiva.
+Dois nulls de raizes ou return de Timer nao viram pronta/unload/sidecar/P3.
+
+19checks tracker proprios: run em thread independente antes de schedule-return,
+originLabel e parent de descendente apos return do candidato, duplicata, roots/
+generationchange, schedule/run failure, desconhecido/reset,64live/128reports,
+no-objects DTO e lifecycle UNKNOWN intacto.7checks bytecode sintetico: fingerprint,
+normal/exception scheduler/run, shape/sites divergentes.44guard checks agora
+incluem reportasync vazio no close sem tasks inventadas. Build/suites aprovados,
+UI smoke separado comparador/content/bounds/cleanup aprovado. Primeira tentativa
+de ler ZIP PE por .NET foi recusada; reutilizados hashes exatos do scanner Java
+do mapa anterior, sem reinterpretar falha como hash ausente/alterar EXE.
+
+75checks original I/O/schema aprovados em
+Temp/opencode/vbrasfoot-hook-io-98775e21553348faa4ad03b609386c12:
+schemas originais vs transformados dos4novos alvos (cR ja testado antes),
+load/save/fallback/closefailure/I/O existentes preservados. Teste DEFINE/VERIFY
+essas classes, nao executa oR/run/criacao originais, nao UI/gameplay delas.
+REA provider JVM indisponivel anteriormente registrado; nao engine/setup novo.
+
+Portable0.8.1 build/teste fixture aprovados:
+Temp/opencode/vbrasfoot-install-a291d32a37c14caca6e9662a88c908f4.
+SDK-only0.8.1 zip/4projetos API-only/JSON/hashes/allowlist/negative aprovados fora
+checkout: Temp/opencode/vbrasfoot-sdk-author-615cee32770b4092ada059ba98bd24f9.
+Pacotes dist/portable-0.8.1-async-final e dist/sdk-0.8.1-async-final.zip locais,
+sem tag/upload/release. Metodos/capabilities do SDK nao ampliados nesta patch.
+
+Proximo gate humano apos instalacao/preflight: criar1carreira com nome inedito na
+copia Documents em --probe-career-hooks; informar ramo/opcoes e acesso ao elenco,
+fechar normalmente sem jogar/forcar save. Original pode autosalvar; nao prometer
+nenhum I/O. Primeiro observar origin/taskchain, depois decidir variante amistoso/
+cancelamento/temporada. Nao promover lifecycle nem repetir carreiras sem report.

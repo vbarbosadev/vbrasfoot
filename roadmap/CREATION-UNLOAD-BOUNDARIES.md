@@ -67,6 +67,10 @@ diretos do ZIP principal, sem bibliotecas aninhadas/reflexao/JNI/overrides dinam
 
 ## Proxima implementacao diagnosticavel
 
+Incremento0.8.1 implementa sonda diagnosticavel das quatro fronteiras abaixo.
+Ainda pendente runtime das tarefas originais/qualificacao exclusiva de nova
+carreira; veja CAREER-PROBE.md. Nada de eventos pronta/unload liberados.
+
 1. Observar fronteiras a.cR.oR/a.cS.run e a.hk.oR/a.ho.run por fingerprints e
    sites exatos, com IDs causais limitados da tarefa/raizes/geracao. Nao concluir
    apenas porque qualquer Timer terminou ou a.eg apareceu.
