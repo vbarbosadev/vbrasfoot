@@ -1,4 +1,4 @@
-# SDK0.7.1 — painel dentro da janela do jogo (experimental)
+# SDK0.7.2 — painel dentro da janela do jogo (experimental)
 
 Declare minLoaderVersion=0.6.0, permissions=ui.register e
 requiredCapabilities=ui.panel.embedded. Para consultar dados, game.read e capacidades
@@ -50,6 +50,17 @@ SDK/ZIP nao inclui nenhuma imagem/fonte/recurso binario do jogo. Original local
 e necessario so para jogar, nao compilar o exemplo. Tema e local a cada abertura.
 
 ### Composicao visual por papeis (0.7.0)
+
+Revisao0.7.2: captura posterior do painel nativo motivou comparador mais compacto
+(conteudo900x590, card com margens/cabecalho), campos de escolha em area escura,
+sem faixas extras de titulo ou split ajustavel. Fechamento X no canto superior
+direito com tooltip/nome acessivel e Escape; nao ha botao Fechar no rodape.
+Tabelas com cabecalhos normais, botoes usam borda/relevo do LookAndFeel local e
+texto verde nas acoes primarias. Setas compactas possuem tooltips de navegacao.
+Pos. continua codigo SDK e Valor SDK unidade nao documentada; nada de filtros
+de atributos/salario copiados da referencia sem contrato de leitura.
+Smoke exige card<=940x660 e viewport das listas>=300x50 em1280x720.
+Somente componentes do mod sao estilizados, nao controles/recursos originais.
 
 Atualizacao0.7.1: o usuario pediu composicao semelhante ao painel nativo mostrado
 na captura, nao a paleta preto/verde inicial. O host agora centraliza um card em

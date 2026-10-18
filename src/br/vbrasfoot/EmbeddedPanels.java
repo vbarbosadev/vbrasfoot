@@ -27,7 +27,7 @@ final class EmbeddedPanels {
             if (content.getParent() != null) throw new IllegalArgumentException("Componente do mod ja pertence a outra interface");
             JPanel card = theme.style(new JPanel(new BorderLayout(0, 8)), UiTheme.Role.BODY);
             card.setName("vbrasfoot.embedded-card");
-            card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(150, 173, 185), 2), BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+            card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(0, 20, 30), 2), BorderFactory.createEmptyBorder(8, 8, 8, 8)));
             JPanel layer = new JPanel(null) {
                 @Override public void doLayout() {
                     Dimension preferred = card.getPreferredSize();
@@ -40,12 +40,13 @@ final class EmbeddedPanels {
             layer.setName("vbrasfoot.embedded-panel");
             JPanel header = theme.style(new JPanel(new BorderLayout(12, 0)), UiTheme.Role.HEADER);
             header.add(theme.style(new JLabel(title), UiTheme.Role.TITLE), BorderLayout.CENTER);
-            JButton back = theme.style(new JButton("Fechar"), UiTheme.Role.SECONDARY_BUTTON); back.setName("vbrasfoot.embedded-back");
-            back.setPreferredSize(new Dimension(116, 28));
+            JButton back = theme.style(new JButton("X"), UiTheme.Role.SECONDARY_BUTTON); back.setName("vbrasfoot.embedded-back");
+            back.setToolTipText("Fechar e voltar ao jogo (Escape)");
+            back.getAccessibleContext().setAccessibleName("Fechar comparador e voltar ao jogo");
+            back.setPreferredSize(new Dimension(50, 26));
             back.addActionListener(event -> close());
-            JPanel footer = theme.style(new JPanel(new BorderLayout()), UiTheme.Role.BODY);
-            footer.add(back, BorderLayout.EAST);
-            card.add(header, BorderLayout.NORTH); card.add(content, BorderLayout.CENTER); card.add(footer, BorderLayout.SOUTH); layer.add(card);
+            header.add(back, BorderLayout.EAST);
+            card.add(header, BorderLayout.NORTH); card.add(content, BorderLayout.CENTER); layer.add(card);
             theme.apply(layer);
             layer.addMouseListener(new java.awt.event.MouseAdapter() { });
             layer.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() { });

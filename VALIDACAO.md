@@ -1243,3 +1243,27 @@ Temp/opencode/vbrasfoot-install-b6afe51b227141c9942c61da2f0a262e;
 SDK-only0.7.1 extraido/testado fora checkout em
 Temp/opencode/vbrasfoot-sdk-author-7b53b296b3ce4840881a79ff021ba2ed.
 Sem publicacao/tag/upload e sem inferir aprovacao visual pelos testes.
+
+## UI0.7.2 — aproximacao da composicao nativa
+
+Usuario confirmou direcao0.7.1 e pediu maior semelhanca com captura de busca
+nativa. Comparador1.1.2/conteudo900x590, area escura de escolha, X no canto,
+sem faixas extras/split/Fechar no rodape. Botoes com borda/relevo do LAF local,
+texto verde nas acoes, cabecalhos normais e setas com tooltips. Sem assets,
+filtros sem respaldo no SDK, alteracoes de consultas ou schemas de saves.
+test.ps1 -IncludeUi aprovado com card<=940x660 e viewports de listas>=300x50
+em1280x720. Primeiras previas expuseram lista comprimida: corrigido layout e
+adicionado check de viewport, nao apenas bounds dos botoes. Previews finais
+build/embedded-style-preview-7337705821029412817.png e
+build/embedded-style-small-14695976260294565821.png fake-only; menor inspecionado.
+SDK ZIP0.7.2 validado fora checkout em
+Temp/opencode/vbrasfoot-sdk-author-09469d9af68a4229b33caf13e646a404.
+Portable0.7.2 gerado, mas regressao interrompida pelo guard de processo ativo;
+nao relatar essa regressao como aprovada. Nenhum processo encerrado, instalacao
+adiada; confirmacao visual humana dentro do jogo permanece pendente.
+
+Depois do ajuste de mensagens ao novo rotulo Atualizar, smoke e SDK-only
+reexecutados/aprovados. Pacotes revisados locais:
+dist/portable-0.7.2-native-reviewed e dist/sdk-0.7.2-native-reviewed.zip.
+SDK fora checkout: Temp/opencode/vbrasfoot-sdk-author-db757c6ef5774698b3e81982762febe0.
+Sem tag/upload/publicacao; guard de jogo aberto continua obrigatorio.
