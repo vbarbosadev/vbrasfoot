@@ -1,4 +1,4 @@
-# Distribuicao do SDK-only — 0.7.4 experimental
+# Distribuicao do SDK-only — 0.8.0 experimental
 
 Incremento de P5 para autores: API, validador target-free, contratos/guias, Javadocs,
 template e observador SDK-only com testes. Sem loader completo, jogo, saves, logs,
@@ -7,8 +7,8 @@ bibliotecas originais, credenciais, JRE ou downloads durante build/test.
 ## Gerar e verificar (mantenedor)
 
 ```powershell
-.\release-sdk.ps1 -Output .\dist\sdk-0.7.4-reviewed
-.\test-sdk-package.ps1 -Archive .\dist\sdk-0.7.4-reviewed.zip
+.\release-sdk.ps1 -Output .\dist\sdk-0.8.0-reviewed
+.\test-sdk-package.ps1 -Archive .\dist\sdk-0.8.0-reviewed.zip
 ```
 
 Requer checkout/JDK 17 ou 21 apenas para **gerar**, nao para consumidor compilar um

@@ -7,6 +7,8 @@ import java.util.Set;
 /** Internal synchronous guard, no user callbacks/I/O/EDT operations under its lock. */
 final class CareerLifecycle {
     private final CareerObservationHub observations;
+    private final CareerIoEventHub ioEvents;
+    private long ioRevision, qualifiedLoads, qualifiedSaves, qualifiedGeneration = -1;
     private long revision;
     enum Phase { EMPTY, UNKNOWN, ACTIVE, CLOSED }
     record Ticket(String session, long generation, boolean active) { }
@@ -19,7 +21,8 @@ final class CareerLifecycle {
                     String lastSavedFile, long loads, long saves, long invalidations, long staleCompletions,
                     long unboundSaves, int inFlight, boolean healthy, long initializedReadPaths,
                     long completeSaveSequences, long partialSaveSequences, long failedSaveSequences,
-                    int inFlightSaves, SaveOutcome lastSaveOutcome, long streamCloseFailures) { }
+                    int inFlightSaves, SaveOutcome lastSaveOutcome, long streamCloseFailures,
+                    br.vbrasfoot.api.CareerIoEvents.State ioState) { }
     private final String session = UUID.randomUUID().toString();
     private long generation, loads, saves, invalidations, staleCompletions, unboundSaves;
     private Phase phase = Phase.EMPTY;
@@ -35,8 +38,22 @@ final class CareerLifecycle {
 
     CareerLifecycle() { this(null); }
     CareerLifecycle(CareerObservationHub observations) {
+        this(observations, null);
+    }
+    CareerLifecycle(CareerObservationHub observations, CareerIoEventHub ioEvents) {
         this.observations = observations;
+        this.ioEvents = ioEvents;
         if (observations != null) observations.initialize(publicState());
+        if (ioEvents != null) ioEvents.initialize(ioState());
+    }
+    private br.vbrasfoot.api.CareerIoEvents.State ioState() {
+        var ioPhase = phase == Phase.ACTIVE && qualifiedGeneration != generation ? Phase.UNKNOWN : phase;
+        return new br.vbrasfoot.api.CareerIoEvents.State(session, generation, ioRevision,
+                br.vbrasfoot.api.CareerIoEvents.Phase.valueOf(ioPhase.name()), qualifiedLoads, qualifiedSaves, healthy);
+    }
+    private void publishIo(br.vbrasfoot.api.CareerIoEvents.Kind kind, boolean backup) {
+        ioRevision++;
+        if (ioEvents != null) ioEvents.publish(new br.vbrasfoot.api.CareerIoEvents.Update(kind, ioState(), backup));
     }
     private br.vbrasfoot.api.CareerObservations.State publicState() {
         return new br.vbrasfoot.api.CareerObservations.State(session, generation, revision,
@@ -66,7 +83,9 @@ final class CareerLifecycle {
         if (phase == Phase.CLOSED) return ticket();
         generation++; invalidations++;
         phase = Phase.UNKNOWN; loadedFile = null; lastSavedFile = null; loadedBackup = false;
+        qualifiedGeneration = -1;
         publish(br.vbrasfoot.api.CareerObservations.Kind.INVALIDATED, false);
+        publishIo(br.vbrasfoot.api.CareerIoEvents.Kind.INVALIDATED, false);
         return ticket();
     }
     private boolean current(Ticket ticket) { return ticket != null && session.equals(ticket.session()) && ticket.generation() == generation; }
@@ -80,6 +99,10 @@ final class CareerLifecycle {
         phase = Phase.ACTIVE; loadedFile = file; loadedBackup = backup; lastSavedFile = null; loads++;
         if (initializedPath) initializedReadPaths++;
         publish(br.vbrasfoot.api.CareerObservations.Kind.READ_COMPLETED, backup);
+        if (initializedPath) {
+            qualifiedGeneration = generation; qualifiedLoads++;
+            publishIo(br.vbrasfoot.api.CareerIoEvents.Kind.EXISTING_LOAD_COMPLETED, backup);
+        }
         return true;
     }
     synchronized void resetFinished(Attempt attempt) {
@@ -118,13 +141,17 @@ final class CareerLifecycle {
         if (complete) completeSaveSequences++;
         else if (primary) partialSaveSequences++;
         else failedSaveSequences++;
+        if (complete && qualifiedGeneration == generation) {
+            qualifiedSaves++;
+            publishIo(br.vbrasfoot.api.CareerIoEvents.Kind.SAVE_SEQUENCE_COMPLETED, false);
+        }
         return lastSaveOutcome;
     }
     synchronized Snapshot snapshot() {
         return new Snapshot(session, generation, phase, loadedFile, loadedBackup, lastSavedFile,
                 loads, saves, invalidations, staleCompletions, unboundSaves, inFlight.size(), healthy,
                 initializedReadPaths, completeSaveSequences, partialSaveSequences, failedSaveSequences,
-                inFlightSaves.size(), lastSaveOutcome, streamCloseFailures);
+                inFlightSaves.size(), lastSaveOutcome, streamCloseFailures, ioState());
     }
     synchronized void close() {
         if (phase == Phase.CLOSED) return;
@@ -134,6 +161,8 @@ final class CareerLifecycle {
         // Exposes disposal as state only; no invented unload callback during System.exit.
         revision++;
         if (observations != null) observations.finishState(publicState());
+        ioRevision++;
+        if (ioEvents != null) ioEvents.finishState(ioState());
     }
     synchronized Snapshot closeAndSnapshot() {
         Snapshot before = snapshot(); close(); return before;

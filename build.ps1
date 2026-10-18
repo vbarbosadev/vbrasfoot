@@ -70,6 +70,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de lifecycle interno falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerObservationsSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de assinaturas de carreira falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerIoEventsSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do contrato de eventos de I/O falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.QueryScopesSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de escopo de consulta falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.HookTransformerSelfTest

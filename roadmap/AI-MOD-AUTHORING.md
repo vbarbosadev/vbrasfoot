@@ -21,6 +21,7 @@ Tem modelo/fakes e build API-only: bom ponto de partida para adaptar com IA.
 | Historico persistente por carreira | Nao | Identidade/sidecars P3 pendentes; nao associar arquivo/hash por suposicao |
 | Alterar transferencias, saldo, atributos, calendario ou regras de partida | Nao | P6 bloqueado; nao usar reflexao para escrever no legado |
 | Painel dentro da janela da carreira com tema local | Sim, loader0.6.0: ui.panel.embedded | Overlay proprio/Voltar; nao substitui tela nem pausa simulacao |
+| Eventos qualificados de I/O | Sim, loader0.8.0: events.career.io | ModContext.careerIoEvents, --probe-career-hooks; nao lifecycle completo/sidecars/durabilidade |
 | Inserir botoes em qualquer tela original | Nao | Nao ha injecao generica; use registro de painel/menu |
 
 Interfaces diferentes podem combinar os mesmos dados publicos; "modloader completo"

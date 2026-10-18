@@ -26,7 +26,7 @@ final class ModValidator {
         System.out.println("JAR validado sem inicializar mod/jogo: " + manifest.id() + " " + manifest.version());
         System.out.println("Permissoes: " + manifest.permissions() + "; dependencias declaradas: " + manifest.dependencies());
         System.out.println("Capacidades requeridas: " + manifest.requiredCapabilities() + "; opcionais: " + manifest.optionalDependencies() + "; conflitos: " + manifest.conflicts());
-        if (manifest.requiredCapabilities().contains("events.career.observed")) System.out.println("Capacidade condicional: conjunto exige --probe-career-hooks (experimental).");
+        if (manifest.requiredCapabilities().contains("events.career.observed") || manifest.requiredCapabilities().contains("events.career.io")) System.out.println("Capacidade condicional: conjunto exige --probe-career-hooks (experimental).");
         System.out.println("Valida somente este JAR; valide o conjunto instalado separadamente. Nao e auditoria de seguranca ou sandbox.");
     }
 }

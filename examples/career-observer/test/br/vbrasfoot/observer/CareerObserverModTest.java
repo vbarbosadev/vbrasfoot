@@ -33,16 +33,26 @@ public final class CareerObserverModTest {
             public GameAccess game() { throw new AssertionError("No game.read permission"); }
             public Logger logger() { return logger; }
             public CareerObservations careerObservations() { return service; }
+            public CareerIoEvents careerIoEvents() {
+                return new CareerIoEvents() {
+                    public State state() { return new State("fixture", 1, 1, Phase.ACTIVE, 1, 1, true); }
+                    public CareerObservations.Subscription subscribe(Consumer<Update> callback) {
+                        callback.accept(new Update(Kind.SAVE_SEQUENCE_COMPLETED, state(), false));
+                        return service.subscribe(ignored -> { });
+                    }
+                };
+            }
             public void registerAction(String id, String label, Runnable action) { throw new AssertionError("No UI permission"); }
             public byte[] readData(String file) { throw new AssertionError("No data permission"); }
             public void writeData(String file, byte[] bytes) { throw new AssertionError("No data permission"); }
         };
         try {
             var mod = new CareerObserverMod(); mod.initialize(context);
-            if (subscriptions.get() != 1 || messages.size() != 1 || !messages.get(0).contains("kind=READ_COMPLETED")
+            if (subscriptions.get() != 2 || messages.size() != 2 || !messages.get(0).contains("kind=READ_COMPLETED")
                     || !messages.get(0).contains("reads=1")) throw new AssertionError("Observer subscription/report contract");
+            if (!messages.get(1).contains("kind=SAVE_SEQUENCE_COMPLETED") || !messages.get(1).contains("completedSaves=1")) throw new AssertionError("Qualified SDK-only event contract");
             mod.shutdown(); mod.shutdown();
-            if (closed.get() != 1) throw new AssertionError("Observer resource cleanup");
+            if (closed.get() != 2) throw new AssertionError("Observer resource cleanup");
         } finally { logger.removeHandler(handler); }
         System.out.println("PASS: SDK-only observer subscription/report/cleanup; synthetic, no game events.");
     }

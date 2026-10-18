@@ -671,6 +671,17 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 
 ### P2/P5 — composicao visual0.7.0
 
+P4/SDK0.8.0: contrato publico CareerIoEvents separado das observacoes antigas,
+default ModContext.careerIoEvents/capability events.career.io, opt-in. Leitura
+existente com ramo inicializacao aceito e save com todas etapas nessa geracao
+produzem eventos delimitados, sem nomear lifecycle completo/durabilidade.
+Contadores/state/replay/revisoes/limites compartilhados/callbacks isolados e
+observador SDK-only atualizado.36checks contrato+72I/O original aprovados;
+fixture original com frame sintetico corretamente NAO gera eventos qualificados.
+UI real do novo stream/assinante pendente;0.7.4 confirmou streamClosedtrue sem
+falhas em sessao13b58cd0-a16a-42df-ac43-0928fb39aea4. Criacao/unload/troca/IDs/P3
+nao liberados. Ver CAREER-IO-EVENTS.md.
+
 P4/0.7.4: fechamento subjacente e IOException engolida agora observados na sonda
 por identidade do Output da tentativa; erro impede update de write/completo, sem
 mudar catch/return/backup.43 guard+9bytecode+69I/O/biblioteca checks aprovados.
