@@ -40,3 +40,11 @@ e report separado,sem hooks novos ou eventos SDK. PATH_RETURNED nao ativa guard
 nemP3; reports anteriores nao provam ordem global para qualificacao retroativa.
 Novo runtime positivo pendente,sem pedir outra carreira nesta entrega. Leituras/
 scout permanecem utilizaveis sem depender deste gate; persistencia/gameplay nao.
+
+Base interna de escrita: CareerSidecarStore (envelopes/CAS/previous/recovery),
+CareerCommandGate (owner/context/permit unico) e CareerCommandJournal (intent
+persistente/sem replay apos restart) com fixtures proprias. Mapa financeiro/
+calendario/mercado read-only em map-gameplay-boundaries.ps1. Nao sao mod de
+patrocinio/negociacao,nem API publica ou capabilities prontas. Associacao da carreira,
+dispatcher/contexto verificado,calendario,efeitos financeiros e interceptacao de
+transferencia ainda exigem gates. Detalhes em LOADER-WRITE-FOUNDATIONS.md.

@@ -53,6 +53,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Exact reference selector tests failed' }
           java -cp build/hook-analysis MapCareerBoundariesSelfTest
           if ($LASTEXITCODE -ne 0) { throw 'Career boundary classifier tests failed' }
+          java -cp build/hook-analysis MapGameplayBoundariesSelfTest
+          if ($LASTEXITCODE -ne 0) { throw 'Gameplay candidate classifier tests failed' }
       - name: Parse PowerShell scripts without executing game operations
         run: |
           $failures = @()

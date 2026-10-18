@@ -1,5 +1,54 @@
 # Validacao — 16/10/2026
 
+## Bases internas de persistencia e comandos — sem novos mods ou API publica
+
+Pedido atual e ampliar loader para permitir patrocinio/negociacao futura,NAO
+gerar esses mods. Adicionados CareerSidecarStore,CareerCommandGate e
+CareerCommandJournal internos. Nenhum ligado a ModContext,Main ou callbacks do
+jogo; API/capabilities publicas e versao instalada0.9.3 inalteradas. Validator
+testa explicitamente que career.sidecars/gameplay.write continuam unsupported.
+
+Sidecar:envelopes versionados/owner/hash/schema/revision,payload destacado,
+HEADcurrent/previous,CAS token,lockfile entre processos,forcefiles/atomicmove
+sem fallback,quotas1MiBpayload/128files/16MiBnamespace,previous/recovery explicito
+sem eleger orfaos. Key de UUIDs/binding fornecida explicitamente por caller futuro,
+nao gera identidade de carreira do hash/path. SaveRevision mismatch nao migra
+associacao. Nenhum save e aberto pelo store. Corruptos/orfaos preservados.
+
+Gate:owner/op/contexto confiavel externo,roots fracas,permit uma vez/EDT,
+256receipts sem eviction,64owners,revoke/invalidate/shutdown;efeito incerto
+suspende contexto e nao e rollback. Journal:intent persistido PREPARED antes da
+Lease,read mostra incerteza,lease so na instancia original,sem reemissao apos
+restart;CAS/terminal nao sobrescrito,32intents sem eviction. Pending/unknown
+bloqueiam novos intents. Nao ha dispatcher nem reconciliador com save existente.
+
+Build final write-foundations-final.log aprovado:60checks store,32gate,28journal
+e suites anteriores. Fixture sidecar-core-8685777742727693978 e journal
+command-journal-17907877287666125179 sob Temp/opencode. Teste store inclui outro
+processo Java PROPRIO com lock,race inicial entre writers,corruptHEAD/recordmissing,
+ownership mismatch,previous explicito,CAS/quotas,EDTrefused,erros injetados em
+3etapas antes/depois do commit,unknownfilepreserved e junction Windows recusada
+sem alterar alvo. Symlink nao criado por permissao nesta maquina:SKIP explicito,
+nao contado como aceito. Falhas injetadas NAO sao crash/powerloss reais nem prova
+de fsync de diretorio/transacao atomica save+sidecar. Checagens de paths nao sao
+sandbox contra races hostis/hardlinks/mods Java maliciosos. Detalhes em
+roadmap/LOADER-WRITE-FOUNDATIONS.md; gates restantes explicitamente abertos.
+
+132checks I/O/schema originais aprovados em fixture privada
+Temp/opencode/vbrasfoot-hook-io-5e03f2c2b6624eabb289b5fdee05860d,nao executa
+credito/debito/transferencia nem valida reabertura de nova escrita financeira.
+SDK-only5projetos/hashes/allowlist/negative/JSON aprovado fora checkout fixture
+33ba379fadc449b4abc70984442f4ba6;archive local dist/sdk-0.9.3-write-foundations.zip.
+Sem tag/release/publicacao,sem instalacao/alteracao dos arquivos do jogo/mods.
+
+Mapa novo read-only map-gameplay-boundaries.ps1:30checks classificador,
+1038classes/47refs no EXE SHA conhecido,TSVprivado build/gameplay-boundaries-core-final.tsv.
+Javap confirma kb->saldo long,e(long) setter puro,v/w(int,int) alteram saldo e
+condicionalmente C.h/i ledger;f(long) subtrai e pode atualizar C.b. Categoria e
+overflow de acumuladores int ainda nao resolvidos,nenhum comando publico liberado.
+az tem7callers compartilhados,ah.a/b(F,bool)10sites candidatos em best.l,nao
+prova commit/interceptacao de transferencia. Artefatos privados nao redistribuidos.
+
 ## 0.9.3 — reconhecimento online estrito, nao prontidao
 
 Reutilizada rodada real0.9.2 0fad05d7-aaa6-487d-8da4-67c144ea5ccc:preparacao
