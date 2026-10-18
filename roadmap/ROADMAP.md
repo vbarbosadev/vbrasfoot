@@ -671,6 +671,14 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 
 ### P2/P5 — composicao visual0.7.0
 
+P4/18out: mapa reproducivel de criacao/unload, sem novo evento ou versao do loader.
+MapCareerBoundaries/map-career-boundaries.ps1 identifica73referencias em1038classes,
+21checks sinteticos no CI. Continuacoes Timer a.cS->V e a.ho->ax tornam RETURN
+de painel insuficiente; saidas examinadas System.exit/EXIT_ON_CLOSE nao sao unload.
+Raizes null apenas clinit no recorte direto, reset continua UNKNOWN. Novo plano de
+sonda causal em CREATION-UNLOAD-BOUNDARIES.md; nenhum novo pedido de criar/jogar
+sem instrumentacao pronta, nenhuma promocao de lifecycle/P3 por estatica.
+
 P4/SDK0.8.0: contrato publico CareerIoEvents separado das observacoes antigas,
 default ModContext.careerIoEvents/capability events.career.io, opt-in. Leitura
 existente com ramo inicializacao aceito e save com todas etapas nessa geracao

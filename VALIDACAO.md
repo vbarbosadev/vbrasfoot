@@ -1451,3 +1451,43 @@ Sem fsync/graph consistency/atomicidade/sidecars/P3/lifecycle completo/gameplay.
 Pacotes revisados com guias finais tambem aprovados:
 dist/portable-0.8.0-io-reviewed (fixture7a5041591cc34fcaa6d819b0069bceaa) e
 dist/sdk-0.8.0-io-reviewed.zip (fixture9d1cab12a48442f4b1a6a3f047ed4214).
+
+## Consumidor real0.8.0 e mapa criacao/unload
+
+Usuario instalou observador conforme guia e confirmou feito. Sessao privada
+43e0dddf-96ec-4cae-9fec-bd18786dcc09: mod observer ACTIVE; CURRENT_STATErev0,
+INVALIDATEDrev1/2/3, EXISTING_LOAD_COMPLETEDrev4 uma vez e
+SAVE_SEQUENCE_COMPLETEDrev5 uma vez, geracao3. Stream antigo manteve reads/writes
+originais. Guard io counts1/1, streamClosedtrue/failedfalse, healthytrue,
+partial/falha/stale/unbound/pendentes0, dispatcher2/2 sem perdas, stderr vazio.
+Entrega positiva ao consumidor SDK-only na UI real agora corroborada nesse
+caminho normal; nao todas rotas/falhas UI/criacao/unload/fsync/atomicidade/P3.
+
+Depois de pedido execute, observer ja estava ausente em Documents/mods; nao
+apagado/movido pelo agente nem sobrescrita de mods-selection. Jogo fechado.
+Branch feat/creation-unload-boundary-map: ferramenta somente leitura e CI tests,
+sem mudar loader instalado0.8.0/SDK/EXE/saves, sem nova versao/release.
+Novo MapCareerBoundaries usa scanner existente, roles exatas com descriptor,
+recusa registros malformed/Graphics/JDialog genericos como fronteira.21tests
+proprios e11scanner aprovados; wrapper recusa output existente/perfil/links.
+Mapa final privado1038classes/73referencias em
+build/lifecycle-map-49bcef9e049a4f9e8c9cb6b7c37bc6f2/boundaries-final.tsv.
+EXE hash conhecido preservado. Bytecode javap privado da mesma identidade.
+
+Novas evidencias estaticas: cR.oR agenda cS que chama V; hk.oR agenda ho que
+chama ax. Construtores/painel RETURN podem anteceder continuacao agendada.
+ap/at/ax fazem caminhos reutilizados/novos paineis; nao prontidao exclusiva.
+eg.rq System.exit(0), JFrame principal EXIT_ON_CLOSE,5sites exit no ZIP.
+7root writes:2null clinit e5constructor/load/setter, sem null unload direto
+fora clinit nesse recorte. Metodo best.n.a(JFrame) setter de referencia, nao
+commit. Estatistica/ausencia no recorte nao prova ausencia de rota dinamica.
+REA JVM provider ausente previamente registrado, usado fallback suportado local
+sem reconfigurar/instalar ferramentas ou executar paths do jogo. Guia detalhado
+CREATION-UNLOAD-BOUNDARIES.md distingue fatos/inferencia/pedencias/sonda futura.
+Sem instrumentacao adicional/liberar carreira nova/unload/sidecars ou chamar
+usuario para repetir criacao apenas por um novo candidato ainda nao observado.
+
+Wrapper testes negativos locais: output existente recusado com hash intacto;
+EXE falso de3bytes em fixture propria recusado antes de gerar TSV. Parser
+PowerShell aprovado, git diff --check limpo. Links/junctions guard implementado,
+nao exercitado nesta rodada (nao relatar teste de link como aprovado).
