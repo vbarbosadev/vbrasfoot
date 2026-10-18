@@ -11,6 +11,8 @@ public final class MapCareerBoundaries {
             "best/S.aY(I)Ljavax/swing/JPanel;", "best/h.mh()V", "best/h.mi()V", "a/cR.oR()V",
             "a/cS.<init>(La/cR;)V", "a/hk.oR()V", "a/ho.<init>(La/hk;)V", "java/util/Timer.schedule(Ljava/util/TimerTask;J)V",
             "javax/swing/JFrame.setDefaultCloseOperation(I)V");
+    static final Set<String> ORIGIN_TARGETS = Set.of("a/bV.<init>(Ljavax/swing/JFrame;)V", "a/cR.<init>(Ljavax/swing/JFrame;)V",
+            "a/bV.pl()V", "a/bV.AB()V", "a/cR.pl()V", "a/cR.AC()V", "a/cR.pn()V");
     private MapCareerBoundaries() { }
     private static String hash(Path file) throws Exception {
         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file)));
@@ -25,6 +27,7 @@ public final class MapCareerBoundaries {
         String target = fields[1];
         if (fields[0].equals("putstatic") && (target.equals("c/a.SRLbest/f;") || target.equals("c/a.afQLbest/ay;"))) return "root-write-not-ready-or-unload";
         if (!fields[0].equals("invoke")) return null;
+        if (ORIGIN_TARGETS.contains(target)) return target.contains(".<init>") ? "candidate-panel-construction-not-origin-proof" : "candidate-origin-caller-not-exclusive";
         if (target.equals("c/a.<init>()V")) return "root-reset-caller";
         if (target.equals("c/a.c(Ljava/lang/String;Z)Z")) return "existing-read-caller";
         if (target.equals("c/a.ae(Ljava/lang/String;)V")) return "save-caller";
@@ -49,6 +52,7 @@ public final class MapCareerBoundaries {
         int classes = 0;
         List<String> results = new ArrayList<>();
         Map<String, Integer> counts = new TreeMap<>();
+        Set<String> selected = new HashSet<>(TARGETS); selected.addAll(ORIGIN_TARGETS);
         try (var zip = new ZipFile(executable.toFile())) {
             var entries = zip.entries();
             while (entries.hasMoreElements()) {
@@ -56,7 +60,7 @@ public final class MapCareerBoundaries {
                 if (!entry.getName().endsWith(".class")) continue;
                 if (entry.getSize() < 0 || entry.getSize() > 1024 * 1024) throw new IOException("Class exceeds inspection bound");
                 try (var stream = zip.getInputStream(entry)) {
-                    for (var reference : FindCareerReferences.inspect(stream.readAllBytes(), TARGETS)) {
+                    for (var reference : FindCareerReferences.inspect(stream.readAllBytes(), selected)) {
                         String role = role(reference);
                         if (role != null) { results.add(role + "\t" + reference); counts.merge(role, 1, Integer::sum); }
                     }

@@ -32,6 +32,13 @@ public final class MapCareerBoundariesSelfTest {
         check(MapCareerBoundaries.TARGETS.contains("a/cR.oR()V") && MapCareerBoundaries.TARGETS.contains("best/f.at()V"));
         check(MapCareerBoundaries.role(reference("invoke", "best/f.ax()V")).equals("shared-progression-call"));
         check(MapCareerBoundaries.role(reference("invoke", "a/ho.<init>(La/hk;)V")).equals("scheduled-path-candidate"));
+        for (String target : MapCareerBoundaries.ORIGIN_TARGETS) {
+            check(MapCareerBoundaries.role(reference("invoke", target)).equals(target.contains(".<init>")
+                    ? "candidate-panel-construction-not-origin-proof" : "candidate-origin-caller-not-exclusive"));
+            check(MapCareerBoundaries.role(reference("putfield", target)) == null);
+        }
+        check(MapCareerBoundaries.role(reference("invoke", "a/bV.AB(I)V")) == null);
+        check(MapCareerBoundaries.role(reference("invoke", "a/bV.<init>()V")) == null);
         System.out.println("PASS: " + checks + " static career-boundary classifier checks (owned records, no runtime lifecycle).");
     }
 }

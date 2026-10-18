@@ -97,3 +97,34 @@ Nenhum FAILED capturado. Guard UNKNOWN,nenhum save nesta sessao; isso nao e
 prontidao ou unload. Faltam classificacao exclusiva da origem e rejeicao de
 temporada/cancelamento/falha. Sem pedir outra carreira agora. Dados completos
 e limitacoes em VALIDACAO.md e comentario de corroboracao da PR37.
+
+## Chamadores da origem — mapa adicional apos0.9.0
+
+Mapper ampliado com7alvos exatos (constructors bV/cR com JFrame, bV.pl/AB,
+cR.pl/AC/pn). Inspecao somente leitura dos1038classes do ZIP principal do EXE
+conhecido retornou81referencias (73anteriores+8novas),37checks sinteticos do
+classificador. Saida privada build/creation-origin-callers.tsv; nao distribuir.
+
+Novos achados diretos (nao chamadas reflexivas/indiretas nem prova global):
+
+- bV.AB tem um caller direto selecionado: bV.pl@26. bV.pl tem dois sites em
+  bV.oq@41/83. oq contem ramos de validacao e inicializacao; seus retornos nao
+  sao por si so finalizacao bem sucedida de carreira.
+- bV.pl chama showConfirmDialog, guarda seu int e compara com0. Somente0 pede
+  painel10; qualquer valor diferente segue AB. Portanto o ramo AB nao distingue
+  nao/cancelar/fechar; NAO afirmar qual escolha o usuario fez. A aparicao de AB
+  na trace nao basta para classificar cancelamento sem o valor original.
+- Neste ramo pl->AB->az/V nao ha site de schedule/cR.oR. Isso explica por que
+  a evidencia real e compativel com tasks0; nao prova ausencia de tarefas em
+  rotas globais nem que nenhuma classe construiu uma tarefa sem associacao.
+- cR.AC e cR.pl sao chamados diretamente por best.f.aa@304/279, com condicoes
+  na progressao; cR.pn por cU.actionPerformed@4. Isso confirma que nao se deve
+  tratar o conjunto AB/AC/pn como uma origem exclusiva de nova carreira.
+- bV e cR sao construidos em best.S.aY@118/359. Construir um painel nao e
+  completar carreira, nem remover um painel e descarregar roots.
+
+Proxima instrumentacao justificada: valor bruto de retorno do dialogo em bV.pl
+com identificador causal de oq/pl e roots/geracao observados; nao converter
+int em evento de sucesso/cancelamento. Precisa preservar operand stack/Throwable,
+fingerprints/schema, bounds e teste de0/1/2/-1 antes de solicitar outro teste
+humano. Nao instalada nesta entrega de mapa; nenhuma nova repeticao solicitada.
