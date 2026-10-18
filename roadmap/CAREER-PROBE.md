@@ -150,6 +150,47 @@ que mudanca de timestamp/hash nao e criterio de evento. Detalhes em VALIDACAO.md
 
 ## Pendencias antes da API
 
+### Correlacao de tarefas candidatas0.8.1
+
+Quatro classes: a.cR.oR/a.cS.run e a.hk.oR/a.ho.run. SHA originais inteiros e
+exatamente1method/RETURN/taskconstructor/Timer.schedule nos schedulers e
+1run/RETURN/Timer.cancel/V-ou-ax nos tasks. cR combina transformacoes existentes
+de candidatos com oR, validando SHA original primeiro. Nenhuma mudanca de
+campo/nome/hierarquia/schema/cache, thread original, delay, cancel ou excecao.
+Constructor de task e observado antes de schedule; run pode iniciar antes do
+retorno do scheduler, e report nao presume a ordem inversa. Excecao original
+repropagada apos marcador de falha, sem reexecutar/cancelar tarefas.
+
+Tracker usa identidade fraca da tarefa e das raizes, sessao local/geracao e
+origin ID/label do candidato AB/AC/pn da thread originaria. Em run associado,
+contexto causal e levado a nova thread; tarefas descendentes herdam origin e
+parent ID. ThreadLocal sozinho nao e heranca entre threads. ID e apenas sonda,
+nao ID persistente de carreira/tarefa do SDK. Comparacao de roots/generation na
+entrada/saida recusa stale; fallback de desconhecido e unbound, nao associacao
+por nome/tela. Paths AB/AC/pn nao sao origem exclusiva de nova carreira:
+rotas de temporada ainda podem usar o mesmo candidato, sem declarar readiness.
+
+Limites:64tasks vivos com weak identity,128reports com eviccao de terminados ou
+coletados,8frames por ThreadLocal. Overflow recusa/descarta pareamento em vez de
+guardar grafo ilimitado. Uma tarefa cancelada por outro caminho pode permanecer
+pendente ate coleta/reset; nao inventar return e nao alterar Timer original.
+Reset de sessao invalida epoch; roots/geracao trocados invalidam correlacao no
+proximo marker. Nenhum getter/Swing/I/O/callback mod no novo tracker.
+
+creation-async.properties copia metadados primitivos ao fechar: task id/origin/
+originLabel/parent/label/generation e scheduleReturned/scheduleFailed/started/
+returned/failed/stale, counters rejected/unbound. Returned nao e pronta nem
+assert de que Timer foi cancelado corretamente. Report best-effort, nao journal;
+run que terminar depois da captura pode nao aparecer como concluido no arquivo.
+Callbacks originais nao sao interrompidos nem esperados no shutdown.
+
+19checks tracker sintetico +7bytecode propria fixture aprovados, schema/I/O75
+checks originais aprovados (definicao/verificacao das quatro classes, nao executar
+oR/run originais/novo jogo). Futuro gate humano: criar nova carreira com nome
+inedito na copia e observar qual candidato/task rodou; nao jogar/forcar save.
+Salvar automaticamente pelo original continua possivel; nao prometer zero I/O
+ao criar. Nao pedir variantes amistoso/temporada antes de ver o primeiro report.
+
 0.7.4 instrumenta Output.close da biblioteca local por SHA/sitecounts exatos,
 sem alterar catch/return/schema/cache em disco. Receivers correlacionados a c.a.ae
 evitam atribuir falha de outro Output ao save. Report inclui close subjacente e

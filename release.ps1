@@ -10,8 +10,8 @@ foreach ($name in @('install.ps1', 'uninstall.ps1', 'recover-update.ps1', 'launc
 }
 Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'app\LICENSE')
 [IO.Directory]::CreateDirectory((Join-Path $Output 'sdk')) | Out-Null
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.8.0.jar')
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.8.0.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.8.1.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.8.1.jar')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-QUICKSTART.md" -Destination (Join-Path $Output 'sdk\SDK-QUICKSTART.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-COMPATIBILITY.md" -Destination (Join-Path $Output 'sdk\SDK-COMPATIBILITY.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\QUERY-PERFORMANCE.md" -Destination (Join-Path $Output 'sdk\QUERY-PERFORMANCE.md')

@@ -13,6 +13,7 @@ public final class HookProbe {
     private static final AtomicReference<CareerLifecycle> lifecycle = new AtomicReference<>();
     private static final AtomicLong sequence = new AtomicLong();
     private static final CreationContentTracker creationContent = new CreationContentTracker();
+    private static final AsyncCreationTracker asyncCreation = new AsyncCreationTracker();
     private static final ThreadLocal<ArrayDeque<Load>> loads = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Save>> saves = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Reset>> resets = ThreadLocal.withInitial(ArrayDeque::new);
@@ -37,6 +38,7 @@ public final class HookProbe {
     static AutoCloseable attach(Consumer<Observation> sink) {
         if (!observer.compareAndSet(null, sink)) throw new IllegalStateException("Uma sonda de carreira ja esta ativa nesta JVM");
         creationContent.reset();
+        asyncCreation.reset();
         return () -> observer.compareAndSet(sink, null);
     }
     static AutoCloseable attachLifecycle(CareerLifecycle state) {
@@ -78,6 +80,7 @@ public final class HookProbe {
         } catch (Throwable ignored) { }
     }
     public static void creationPathStarted(String label, Object primary, Object secondary) {
+        try { asyncCreation.origin(label, primary, secondary, generation()); } catch (Throwable ignored) { }
         try { creationContent.enter(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
                 javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation()); } catch (Throwable ignored) { }
         try { emit("creation-candidate-start", label, false, false, false, false, false); } catch (Throwable ignored) { }
@@ -86,6 +89,7 @@ public final class HookProbe {
         creationPathReturned(label, null, null);
     }
     public static void creationPathReturned(String label, Object primary, Object secondary) {
+        try { asyncCreation.endOrigin(label); } catch (Throwable ignored) { }
         try { creationContent.finish(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
                 javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation(), true); } catch (Throwable ignored) { }
         // Return of a UI candidate is not proof that creation finished; do not touch the lifecycle guard.
@@ -95,6 +99,7 @@ public final class HookProbe {
         creationPathFailed(label, null, null);
     }
     public static void creationPathFailed(String label, Object primary, Object secondary) {
+        try { asyncCreation.endOrigin(label); } catch (Throwable ignored) { }
         try { creationContent.finish(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
                 javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation(), false); } catch (Throwable ignored) { }
         try { emit("creation-candidate-failed", label, false, false, false, false, true); } catch (Throwable ignored) { }
@@ -109,6 +114,30 @@ public final class HookProbe {
             if (outer && state != null) frame.attempt = state.beginMutation();
         } catch (Throwable ignored) { }
     }
+    public static void asyncScheduleStarted(String label) {
+        try { asyncCreation.scheduleStarted(label); } catch (Throwable ignored) { }
+    }
+    public static void asyncTaskCreated(String label, Object task, Object primary, Object secondary) {
+        try { asyncCreation.taskCreated(label, task, primary, secondary, generation()); } catch (Throwable ignored) { }
+    }
+    public static void asyncScheduleReturned(String label) {
+        try { asyncCreation.scheduleFinished(label, true); } catch (Throwable ignored) { }
+    }
+    public static void asyncScheduleFailed(String label) {
+        try { asyncCreation.scheduleFinished(label, false); } catch (Throwable ignored) { }
+    }
+    public static void asyncRunStarted(String label, Object task, Object primary, Object secondary) {
+        try { asyncCreation.runStarted(label, task, primary, secondary, generation()); } catch (Throwable ignored) { }
+    }
+    public static void asyncRunReturned(String label, Object task, Object primary, Object secondary) {
+        try { asyncCreation.runFinished(label, task, primary, secondary, generation(), true); } catch (Throwable ignored) { }
+    }
+    public static void asyncRunFailed(String label, Object task, Object primary, Object secondary) {
+        try { asyncCreation.runFinished(label, task, primary, secondary, generation(), false); } catch (Throwable ignored) { }
+    }
+    static java.util.List<AsyncCreationTracker.Report> asyncCreationReports() { return asyncCreation.snapshot(); }
+    static long asyncCreationRejected() { return asyncCreation.rejected(); }
+    static long asyncCreationUnbound() { return asyncCreation.unbound(); }
     public static void enterReset() {
         try {
             Reset frame = new Reset(); resets.get().push(frame);

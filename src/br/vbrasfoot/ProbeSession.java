@@ -48,6 +48,27 @@ final class ProbeSession implements AutoCloseable {
         closed = true;
         try { subscription.close(); } catch (Exception failure) { logger.warning("Could not detach probe subscription"); }
         try { lifecycleSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach lifecycle guard"); }
+        Properties async = new Properties();
+        async.setProperty("coverage", "Causal candidate tasks only; not exclusive new-career origin, readiness, unload or durable lifecycle");
+        async.setProperty("rejected", Long.toString(HookProbe.asyncCreationRejected()));
+        async.setProperty("unbound", Long.toString(HookProbe.asyncCreationUnbound()));
+        var asyncReports = HookProbe.asyncCreationReports();
+        async.setProperty("count", Integer.toString(asyncReports.size()));
+        int asyncIndex = 0;
+        for (var value : asyncReports) {
+            String prefix = "task." + asyncIndex++ + ".";
+            async.setProperty(prefix + "id", Long.toString(value.id())); async.setProperty(prefix + "origin", Long.toString(value.origin()));
+            async.setProperty(prefix + "parent", Long.toString(value.parent())); async.setProperty(prefix + "label", value.label());
+            async.setProperty(prefix + "originLabel", value.originLabel());
+            async.setProperty(prefix + "generation", Long.toString(value.generation()));
+            async.setProperty(prefix + "scheduleReturned", Boolean.toString(value.scheduleReturned()));
+            async.setProperty(prefix + "scheduleFailed", Boolean.toString(value.scheduleFailed()));
+            async.setProperty(prefix + "started", Boolean.toString(value.started()));
+            async.setProperty(prefix + "returned", Boolean.toString(value.returned()));
+            async.setProperty(prefix + "failed", Boolean.toString(value.failed())); async.setProperty(prefix + "stale", Boolean.toString(value.stale()));
+        }
+        try (var writer = Files.newBufferedWriter(report.resolveSibling("creation-async.properties"))) { async.store(writer, "Bounded weak-identity async candidate report"); }
+        catch (Exception failure) { System.err.println("Falha ao registrar async candidates: " + failure); }
         Properties candidates = new Properties();
         candidates.setProperty("format", "1");
         candidates.setProperty("coverage", "Candidate path/content observations only; not CareerLoaded, commit, persistent identity or proof of initialization");
