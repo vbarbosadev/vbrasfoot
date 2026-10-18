@@ -1224,3 +1224,22 @@ SDK dist/sdk-0.7.0-style-final.zip extraido fora do checkout com quatro projetos
 API-only aprovados em Temp/opencode/vbrasfoot-sdk-author-7bde158169ab436c8964453851edc318.
 Sem publicacao/tag/upload; jogo posteriormente observado fechado, instalacao
 requer novo preflight e backup do comparador anterior conhecido.
+
+## UI0.7.1 — card central azul-petroleo
+
+Pedido posterior com capturas: painel menor que o jogo e visual semelhante ao
+painel nativo. Host transparente centraliza card limitado1200x740/area-32px,
+com Fechar no rodape. Tema azul-petroleo/campos claros/botoes claros; sem assets,
+mudancas de consultas, save ou bounds do jogo. Comparador1.1.1/minLoader0.7.1.
+test.ps1 -IncludeUi aprovado; smoke verifica transparencia, centralizacao e
+dimensoes menores, comparar/fechar e controles em1280x720. Previews sinteticos
+build/embedded-style-preview-331213923190034028.png e
+build/embedded-style-small-10032760155564305791.png inspecionados.
+Fundo cinza desses previews e apenas preenchimento fake, nao captura do jogo.
+Aprovacao visual humana e escalas adicionais permanecem pendentes.
+
+Portable0.7.1 regressao aprovada em fixture
+Temp/opencode/vbrasfoot-install-b6afe51b227141c9942c61da2f0a262e;
+SDK-only0.7.1 extraido/testado fora checkout em
+Temp/opencode/vbrasfoot-sdk-author-7b53b296b3ce4840881a79ff021ba2ed.
+Sem publicacao/tag/upload e sem inferir aprovacao visual pelos testes.

@@ -250,19 +250,22 @@ public final class UiSmokeTest {
                 }
                 if (named(layer, "player-comparator.results", JTable.class).getRowCount() != 6) throw new AssertionError("Comparacao integrada incorreta");
                 var styled = named(layer, "player-comparator.results", JTable.class);
-                if (!styled.getBackground().equals(java.awt.Color.WHITE) || !styled.getSelectionBackground().equals(new java.awt.Color(244, 193, 26))) throw new AssertionError("Tema apagou estilo das tabelas");
+                if (!styled.getBackground().equals(java.awt.Color.WHITE) || !styled.getSelectionBackground().equals(java.awt.Color.YELLOW)) throw new AssertionError("Tema apagou estilo das tabelas");
                 frame.validate();
+                var card = named(layer, "vbrasfoot.embedded-card", javax.swing.JPanel.class);
+                if (layer.isOpaque() || card == null || card.getWidth() >= layer.getWidth() || card.getHeight() >= layer.getHeight()
+                        || Math.abs(card.getX() * 2 + card.getWidth() - layer.getWidth()) > 1 || Math.abs(card.getY() * 2 + card.getHeight() - layer.getHeight()) > 1) throw new AssertionError("Painel nao e sobreposicao central menor");
                 var preview = java.nio.file.Files.createTempFile(Path.of("build"), "embedded-style-preview-", ".png");
                 var image = new java.awt.image.BufferedImage(layer.getWidth(), layer.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
                 var graphics = image.createGraphics();
-                try { layer.printAll(graphics); } finally { graphics.dispose(); }
+                try { graphics.setColor(new java.awt.Color(225, 229, 233)); graphics.fillRect(0, 0, image.getWidth(), image.getHeight()); layer.printAll(graphics); } finally { graphics.dispose(); }
                 javax.imageio.ImageIO.write(image, "png", preview.toFile());
                 System.out.println("Synthetic style preview (owned fake data only): " + preview);
                 frame.setSize(1280, 720); frame.validate();
                 var smallPreview = java.nio.file.Files.createTempFile(Path.of("build"), "embedded-style-small-", ".png");
                 var small = new java.awt.image.BufferedImage(layer.getWidth(), layer.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
                 var smallGraphics = small.createGraphics();
-                try { layer.printAll(smallGraphics); } finally { smallGraphics.dispose(); }
+                try { smallGraphics.setColor(new java.awt.Color(225, 229, 233)); smallGraphics.fillRect(0, 0, small.getWidth(), small.getHeight()); layer.printAll(smallGraphics); } finally { smallGraphics.dispose(); }
                 javax.imageio.ImageIO.write(small, "png", smallPreview.toFile());
                 for (String key : java.util.List.of("vbrasfoot.embedded-back", "player-comparator.refresh", "player-comparator.0.choose", "player-comparator.1.choose")) {
                     var control = named(layer, key, JButton.class);

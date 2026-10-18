@@ -99,7 +99,7 @@ public final class PlayerComparatorMod implements Mod {
             JLabel hint = theme.style(new JLabel("Leitura SDK • sem ranking oficial, salario ou potencial inferidos"), br.vbrasfoot.api.UiTheme.Role.STATUS);
             bottom.add(hint); theme.style(status, br.vbrasfoot.api.UiTheme.Role.STATUS);
             bottom.add(status); add(bottom, BorderLayout.SOUTH);
-            setPreferredSize(new Dimension(1050, 650));
+            setPreferredSize(new Dimension(1160, 640));
             theme.apply(this);
         }
         public JComponent component() { return this; }
@@ -126,7 +126,7 @@ public final class PlayerComparatorMod implements Mod {
             private final int side;
             private final JTextField filter = new JTextField(12);
             private final JComboBox<String> clubs = new JComboBox<>();
-            private final DefaultTableModel players = table("Nome", "Idade (anos)", "Posicao (codigo)", "Forca", "Value");
+            private final DefaultTableModel players = table("Nome", "Idade (anos)", "Posicao (codigo)", "Forca", "Valor SDK");
             private final JTable playerTable = new JTable(players);
             private final JButton clubPrev = new JButton("Clubes <"), clubNext = new JButton("Clubes >");
             private final JButton playerPrev = new JButton("Jogadores <"), playerNext = new JButton("Jogadores >");
@@ -161,6 +161,8 @@ public final class PlayerComparatorMod implements Mod {
                 theme.style(playerTable, br.vbrasfoot.api.UiTheme.Role.TABLE);
                 int[] widths = {220, 70, 110, 80, 110};
                 for (int column = 0; column < widths.length; column++) playerTable.getColumnModel().getColumn(column).setPreferredWidth(widths[column]);
+                int[] minimums = {130, 85, 110, 55, 90};
+                for (int column = 0; column < minimums.length; column++) playerTable.getColumnModel().getColumn(column).setMinWidth(minimums[column]);
                 var numbers = new javax.swing.table.DefaultTableCellRenderer(); numbers.setHorizontalAlignment(SwingConstants.CENTER);
                 for (int column = 1; column <= 3; column++) playerTable.getColumnModel().getColumn(column).setCellRenderer(numbers);
                 var values = new javax.swing.table.DefaultTableCellRenderer(); values.setHorizontalAlignment(SwingConstants.RIGHT);

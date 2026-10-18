@@ -1,6 +1,6 @@
 # Comparador independente de jogadores
 
-Mod somente leitura, SDK/loader **0.7.0+**, Java 17+. Manifesto
+Mod somente leitura, SDK/loader **0.7.1+**, Java 17+. Manifesto
 `br.vbrasfoot.player-comparator`, permissoes `game.read,ui.register`, capacidade
 `query.scoped,ui.panel.embedded`. Sem dependencias externas, classes do jogo, acesso raw/reflection,
 arquivos de dados, persistencia, rede, threads de background ou escrita de gameplay.
@@ -17,7 +17,7 @@ Nesta pasta, sem executar o build principal do loader:
 Fora do checkout, copie esta pasta e use o JAR publico do SDK-only:
 
 ```powershell
-.\build.ps1 -Sdk 'C:\SDK\api\vbrasfoot-api-0.7.0.jar'
+.\build.ps1 -Sdk 'C:\SDK\api\vbrasfoot-api-0.7.1.jar'
 ```
 
 O default e `lib/vbrasfoot-api.jar`. Nao baixa nem instala dependencias. Compila
@@ -28,10 +28,10 @@ ficam fora do JAR. Cada build usa diretorio exclusivo em `build/`.
 Validacao opcional, sem abrir o jogo ou inicializar o mod:
 
 ```powershell
-java -jar 'C:\SDK\tools\vbrasfoot-validator-0.7.0.jar' .\dist\player-comparator.jar
+java -jar 'C:\SDK\tools\vbrasfoot-validator-0.7.1.jar' .\dist\player-comparator.jar
 ```
 
-Build nao instala o mod. Com jogo fechado e loader0.7.0+ instalado, revise o JAR:
+Build nao instala o mod. Com jogo fechado e loader0.7.1+ instalado, revise o JAR:
 
 ```powershell
 .\install.ps1 -GameDir 'C:\copia-teste\Brasfoot22-23' -Preview
