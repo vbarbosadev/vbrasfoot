@@ -43,6 +43,7 @@ final class CareerCommandGate implements AutoCloseable {
     private final UUID session = UUID.randomUUID();
     private final Map<String, Owner> owners = new HashMap<>();
     private final Map<Identity, Slot> commands = new LinkedHashMap<>();
+    private final Set<Slot> executing = new HashSet<>();
     private Context context;
     private WeakReference<Object> primary = new WeakReference<>(null), secondary = new WeakReference<>(null);
     private Slot active;
@@ -56,6 +57,7 @@ final class CareerCommandGate implements AutoCloseable {
     /** Trusted caller must supply an independently verified association; this method does not discover one. */
     synchronized Context installContext(UUID career, UUID binding, long generation, CareerSidecarStore.SaveRevision save, Object primary, Object secondary) {
         if (closed) throw new IllegalStateException("Command gate closed");
+        if (!executing.isEmpty()) throw new IllegalStateException("Previous original handler has not returned");
         Objects.requireNonNull(career); Objects.requireNonNull(binding); Objects.requireNonNull(save);
         Objects.requireNonNull(primary); Objects.requireNonNull(secondary);
         if (generation < 1) throw new IllegalArgumentException("Invalid generation");
@@ -95,7 +97,7 @@ final class CareerCommandGate implements AutoCloseable {
             Reason rejection = closed ? Reason.CLOSED : !slot.owner.active ? Reason.OWNER_REVOKED
                     : !edt ? Reason.WRONG_THREAD : !current(slot.request, primary, secondary) ? Reason.STALE_CONTEXT : Reason.NONE;
             if (rejection != Reason.NONE) { reject(slot, rejection); return new Start(slot.receipt(), false); }
-            slot.status = Status.RUNNING; return new Start(slot.receipt(), true);
+            slot.status = Status.RUNNING; executing.add(slot); return new Start(slot.receipt(), true);
         }
     }
     synchronized Receipt cancel(Permit permit) {
@@ -107,7 +109,8 @@ final class CareerCommandGate implements AutoCloseable {
     synchronized Receipt finish(Permit permit, Status status, Object primary, Object secondary) {
         Slot slot = requirePermit(permit);
         if (status != Status.APPLIED && status != Status.REJECTED && status != Status.OUTCOME_UNKNOWN) throw new IllegalArgumentException("Invalid completion status");
-        if (slot.status != Status.RUNNING) return slot.receipt();
+        executing.remove(slot);
+        if (slot.status != Status.RUNNING) { if (active == slot) active = null; return slot.receipt(); }
         if (closed || !slot.owner.active || !current(slot.request, primary, secondary)) {
             slot.status = Status.OUTCOME_UNKNOWN; slot.reason = Reason.INVALIDATED;
         } else { slot.status = status; slot.reason = status == Status.APPLIED ? Reason.NONE : status == Status.REJECTED ? Reason.NO_EFFECT_CONFIRMED : Reason.EXECUTION_UNCERTAIN; }
@@ -115,6 +118,17 @@ final class CareerCommandGate implements AutoCloseable {
         if (slot.status == Status.OUTCOME_UNKNOWN) { context = null; this.primary.clear(); this.secondary.clear(); }
         return slot.receipt();
     }
+    /** Storage failure/timeout after start cannot be described as a rollback or safely replayed. */
+    synchronized Receipt uncertain(Permit permit) {
+        Slot slot = requirePermit(permit);
+        if (slot.status == Status.RESERVED) { reject(slot, Reason.NO_EFFECT_CONFIRMED); return slot.receipt(); }
+        if (slot.status == Status.RUNNING || slot.status == Status.APPLIED) {
+            slot.status = Status.OUTCOME_UNKNOWN; slot.reason = Reason.EXECUTION_UNCERTAIN;
+            context = null; primary.clear(); secondary.clear();
+        }
+        return slot.receipt();
+    }
+    synchronized String ownerId(Owner owner) { requireOwner(owner); return owner.id; }
     private Reservation denied(Owner owner, Request request, Reason reason) {
         return new Reservation(new Receipt(owner.id, request, Status.REJECTED, reason), Optional.empty());
     }
