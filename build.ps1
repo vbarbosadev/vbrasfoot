@@ -96,6 +96,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes do tracker de origem falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.CreationEntryTransformerSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do bytecode de origem falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CreationPathQualificationSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de qualificacao estrita falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CreationQualificationIntegrationSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de integracao da qualificacao falharam' }
     & "$PSScriptRoot\templates\read-only-mod\build.ps1" -Sdk "$PSScriptRoot\dist\vbrasfoot-api.jar"
     if ($LASTEXITCODE -ne 0) { throw 'Build independente do template falhou' }
     & java -jar "$PSScriptRoot\dist\vbrasfoot.jar" --validate-mod "$PSScriptRoot\templates\read-only-mod\dist\meu-mod.jar"

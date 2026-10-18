@@ -163,3 +163,19 @@ callbacks. Assinatura completa/classes fingerprintadas, sem alterar schema.
 Validade de origem e apenas diagnostica; nao promove UNKNOWN, nao vincula save.
 Rota forms.p e outros percursos nao observados continuam fora deste binding;
 sem binding deve ser UNBOUND, nao uma falha inventada da carreira.
+
+## Qualificacao estrita do shape —0.9.3
+
+Rodada real0.9.2 0fad05d7-aaa6-487d-8da4-67c144ea5ccc corroborou9eventos de
+entry1/attempt2,primeira tentativa bound1/unbound0,preparacao completa retornada,
+NO_OPTION1,AB e oqRETURN,roots/gen4/thread37 estaveis/drop0/outside0/rejected0.
+Progress78 e dialog6 confirmam shape anterior,guardUNKNOWN/healthytrue/io0/0,
+sem save/pending/stale,dispatcher3/3. Erro preexistente de equipe preservado.
+
+0.9.3 reconhece esse shape online em estado separado:binding+ordem completa,
+NO_OPTION,AB,az/V,LIFO38entradas/maxdepth38,painel2chamada/retorno e retornos
+externos. Reasons negativas explicitas e limites; detalhes em CAREER-PROBE.md.
+PATH_RETURNED nao e CareerReady. Nao usar esta classificacao para vincular saves
+ou iniciar sidecars por inferencia. Nao converter reports antigos em positivo:
+eles tem sequencias locais diferentes e nao podem provar ordem global unica.
+Tests sinteticos da ordem esperada NAO sao runtime positivo deste qualificador.

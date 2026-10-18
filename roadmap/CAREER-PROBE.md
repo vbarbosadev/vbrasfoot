@@ -191,7 +191,51 @@ inedito na copia e observar qual candidato/task rodou; nao jogar/forcar save.
 Salvar automaticamente pelo original continua possivel; nao prometer zero I/O
 ao criar. Nao pedir variantes amistoso/temporada antes de ver o primeiro report.
 
-### Binding de entrada0.9.2
+### Qualificacao online limitada0.9.3
+
+Sem bytecode adicional: integra os hooks existentes a CreationPathQualification
+por uma unica instancia por attempt. Nao e leitor/replay de arquivos antigos;
+reports0.9.2 nao possuem ordem global suficiente entre streams para gerar um
+resultado retroativo. Primeira corroboracao online original ainda pendente.
+
+Aceita somente: binding preparado/roots/epoch/geracao/painel ainda valido,primeira
+tentativa dessa binding na EDT,oqENTER->plENTER->DIALOG_RETURN1->ABENTER->beforeaz
+->afteraz->beforeV->progressao->afterV->ABRETURN->plRETURN->oqRETURN.
+Progressao tem V->ap,ap->at,at->ax,ax->ap com stack LIFO,receiver real == primary
+em todas as entradas e roots/geracao verificadas em TODOS os sinais. Ramo aa/AC/
+pn,receiver desconhecido/trocado,qualquerFAILED,ou outro painel sao recusados.
+Requer exatamente38entradas/maxdepth38 (V1/ap13/at12/ax12 no unico shape real
+corroborado) e um painel2 request/return no mesmo ap;null retornado por aY e
+preservado,nao testado como se fosse o painel. Outros shapes completos ficam
+UNSUPPORTED_SHAPE,nao falha de gameplay. Nao generalizar para outros calendarios.
+
+Status RUNNING/REJECTED/PATH_RETURNED,reason de primeira rejeicao. PATH_RETURNED
+significa somente reconhecimento desse percurso original observado,sem hooks
+selecionados de save/agendamento/mutacao durante o recorte; nao prova ausencia
+global de tarefas/saves,prontidao do grafo/UI,identidade persistente ou durabilidade.
+NUNCA ativa lifecycle/qualified I/O,nao emite evento SDK. Resultado concluido e
+historico,nao uma fase que muda retroativamente quando o jogo progride depois.
+
+Qualificacao recusa reuso de binding MESMO se tentativa anterior foi validacao
+sem pl; a UI original pode permitir tentar novamente,mas essa sonda conservadora
+nao declara qualificada a repeticao. Overlap/reentrada/global hooks selecionados
+de save,load/reset/root e scheduler/run invalidam qualificacoes ativas; progressao
+em outra thread sem contexto tambem rejeita,sem tentar unir por ID/threadname.
+Essas invalidacoes globais sao conservadoras (podem rejeitar trabalho independente).
+Nao inferem completude de observacao de threads/reflexao/JNI/schedulers nao mapeados.
+
+Limites:2048sinais por tentativa,64metodos na stack,64qualificacoes ativas
+rastreadas e128resultados concluidos. creation-qualification.properties format1
+inclui count/dropped/active/capacityRejected,lifecycleActivated=false e entry/
+attempt/generation/status/reason/signals/methodEntries/maxDepth/panelReturns.
+active conta tentativas ainda sem oqRETURN/FAILED,inclusive ja rejeitadas.
+Ao esgotar64,as demais sao recusadas; enquanto nao retornam podem ficar fora do
+snapshot ativo,registrado por capacityRejected; nenhum sucesso e inventado.
+Snapshot detached inclui concluidos+ativos,nao espera EDT nem interpreta shutdown
+como retorno. Ring de events512independente; reconhecer online nao depende de
+reter todo transcript,mas eviccoes impedem analisar ausencia pelo transcript.
+
+### Binding de entrada0.9.2 (detalhes)
 
 Opt-in Java17/21, adiciona transformacao em memoria de a.hU e best.S por hashes
 37fb17d876aab1263756bca97c3f9488007b7afe59f8c68494cf711a0f61a234 e
