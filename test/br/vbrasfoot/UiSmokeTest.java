@@ -262,6 +262,11 @@ public final class UiSmokeTest {
                 javax.imageio.ImageIO.write(image, "png", preview.toFile());
                 System.out.println("Synthetic style preview (owned fake data only): " + preview);
                 frame.setSize(1280, 720); frame.validate();
+                if (card.getWidth() > 940 || card.getHeight() > 660) throw new AssertionError("Comparador nao ficou compacto");
+                for (int side = 0; side < 2; side++) {
+                    var table = named(layer, "player-comparator." + side + ".players", JTable.class);
+                    if (table.getParent().getHeight() < 50 || table.getParent().getWidth() < 300) throw new AssertionError("Lista de jogadores escondida pelo layout compacto");
+                }
                 var smallPreview = java.nio.file.Files.createTempFile(Path.of("build"), "embedded-style-small-", ".png");
                 var small = new java.awt.image.BufferedImage(layer.getWidth(), layer.getHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
                 var smallGraphics = small.createGraphics();

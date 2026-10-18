@@ -3,8 +3,8 @@
 No SDK-only atual, copie esta pasta para projeto novo e execute:
 
 ```powershell
-.\build.ps1 -Sdk 'C:\Downloads\vbrasfoot-sdk\api\vbrasfoot-api-0.7.1.jar'
-java -jar 'C:\Downloads\vbrasfoot-sdk\tools\vbrasfoot-validator-0.7.1.jar' .\dist\career-observer.jar
+.\build.ps1 -Sdk 'C:\Downloads\vbrasfoot-sdk\api\vbrasfoot-api-0.7.2.jar'
+java -jar 'C:\Downloads\vbrasfoot-sdk\tools\vbrasfoot-validator-0.7.2.jar' .\dist\career-observer.jar
 ```
 
 O build independente usa somente a API e inclui teste headless de fake proprio;

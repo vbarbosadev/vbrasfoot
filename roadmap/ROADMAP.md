@@ -671,6 +671,11 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 
 ### P2/P5 — composicao visual0.7.0
 
+Revisao0.7.2: comparador900x590, X superior, menos faixas, botoes com relevo LAF
+e cabecalhos normais para aproximar captura nativa fornecida. Smoke exige tamanho
+compacto e listas visiveis; SDK-only aprovado. Portable gerado/regressao bloqueada
+por jogo aberto, instalacao adiada sem encerrar processos. Visual humano pendente.
+
 Revisao0.7.1: capturas do usuario esclareceram preferencia por card central
 menor e azul-petroleo. Host transparente/card limitado1200x740, Fechar no rodape,
 campos/botoes claros; jogo visivel ao redor, sem mudar bounds ou consultas.

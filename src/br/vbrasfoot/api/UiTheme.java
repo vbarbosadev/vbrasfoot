@@ -10,7 +10,7 @@ public record UiTheme(Font font, Color background, Color foreground, Color contr
     /** Original, asset-free styling roles. Requires SDK/loader 0.7.0. */
     public enum Role { BODY, HEADER, TITLE, SECTION, PRIMARY_BUTTON, SECONDARY_BUTTON, INPUT, TABLE, STATUS }
     private static final String ROLE_PROPERTY = "vbrasfoot.ui.role";
-    private static final Color DARK = new Color(0, 35, 65), SURFACE = new Color(4, 66, 96), SECTION = new Color(3, 48, 67),
+    private static final Color DARK = new Color(0, 35, 65), SURFACE = new Color(0, 68, 98), SECTION = new Color(0, 48, 65),
             YELLOW = Color.YELLOW, LINE = new Color(187, 201, 208);
     public UiTheme {
         java.util.Objects.requireNonNull(font); java.util.Objects.requireNonNull(background); java.util.Objects.requireNonNull(foreground);
@@ -53,16 +53,16 @@ public record UiTheme(Font font, Color background, Color foreground, Color contr
                 component.setBackground(SECTION); component.setForeground(Color.WHITE);
                 component.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10));
             }
-            case TITLE -> { component.setBackground(SECTION); component.setForeground(Color.WHITE); component.setFont(font.deriveFont(Font.BOLD, 14f)); }
+            case TITLE -> { component.setBackground(SECTION); component.setForeground(Color.WHITE); component.setFont(font.deriveFont(Font.BOLD, 12f)); }
             case SECTION -> {
                 component.setBackground(SECTION); component.setForeground(Color.WHITE); component.setFont(font.deriveFont(Font.BOLD, 12f));
                 component.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8));
             }
             case PRIMARY_BUTTON, SECONDARY_BUTTON -> {
-                component.setBackground(new Color(230, 237, 243)); component.setForeground(DARK);
+                component.setBackground(new javax.swing.plaf.ColorUIResource(230, 237, 243)); component.setForeground(role == Role.PRIMARY_BUTTON ? new Color(40, 85, 0) : DARK);
                 component.setFont(font.deriveFont(Font.PLAIN, 12f)); component.setOpaque(true);
-                component.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(LINE), javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8)));
-                if (component instanceof javax.swing.AbstractButton button) { button.setContentAreaFilled(true); button.setFocusPainted(true); }
+                component.setBorder(javax.swing.UIManager.getBorder("Button.border"));
+                if (component instanceof javax.swing.AbstractButton button) { button.setMargin(new java.awt.Insets(4, 10, 4, 10)); button.setContentAreaFilled(true); button.setFocusPainted(true); }
             }
             case TABLE -> {
                 component.setBackground(Color.WHITE); component.setForeground(DARK);
@@ -71,7 +71,7 @@ public record UiTheme(Font font, Color background, Color foreground, Color contr
                     table.setGridColor(LINE); table.setSelectionBackground(YELLOW); table.setSelectionForeground(DARK);
                     table.setShowHorizontalLines(true); table.setShowVerticalLines(false);
                     table.getTableHeader().setBackground(new Color(237, 239, 237)); table.getTableHeader().setForeground(DARK);
-                    table.getTableHeader().setFont(font.deriveFont(Font.BOLD, 12f));
+                    table.getTableHeader().setFont(font.deriveFont(Font.PLAIN, 12f));
                     table.setFillsViewportHeight(true);
                 }
             }
