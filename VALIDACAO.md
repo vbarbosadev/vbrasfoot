@@ -1,5 +1,65 @@
 # Validacao — 16/10/2026
 
+## Associacoes explicitas de saves — observacao nao e carreira carregada
+
+SaveFileObserver le arquivo .s22/.sbck selecionado fora da EDT,nomes/pasta
+normalizados/ancestors/reparse/NOFOLLOW/tiporegular,256MiBmax e doubleSHA256+
+size/fileKey/lastModified/creationTime antes/depois. verify refaz leitura antes de
+confirmar. Nao deserializa,escreve no save ou afirma que bytes sao grafo carregado.
+Arquivo pode mudar aposobservacao;nao e lock/commit conjunto com writeroriginal.
+
+CareerSaveAssociations persiste metadados com UUIDs novos SOMENTE mediante acao
+explicita do caller interno confiavel:CREATE_NEW,FORK_COPY_WITH_EMPTY_MOD_DATA,
+RENAME_SAME_FILE,ASSERT_RENAME_WITHOUT_FILE_IDENTITY,ACCEPT_CHANGED_REVISION e
+RESTORE_RECORDED_PREVIOUS. Copy nao herda contratos/journal;lineageinclui parent
+handle/token/revision/savehashsize. Rename exige oldpathausente e evidencia da
+forca declarada;revision/restore no mesmopath,restore apenas previous comprometido
+validado. Save-as nome+bytes novos nao e adotado por heuristica. ConflitosCAS,
+staleObservation,unknownschema/corrupcao falhamfechado,orfaos preservados.
+Falha de create apos commit conserva Handle TENTADO na CreationFailure para
+inspecao explicita;nao gerar outra identidade automaticamente apos erro incerto.
+
+WindowsJava neste host retorna fileKeynull. Nao inventar identidade com hash/nome:
+EXACT_OBSERVATION nao e gerado nesse caso;strongrename recusado. Ramo afirmado
+pelo usuario e separado/gravado como decisao maisfraca,nao sameobject comprovado.
+Files.isSameFile quando amboscaminhosexistem detecta hardlink mesmo com keynull.
+Tambem conservado creationTime em Observation e manifest;igualdade de hash/mtime
+nao esconde alteracao de creationTime entre observacao e confirmacao.
+
+Store adiciona inspectAssociation/changeAssociationRevision APENAS para namespace
+br.vbrasfoot.association em rootdedicado. Transicao verifica token+ancora anterior
+soblock,registroexistente,payloadversionado+previous;nao habilita migrar dados/journal
+ordinarios. read/write de namespace de mod continuam exigindo SaveRevisionigual.
+Sem ModContext/Main/UI/contextocomandos conectado,sem capacidades/metodospublicos,
+sem criacao de mods ou instalacao;versao instalada0.9.3permanece igual.
+
+58checks sinteticos aprovados em association-original-integrated.log,fixture
+Temp/opencode/save-association-2930481404577992252:roundtripmetadata,confirmacao
+obrigatoria,copia/emptyfork/lineage,renameassertion,revisao/restoreprevious e
+unknownrestore,metadadosold/staleToken/race2writers/1winner,sourcechangehashpass,
+creationTimechange,nomes/pathtraversal/EDT,hardlink,junctionWin,corruptschema/payload,
+guarddeprivilegio do store e3faultstagescomHandlepersistido. Strong nativo rename
+fileKey indisponivel =>SKIP explicito desse ramo;nao conta como aceite/prova.
+Dados sao bytes proprios com extensao de save,nao carreiras decodificadas.
+
+Regressao integrada original24checks aprovada em fixture PRIVADA
+Temp/opencode/vbrasfoot-finance-66edaf6ab3534a65a531dfcc4104ce05:save input original
+observado/associado por decisao ARTIFICIAL da fixture,UUIDs usados no contexto de
+teste financeiro;originalcredit/debit e writer/reload preservam saldo/14camposledger.
+finance-output de nome/hashnovos NAO reassocia metadata nem diario automaticamente;
+policy save-as e reconciliacao exigidas. Contexto nao e prova de qualificacao real
+do loader/UI/nem aceite de autoria. Origem EXE/save conferidos porhash intactos.
+132checks I/O/schema originais tambem aprovados em fixturec6aa8de8bc054f0aa0ac60b5a54b6d65
+sob Temp/opencode. SDK-only5projetos/hashes/allowlist/negative/JSON fora checkout
+fixture8d2ca07eeb554ddaa67e444f3d7793a5 aprovado;archive local
+dist/sdk-0.9.3-association-reviewed.zip. Sem release/tag/upload ou redistribuicao
+de saves/bytecode/jogo. Nao pedir outra carreira para validar este core interno.
+
+Pendentes:arquivo exatamente decodificado->roots/generation,coordenador/UI,
+discovery/index/duplicidadeglobalpaths/quotasglobais,migracoes/compactacao,
+reconciliacao de dados/journal e resultadosincertos,save-as,eventos e mercado,
+APIspublicas/aceite humano. Nao ativar comandos com EXACT_OBSERVATION isolado.
+
 ## Dispatcher com journal e adaptador financeiro original limitado
 
 CareerCommandDispatcher agora conecta intentpersistido->gate->EDT->handler->

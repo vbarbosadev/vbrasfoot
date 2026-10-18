@@ -14,6 +14,7 @@ final class CareerSidecarStore {
     static final int MAX_PAYLOAD = 1024 * 1024, MAX_FILES = 128;
     static final long MAX_BYTES = 16L * 1024 * 1024;
     static final String EMPTY = "EMPTY";
+    static final String ASSOCIATION_OWNER = "br.vbrasfoot.association";
     enum Reason { WRONG_THREAD, UNSAFE_PATH, CORRUPT, CONFLICT, SAVE_REVISION_MISMATCH, RECONCILIATION_REQUIRED, BUSY, QUOTA, NOT_FOUND, ATOMIC_MOVE_UNSUPPORTED, OUTCOME_UNKNOWN }
     static final class Failure extends IOException {
         private final Reason reason;
@@ -59,10 +60,19 @@ final class CareerSidecarStore {
 
     View read(Key key, SaveRevision expectedSave) throws IOException {
         offEdt(); Objects.requireNonNull(expectedSave);
+        View view = inspect(key);
+        if (view.value().isPresent()) requireSave(view.value().orElseThrow(), expectedSave);
+        return view;
+    }
+    /** Administrative association metadata only, never a way for a mod to bypass revision checks. */
+    View inspectAssociation(Key key) throws IOException {
+        offEdt(); requireAssociation(key); return inspect(key);
+    }
+    private View inspect(Key key) throws IOException {
         Path directory = directory(key); plain(directory);
         Head head = readHead(directory);
         if (head == null) return new View(EMPTY, Optional.empty(), false);
-        Value value = readValue(directory, key, head.current()); requireSave(value, expectedSave);
+        Value value = readValue(directory, key, head.current());
         unchanged(directory, head.token());
         return new View(head.token(), Optional.of(value), head.previous() != null);
     }
@@ -76,14 +86,22 @@ final class CareerSidecarStore {
     View write(Key key, SaveRevision save, int schema, String expectedToken, byte[] payload) throws IOException {
         offEdt(); requireToken(expectedToken);
         Value input = new Value(1, schema, save, payload); // Validate and detach before touching disk.
-        return mutate(key, save, expectedToken, input, false);
+        return mutate(key, save, expectedToken, input, false, save, false);
+    }
+    /** Only association metadata may explicitly change its observed save anchor. Other namespaces stay blocked. */
+    View changeAssociationRevision(Key key, SaveRevision previous, SaveRevision next, int schema, String expectedToken, byte[] payload) throws IOException {
+        offEdt(); requireAssociation(key); Objects.requireNonNull(previous); requireToken(expectedToken);
+        return mutate(key, next, expectedToken, new Value(1, schema, next, payload), false, previous, true);
+    }
+    private static void requireAssociation(Key key) {
+        if (!Objects.requireNonNull(key).mod().equals(ASSOCIATION_OWNER)) throw new IllegalArgumentException("Administrative association namespace required");
     }
     /** Explicit recovery only; corrupt HEAD never triggers a scan for the newest orphan. */
     View recoverPrevious(Key key, SaveRevision save, String expectedToken) throws IOException {
         offEdt(); Objects.requireNonNull(save); requireToken(expectedToken);
-        return mutate(key, save, expectedToken, null, true);
+        return mutate(key, save, expectedToken, null, true, save, true);
     }
-    private View mutate(Key key, SaveRevision save, String expectedToken, Value input, boolean recover) throws IOException {
+    private View mutate(Key key, SaveRevision save, String expectedToken, Value input, boolean recover, SaveRevision expectedPrevious, boolean requireExisting) throws IOException {
         Path directory = directory(key); makeDirectories(directory); plain(directory);
         Path lockPath = directory.resolve(".lock"); plain(lockPath);
         try (var channel = FileChannel.open(lockPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
@@ -92,11 +110,12 @@ final class CareerSidecarStore {
             if (lock == null) throw new Failure(Reason.BUSY, "Sidecar writer already active");
             try (lock) {
                 plain(directory); Head old = requireHead(directory, expectedToken);
+                if (old == null && requireExisting) throw new Failure(Reason.NOT_FOUND, "Existing committed association/recovery source required");
                 Pointer previous = old == null ? null : old.current();
                 if (recover) {
                     if (old == null || old.previous() == null) throw new Failure(Reason.NOT_FOUND, "No previous committed revision");
                     input = readValue(directory, key, old.previous()); requireSave(input, save); previous = old.previous();
-                } else if (old != null) requireSave(readValue(directory, key, old.current()), save);
+                } else if (old != null) requireSave(readValue(directory, key, old.current()), expectedPrevious);
                 long revision;
                 try { revision = old == null ? 1 : Math.addExact(old.current().revision(), 1); }
                 catch (ArithmeticException exhausted) { throw new Failure(Reason.QUOTA, "Revision counter exhausted", exhausted); }
@@ -237,7 +256,7 @@ final class CareerSidecarStore {
         }
         if (bytes + addition > MAX_BYTES) throw new Failure(Reason.QUOTA, "Sidecar byte quota exhausted");
     }
-    private static void plain(Path path) throws IOException {
+    static void plain(Path path) throws IOException {
         for (Path current = path.toAbsolutePath().normalize(); current != null; current = current.getParent()) {
             BasicFileAttributes attrs;
             try { attrs = Files.readAttributes(current, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS); }
