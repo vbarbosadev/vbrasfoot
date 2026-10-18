@@ -15,7 +15,7 @@ Nesta pasta, use o SDK publico atualizado (o JAR antigo nao compila os novos DTO
 ```powershell
 .\build.ps1 -Sdk '..\..\dist\vbrasfoot-api.jar'
 # Ou copie esta pasta fora do checkout:
-.\build.ps1 -Sdk 'C:\SDK\api\vbrasfoot-api-0.9.0.jar'
+.\build.ps1 -Sdk 'C:\SDK\api\vbrasfoot-api-0.9.1.jar'
 ```
 
 Default: `lib/vbrasfoot-api.jar`. Sem download/install ou build principal. Compila
@@ -24,7 +24,7 @@ com `javac --release 17` num `build/` exclusivo, executa testes fakes headless e
 Teste headless nao precisa janela nem jogo. Validacao opcional, sem inicializar:
 
 ```powershell
-java -jar 'C:\SDK\tools\vbrasfoot-validator-0.9.0.jar' .\dist\career-dashboard.jar
+java -jar 'C:\SDK\tools\vbrasfoot-validator-0.9.1.jar' .\dist\career-dashboard.jar
 ```
 
 Com loader0.5.0+ instalado numa copia de teste e jogo fechado:

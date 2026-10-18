@@ -191,6 +191,33 @@ inedito na copia e observar qual candidato/task rodou; nao jogar/forcar save.
 Salvar automaticamente pelo original continua possivel; nao prometer zero I/O
 ao criar. Nao pedir variantes amistoso/temporada antes de ver o primeiro report.
 
+### Dialogo e nesting0.9.1
+
+Sonda adicional somente em a.bV fingerprintada (SHA ja usada em CreationPathTransformer),
+Java17/21 e --probe-career-hooks. Compoe com AB/az/V existentes, instrumenta apenas
+oq/pl public()V,1RETURN cada e1site exato showConfirmDialog em pl. Marca entrada,
+retorno normal/falha, e duplica o int original apos o dialogo: nao chama dialogo
+adicional, nao consome/substitui resultado e nao le locals legados. Throwable original
+repropagado; campos/metodos/schema/hierarquia inalterados, EXE/save intocados.
+
+creation-dialog.properties tem ring512events/sequence/frame/parent/method/stage/
+result/resultKnown/generation/thread/rootsMatched, dropped/rejected/outside.
+result e significativo SOMENTE em DIALOG_RETURN/resultKnown=true. O zero dos demais
+eventos e placeholder, nao escolha humana. Frame oq/pl independente de origin/task
+IDs da trace async; nao unir numeros desses relatorios como identidade.
+AB CANDIDATE_ENTER e ligado ao frame ativo na mesma thread; sem frame incrementa
+outside e nao cria associacao. Max8frames, overflow limpa nesting e registra rejeicao;
+epoch/reset descarta contexto de sessao antiga, roots fracas. Capture detached e
+atomica somente deste tracker; nao e snapshot atomico com outras traces ou grafo.
+
+0/1/2/-1 sao capturados sem converter para readiness/cancelamento da carreira.
+O ramo original de bV.pl compara com0: qualquer nao-zero segue AB. oq RETURN pode
+ser ramo de validacao sem pl. Nem oq/pl/AB RETURN e marcador publico de sucesso.
+Sem eventos SDK/capabilities novas, sidecar ou promocao de UNKNOWN. Tracker sem
+Swing/getter/I/O/callback; report escrito no encerramento, sem aguardar EDT.
+Execucao positiva dos metodos originais com essa sonda ainda requer rodada humana;
+testes de schema/I/O original nao substituem essa corroboracao.
+
 ### Caminho sincronico0.8.2
 
 Rodada0.8.1 real7124ea6e-777a-42cd-b080-11be81238907 observou AB/az/V e
