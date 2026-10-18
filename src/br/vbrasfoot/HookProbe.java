@@ -14,6 +14,7 @@ public final class HookProbe {
     private static final AtomicLong sequence = new AtomicLong();
     private static final CreationContentTracker creationContent = new CreationContentTracker();
     private static final AsyncCreationTracker asyncCreation = new AsyncCreationTracker();
+    private static final CreationDialogTracker creationDialogs = new CreationDialogTracker();
     private static final ThreadLocal<ArrayDeque<Load>> loads = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Save>> saves = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Reset>> resets = ThreadLocal.withInitial(ArrayDeque::new);
@@ -39,6 +40,7 @@ public final class HookProbe {
         if (!observer.compareAndSet(null, sink)) throw new IllegalStateException("Uma sonda de carreira ja esta ativa nesta JVM");
         creationContent.reset();
         asyncCreation.reset();
+        creationDialogs.reset();
         return () -> observer.compareAndSet(sink, null);
     }
     static AutoCloseable attachLifecycle(CareerLifecycle state) {
@@ -80,6 +82,7 @@ public final class HookProbe {
         } catch (Throwable ignored) { }
     }
     public static void creationPathStarted(String label, Object primary, Object secondary) {
+        if (label.equals("a.bV.AB")) creationDialog("AB", "CANDIDATE_ENTER", 0, primary, secondary);
         try { asyncCreation.origin(label, primary, secondary, generation()); } catch (Throwable ignored) { }
         try { creationContent.enter(label, javax.swing.SwingUtilities.isEventDispatchThread() ? primary : null,
                 javax.swing.SwingUtilities.isEventDispatchThread() ? secondary : null, generation()); } catch (Throwable ignored) { }
@@ -138,6 +141,10 @@ public final class HookProbe {
     static java.util.List<AsyncCreationTracker.Report> asyncCreationReports() { return asyncCreation.snapshot(); }
     static long asyncCreationRejected() { return asyncCreation.rejected(); }
     static long asyncCreationUnbound() { return asyncCreation.unbound(); }
+    public static void creationDialog(String method, String stage, int result, Object primary, Object secondary) {
+        try { creationDialogs.marker(method, stage, result, primary, secondary, generation()); } catch (Throwable ignored) { }
+    }
+    static CreationDialogTracker.Snapshot creationDialogs() { return creationDialogs.capture(); }
     public static void creationProgress(String method, String stage, int panel, Object receiver, Object primary, Object secondary) {
         try { asyncCreation.progress(method, stage, panel, receiver, primary, secondary, generation()); } catch (Throwable ignored) { }
     }

@@ -1,5 +1,34 @@
 # Validacao — 16/10/2026
 
+## 0.9.1 — diagnostico bruto do dialogo de torneio
+
+Implementado marcador fingerprintado oq/pl/showConfirmDialog em a.bV compondo
+com AB existente. Nenhum campo/metodo/schema novo, nenhum int/Throwable original
+substituido. Ring512,8frames,roots fracas,epoch/geracao/thread/parent e counters
+explicitos. Sem callback/Swing/I/O no tracker, sem eventos SDK/readiness/sidecars.
+ResultKnown separa retorno de dialogo dos placeholders. Frames nao sao IDs da
+trace async; nao inferir ligacao entre namespaces de IDs.
+
+Build/suites:15tracker e37bytecode sinteticos aprovados em dialog-build.log,
+incluindo0/1/2/-1/intMin,efeitos originais,preservacao da excecao de dialogo/AB,
+sem resultado/retorno inventado em falha,shape/fingerprint/sitealterado,limites,
+reset/cross-thread/stale-generation/mismatch e guard inalterado. Fixture propria
+usa marker de AB explicito; teste separado confirma bridge AB real encaminha
+ao tracker sem alterar guard. Pequenos erros de catch de report/arvore da fixture
+detectados e corrigidos antes de empacotar, nenhuma versao falha instalada.
+
+130checks I/O/schema/detalhes ORIGINAL aprovados em fixture privada
+Temp/opencode/vbrasfoot-hook-io-db78636cb6f74a389a03d53939ba5a77. Definicao e
+verificacao de a.bV original transformado/schema aprovadas; NAO chama oq/pl nem
+dialogos originais. Positivo UI novo permanece pendente; nao declarar nova carreira
+pronta nem pedir variantes repetidas sem examinar o primeiro report.
+
+Pacotes finais0.9.1 locais aprovados: dist/portable-0.9.1-dialog-reviewed e
+dist/sdk-0.9.1-dialog-reviewed.zip. Portable fixture509f89fc5c8446dca71c09c9de07ba80
+e SDK-only5projetos/allowlist/hashes/JSON/negative fora do checkout fixture
+197754dd05534481bb2f58fae3ebaf98 sob Temp/opencode. UiSmokeTest sintetico do
+comparador aprovado. Sem release/tag/upload ou alteracao dos mods instalados.
+
 ## 18/10/2026 — SDK0.9.0, primeira entrega do pedido de variedade
 
 Contrato aditivo scopedPlayerDetails/capability query.player.details, APImajor1,

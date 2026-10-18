@@ -86,6 +86,28 @@ final class ProbeSession implements AutoCloseable {
         }
         try (var writer = Files.newBufferedWriter(report.resolveSibling("creation-async.properties"))) { async.store(writer, "Bounded weak-identity async candidate report"); }
         catch (Exception failure) { System.err.println("Falha ao registrar async candidates: " + failure); }
+        var dialogSnapshot = HookProbe.creationDialogs();
+        Properties dialogs = new Properties();
+        dialogs.setProperty("coverage", "Same-thread oq/pl/dialog/AB diagnostics only; raw result is not career readiness or cancellation proof");
+        dialogs.setProperty("count", Integer.toString(dialogSnapshot.events().size()));
+        dialogs.setProperty("dropped", Long.toString(dialogSnapshot.dropped()));
+        dialogs.setProperty("rejected", Long.toString(dialogSnapshot.rejected()));
+        dialogs.setProperty("outside", Long.toString(dialogSnapshot.outside()));
+        int dialogIndex = 0;
+        for (var value : dialogSnapshot.events()) {
+            String prefix = "event." + dialogIndex++ + ".";
+            dialogs.setProperty(prefix + "sequence", Long.toString(value.sequence()));
+            dialogs.setProperty(prefix + "frame", Long.toString(value.frame()));
+            dialogs.setProperty(prefix + "parent", Long.toString(value.parent()));
+            dialogs.setProperty(prefix + "method", value.method()); dialogs.setProperty(prefix + "stage", value.stage());
+            dialogs.setProperty(prefix + "result", Integer.toString(value.result()));
+            dialogs.setProperty(prefix + "resultKnown", Boolean.toString(value.resultKnown()));
+            dialogs.setProperty(prefix + "generation", Long.toString(value.generation()));
+            dialogs.setProperty(prefix + "thread", Long.toString(value.thread()));
+            dialogs.setProperty(prefix + "rootsMatched", Boolean.toString(value.rootsMatched()));
+        }
+        try (var writer = Files.newBufferedWriter(report.resolveSibling("creation-dialog.properties"))) { dialogs.store(writer, "Bounded creation dialog diagnostics"); }
+        catch (Exception failure) { System.err.println("Falha ao registrar creation dialog: " + failure); }
         Properties candidates = new Properties();
         candidates.setProperty("format", "1");
         candidates.setProperty("coverage", "Candidate path/content observations only; not CareerLoaded, commit, persistent identity or proof of initialization");

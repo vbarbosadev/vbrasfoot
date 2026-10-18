@@ -1,4 +1,4 @@
-# vbrasfoot 0.9.0 (experimental)
+# vbrasfoot 0.9.1 (experimental)
 
 Novo: [detalhes de jogadores](roadmap/PLAYER-DETAILS.md) e
 [scout somente leitura](examples/player-scout/README.md). As demais frentes

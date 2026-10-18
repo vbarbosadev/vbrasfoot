@@ -1,4 +1,4 @@
-# Scout somente leitura — SDK 0.9.0 experimental
+# Scout somente leitura — SDK 0.9.1 experimental (requer loader0.9.0+)
 
 Consulta manual paginada (50 clubes/jogadores), filtros por nome de clube e
 ordenacao numerica da pagina de elenco. Sete habilidades individuais aparecem
@@ -6,8 +6,8 @@ somente quando habilitadas na carreira. Vazio nao significa zero. Sem pontuacao
 inventada, salarios/contratos, varredura automatica de todo o mundo ou escrita.
 
 ```powershell
-.\build.ps1 -Sdk 'C:\SDK\api\vbrasfoot-api-0.9.0.jar'
-java -jar 'C:\SDK\tools\vbrasfoot-validator-0.9.0.jar' --json .\dist\player-scout.jar
+.\build.ps1 -Sdk 'C:\SDK\api\vbrasfoot-api-0.9.1.jar'
+java -jar 'C:\SDK\tools\vbrasfoot-validator-0.9.1.jar' --json .\dist\player-scout.jar
 ```
 
 Requer game.read/ui.register, query.scoped/query.player.details/ui.panel.embedded.

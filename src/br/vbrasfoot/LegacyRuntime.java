@@ -87,6 +87,8 @@ final class LegacyRuntime extends URLClassLoader {
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.CareerTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
                     : name.equals("best.f")
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.CreationProgressTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
+                    : name.equals("a.bV")
+                    ? (byte[]) Class.forName("br.vbrasfoot.hooks.CreationDialogTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
                     : name.equals("com.esotericsoftware.kryo.io.Output")
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.OutputCloseTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
                     : name.equals("a.cR") || name.equals("a.cS") || name.equals("a.hk") || name.equals("a.ho")
