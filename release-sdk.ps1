@@ -46,6 +46,8 @@ foreach ($relative in @('README.md','LICENSE','build.ps1','vbrasfoot.mod.propert
 foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\playercomparator\ComparisonModel.java','src\br\vbrasfoot\playercomparator\PlayerComparatorMod.java','test\br\vbrasfoot\playercomparator\ComparisonModelTest.java')) { Copy-Source (Join-Path $PSScriptRoot "examples\player-comparator\$relative") "examples\player-comparator\$relative" }
 & javadoc --release 17 -encoding UTF-8 -quiet '-Xdoclint:all,-missing' -d (Join-Path $root 'javadoc') -sourcepath (Join-Path $PSScriptRoot 'src') br.vbrasfoot.api
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao gerar Javadocs do SDK' }
+Copy-Source (Join-Path $PSScriptRoot 'roadmap\PLAYER-DETAILS.md') 'docs\PLAYER-DETAILS.md'
+foreach ($relative in @('README.md','LICENSE','build.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\playerscout\ScoutModel.java','src\br\vbrasfoot\playerscout\PlayerScoutMod.java','test\br\vbrasfoot\playerscout\ScoutModelTest.java')) { Copy-Source (Join-Path $PSScriptRoot "examples\player-scout\$relative") "examples\player-scout\$relative" }
 $readme = @"
 # vbrasfoot SDK $version - experimental
 

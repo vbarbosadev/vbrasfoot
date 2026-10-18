@@ -10,8 +10,8 @@ foreach ($name in @('install.ps1', 'uninstall.ps1', 'recover-update.ps1', 'launc
 }
 Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'app\LICENSE')
 [IO.Directory]::CreateDirectory((Join-Path $Output 'sdk')) | Out-Null
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.8.2.jar')
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.8.2.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.9.0.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.9.0.jar')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-QUICKSTART.md" -Destination (Join-Path $Output 'sdk\SDK-QUICKSTART.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-COMPATIBILITY.md" -Destination (Join-Path $Output 'sdk\SDK-COMPATIBILITY.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\QUERY-PERFORMANCE.md" -Destination (Join-Path $Output 'sdk\QUERY-PERFORMANCE.md')
@@ -49,6 +49,13 @@ foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfo
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "examples\player-comparator\$relative") -Destination $target
 }
 Copy-Item -LiteralPath "$PSScriptRoot\examples\player-comparator\dist\player-comparator.jar" -Destination (Join-Path $Output 'sdk\examples\player-comparator.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\PLAYER-DETAILS.md" -Destination (Join-Path $Output 'sdk\PLAYER-DETAILS.md')
+foreach ($relative in @('README.md','LICENSE','build.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\playerscout\ScoutModel.java','src\br\vbrasfoot\playerscout\PlayerScoutMod.java','test\br\vbrasfoot\playerscout\ScoutModelTest.java')) {
+    $target = Join-Path $Output "sdk\examples\player-scout\$relative"
+    [IO.Directory]::CreateDirectory((Split-Path $target -Parent)) | Out-Null
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "examples\player-scout\$relative") -Destination $target
+}
+Copy-Item -LiteralPath "$PSScriptRoot\examples\player-scout\dist\player-scout.jar" -Destination (Join-Path $Output 'sdk\examples\player-scout.jar')
 & javadoc --release 17 -encoding UTF-8 -quiet '-Xdoclint:all,-missing' -d (Join-Path $Output 'sdk\javadoc') -sourcepath (Join-Path $PSScriptRoot 'src') br.vbrasfoot.api
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao gerar Javadocs publicos' }
 # Fixed template sources only: never copy its build/dist/lib/private outputs.

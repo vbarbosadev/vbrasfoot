@@ -1,5 +1,51 @@
 # Validacao — 16/10/2026
 
+## 18/10/2026 — SDK0.9.0, primeira entrega do pedido de variedade
+
+Contrato aditivo scopedPlayerDetails/capability query.player.details, APImajor1,
+Player anterior intocado. Sete atributos brutos e Optional.empty quando a carreira
+desabilita habilidades individuais. Sem salarios/energia/contratos inferidos.
+Mapeamento estatico por rotulos da UI a.eg e getters diretos best.F com javap
+do JDK, alvo SHA original conhecido; REA JVM indisponivel no contexto anterior.
+Bytecode/strings/saves privados nao publicados. Nenhum metodo de gameplay chamado
+pelas consultas. Listas imutaveis, EDT, escopo/handle e configuracao verificados;
+isso nao garante atomicidade do grafo contra threads legadas.
+
+Build final aprovado (player-details-final-build.log):10checks de snapshots,
+17checks do scout SDK-only incluindo painel sintetico/headless, lifecycle/revocation
+e suites existentes. 130checks originais I/O/schema/detalhes aprovados em
+Temp/opencode/vbrasfoot-hook-io-455c7bd22fb0498baeaa61e0dde48f29: compara sete
+campos aos getters originais, paginacao, bounds e handle stale apos reload.
+Teste original trabalha em fixture privada, nao em saves instalados. Nao conta
+como execucao de partida/nova carreira ou aceite visual humano do scout.
+
+SDK0.9.0 local/hashes/allowlist/5projetos compilados fora do checkout aprovados em
+Temp/opencode/vbrasfoot-sdk-author-cc1f50dc9dfa42beae76ea120446934b.
+Portable0.9.0/regressao instalador aprovados em
+Temp/opencode/vbrasfoot-install-897f5a9e2ad647fc89b82e715af1c268.
+UiSmokeTest sintetico do comparador aprovado. Nenhuma mudanca visual no comparador.
+Pacotes dist/sdk-0.9.0-scout-final.zip e dist/portable-0.9.0-scout-final sao
+locais/experimentais, sem release/tag/publicacao. Plano completo e gates restantes
+em roadmap/MOD-VARIETY-PLAN.md; esta entrega NAO implementa persistencia por
+carreira, novos eventos de calendario/partida ou escrita de gameplay.
+
+Reempacotamento final incluindo LICENSE no scout/JAR/allowlist aprovado:
+dist/sdk-0.9.0-reviewed.zip e dist/portable-0.9.0-reviewed;
+fixtures SDK7cc76478908f49f58b189077e6e0d571 e portable17bb3d905f90414eac63636da1e0efb6
+sob Temp/opencode. Nenhum pacote anterior sobrescrito.
+
+### Evidencia real0.8.2 incorporada
+
+Sessao bcfd9a1f-89e4-4ac1-9e55-670522992ba1:78markers/drop0/outside0/rejected0/
+unbound0,taskcount0,origin1/generation4/thread37/rootsMatchedtrue. V1,ap13,at12,
+ax12 entradas/retornos; aa nao observado. ap PANEL_REQUEST2 seq39, PANEL_RETURN
+seq40, V RETURNseq78, nenhumFAILED. Isso prova chamadas/retornos, nao prontidao
+da UI/grafo/carreira. UNKNOWN/healthytrue,io0/0,sem saves/pending/stale nesta
+sessao,dispatcher3/3sem perdas. Stderr contem E8CC1702 de equipe preexistente.
+Receiver so conhecido na entrada; retornos nao inventam matched. Usuario apenas
+disse feito; nenhuma variante/opcao amistoso inferida. Sem pedir repeticao antes
+de marker causal novo concreto. Registro anterior tambem na PR37.
+
 ## Executado
 
 - `build.ps1`: compilacao Java 17, JAR do launcher, JAR publico da API, JAR do inspetor; **24 testes unitarios aprovados**.

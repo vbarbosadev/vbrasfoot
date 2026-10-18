@@ -19,10 +19,10 @@ public final class SdkValidator {
                     + ",\"experimental\":true,\"permissions\":" + strings(ModManifest.KNOWN_PERMISSIONS.stream().sorted().toList())
                     + ",\"capabilities\":" + strings(ModManifest.KNOWN_CAPABILITIES.stream().sorted().toList())
                     + ",\"conditionalCapabilities\":[\"events.career.observed\",\"events.career.io\"],\"observationFlag\":\"--probe-career-hooks\""
-                    + ",\"featureMinimums\":{\"query.scoped\":\"0.3.0\",\"query.calendar.current\":\"0.5.0\",\"query.club.balance\":\"0.5.0\",\"events.career.io\":\"0.8.0\"}"
+                    + ",\"featureMinimums\":{\"query.scoped\":\"0.3.0\",\"query.player.details\":\"0.9.0\",\"query.calendar.current\":\"0.5.0\",\"query.club.balance\":\"0.5.0\",\"events.career.io\":\"0.8.0\"}"
                     + ",\"uiFeatures\":{\"ui.panel.embedded\":{\"minimumLoader\":\"0.6.0\",\"method\":\"ModContext.registerPanel\",\"placement\":\"career-window-overlay\",\"originalContentPreserved\":true}}"
                     + ",\"themeRolesMinimumLoader\":\"0.7.0\""
-                    + ",\"readMethods\":{\"query.calendar.current\":\"GameAccess.scopedCalendar\",\"query.club.balance\":\"GameAccess.scopedClubBalance\"}"
+                    + ",\"readMethods\":{\"query.player.details\":\"GameAccess.scopedPlayerDetails\",\"query.calendar.current\":\"GameAccess.scopedCalendar\",\"query.club.balance\":\"GameAccess.scopedClubBalance\"}"
                     + ",\"unsupported\":[\"gameplay.write\",\"career.identity.persistent\",\"career.sidecars\",\"events.career.complete\",\"events.match\",\"ui.original-screen-injection\",\"hot-reload\"]"
                     + ",\"limits\":{\"queryPageMax\":500,\"clubHandles\":4096,\"subscriptionsPerMod\":4},\"sandbox\":false}");
             return 0;

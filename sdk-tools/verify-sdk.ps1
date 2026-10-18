@@ -27,6 +27,8 @@ foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfo
 foreach ($relative in @('README.md','LICENSE','build.ps1','vbrasfoot.mod.properties','.gitignore','src/br/vbrasfoot/observer/CareerObserverMod.java','test/br/vbrasfoot/observer/CareerObserverModTest.java')) { $fixed += "examples/career-observer/$relative" }
 foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src/br/vbrasfoot/playercomparator/ComparisonModel.java','src/br/vbrasfoot/playercomparator/PlayerComparatorMod.java','test/br/vbrasfoot/playercomparator/ComparisonModelTest.java')) { $fixed += "examples/player-comparator/$relative" }
 $checksums = Get-Content -LiteralPath (Join-Path $root 'checksums.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$fixed += 'docs/PLAYER-DETAILS.md'
+foreach ($relative in @('README.md','LICENSE','build.ps1','vbrasfoot.mod.properties','.gitignore','src/br/vbrasfoot/playerscout/ScoutModel.java','src/br/vbrasfoot/playerscout/PlayerScoutMod.java','test/br/vbrasfoot/playerscout/ScoutModelTest.java')) { $fixed += "examples/player-scout/$relative" }
 $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 foreach ($entry in $checksums.PSObject.Properties) {
     $relative = $entry.Name

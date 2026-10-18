@@ -7,12 +7,12 @@ classes do jogo ou downloads durante o build. Mod Java e codigo confiavel, nao s
 ## Criar
 
 1. Copie esta pasta inteira para um diretorio novo do seu projeto.
-2. Obtenha `api/vbrasfoot-api-0.8.2.jar` no SDK-only (ou `sdk/vbrasfoot-api-0.8.2.jar`
+2. Obtenha `api/vbrasfoot-api-0.9.0.jar` no SDK-only (ou `sdk/vbrasfoot-api-0.9.0.jar`
    no pacote portable do loader).
 3. Compile/teste usando somente esse JAR:
 
    ```powershell
-   .\build.ps1 -Sdk 'C:\Downloads\vbrasfoot-sdk\api\vbrasfoot-api-0.8.2.jar'
+   .\build.ps1 -Sdk 'C:\Downloads\vbrasfoot-sdk\api\vbrasfoot-api-0.9.0.jar'
    ```
 
    Alternativa: coloque a API em `lib/vbrasfoot-api.jar` e execute `build.ps1`.
@@ -39,7 +39,7 @@ Depois valide o conjunto de mods pelo launcher `--validate-only`.
 Sem loader/jogo, o SDK-only tambem oferece:
 
 ```powershell
-java -jar 'C:\Downloads\vbrasfoot-sdk\tools\vbrasfoot-validator-0.8.2.jar' .\dist\meu-mod.jar
+java -jar 'C:\Downloads\vbrasfoot-sdk\tools\vbrasfoot-validator-0.9.0.jar' .\dist\meu-mod.jar
 ```
 
 Instalacao/UI ainda precisam do loader portable e copia do jogo. Nao embuta API

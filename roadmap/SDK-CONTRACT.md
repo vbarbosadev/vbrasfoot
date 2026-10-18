@@ -1,4 +1,7 @@
-# SDK 0.8.2 — API major 1 (experimental)
+# SDK 0.9.0 — API major 1 (experimental)
+
+Contrato aditivo0.9.0: query.player.details / scopedPlayerDetails; veja
+PLAYER-DETAILS.md para Optional de habilidades, limites e recuperacao de erros.
 
 Novo contrato delimitado: [CareerIoEvents](CAREER-IO-EVENTS.md), opt-in0.8.0.
 Eventos de I/O qualificados, nao lifecycle completo/durabilidade ou sidecars.

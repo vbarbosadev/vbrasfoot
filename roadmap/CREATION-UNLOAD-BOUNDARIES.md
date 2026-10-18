@@ -87,3 +87,13 @@ Nenhuma criacao/jogada/save/alteracao de recursos realizada pelo agente nesta
 investigacao. Evidencia privada em build/lifecycle-map-49bcef9e049a4f9e8c9cb6b7c37bc6f2;
 TSV/javap nao distribuidos. REA sem provider JVM configurado ja documentado;
 reusado javap/scanner local, sem setup/download/reconfiguracao de engines.
+
+## Rodada sincronica real0.8.2
+
+Sessao bcfd9a1f-89e4-4ac1-9e55-670522992ba1 confirmou78markers sem eviccoes
+ou outside,AB->V e ap/at/ax recursivos. Unico panelrequest observado: ap/painel2,
+seq39, retorno da chamada seq40; V encerra seq78. aa nao observado, taskcount0.
+Nenhum FAILED capturado. Guard UNKNOWN,nenhum save nesta sessao; isso nao e
+prontidao ou unload. Faltam classificacao exclusiva da origem e rejeicao de
+temporada/cancelamento/falha. Sem pedir outra carreira agora. Dados completos
+e limitacoes em VALIDACAO.md e comentario de corroboracao da PR37.

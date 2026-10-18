@@ -160,6 +160,23 @@ public final class CareerHookRuntimeTest {
                 check(balance.scope().equals(scoped.scope()) && balance.balance() == ((Number) CareerBridge.call(firstClub, "kb")).longValue(), "club balance matches original long getter");
                 var originalReference = scoped.items().get(0).reference();
                 check(bridge.scopedPlayers(originalReference, 0, 500).items().equals(bridge.playersAt(0, 0, 500).items()), "scoped player values agree with current legacy query");
+                var details = bridge.scopedPlayerDetails(originalReference, 0, 500);
+                check(details.items().stream().map(GameAccess.PlayerDetails::player).toList().equals(bridge.scopedPlayers(originalReference, 0, 500).items()), "detailed and old player DTOs agree");
+                boolean skillsEnabled = (Boolean) CareerBridge.call(primary, "isHabilidadeIndividual");
+                var originalPlayers = (java.util.List<?>) CareerBridge.call(firstClub, "kc");
+                for (int i = 0; i < details.items().size(); i++) {
+                    var skills = details.items().get(i).skills(); Object player = originalPlayers.get(i);
+                    check(skills.isPresent() == skillsEnabled, "skills availability follows original career setting");
+                    if (skillsEnabled) check(skills.orElseThrow().equals(new GameAccess.IndividualSkills(
+                            (int) CareerBridge.call(player, "gK"), (int) CareerBridge.call(player, "gN"),
+                            (int) CareerBridge.call(player, "gM"), (int) CareerBridge.call(player, "gO"),
+                            (int) CareerBridge.call(player, "gP"), (int) CareerBridge.call(player, "gJ"),
+                            (int) CareerBridge.call(player, "gL"))), "all skills equal original getter values");
+                }
+                check(bridge.scopedPlayerDetails(originalReference, details.total() + 1, 1).items().isEmpty(), "detail offset past end empty");
+                boolean invalidDetailPage = false;
+                try { bridge.scopedPlayerDetails(originalReference, 0, 501); } catch (IllegalArgumentException expected) { invalidDetailPage = true; }
+                check(invalidDetailPage, "detail page bound enforced");
                 check(scoped.scope().equals(bridge.scopedClubs("", 0, 1).scope()), "same roots keep query scope");
                 events.clear();
                 CareerBridge.onEdt(() -> { save.invoke(null, "output"); return null; });
@@ -182,6 +199,9 @@ public final class CareerHookRuntimeTest {
                 boolean balanceRejected = false;
                 try { bridge.scopedClubBalance(beforeReload); } catch (br.vbrasfoot.api.GameQueryException expected) { balanceRejected = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE; }
                 check(balanceRejected, "old balance handle refused after original reload");
+                boolean detailsRejected = false;
+                try { bridge.scopedPlayerDetails(beforeReload, 0, 20); } catch (br.vbrasfoot.api.GameQueryException expected) { detailsRejected = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE; }
+                check(detailsRejected, "old detail handle refused after original reload");
                 check(rejectedReference, "reference from previous decoded graph refused");
                 // Original save preconditions assign IDs. Compare values while allowing those original ID changes.
                 GameAccess.Snapshot restored = new CareerBridge(runtime).snapshot();

@@ -13,6 +13,24 @@ public interface GameAccess {
     default ScopedPlayerPage scopedPlayers(ClubRef club, int offset, int limit) {
         throw new UnsupportedOperationException("Consulta com escopo exige loader 0.3.0");
     }
+    /** Read-only raw attributes. Requires query.player.details and game.read; no persistent player identity. */
+    default ScopedPlayerDetailsPage scopedPlayerDetails(ClubRef club, int offset, int limit) {
+        throw new UnsupportedOperationException("Detalhes de jogadores exigem query.player.details");
+    }
+    /** Original integer values, not normalized ratings or promised ranges. */
+    record IndividualSkills(int goalkeeping, int tackling, int passing, int playmaking, int finishing, int speed, int technique) { }
+    /** Skills are absent when the career disables individual abilities; never synthesized from strength. */
+    record PlayerDetails(Player player, java.util.Optional<IndividualSkills> skills) {
+        public PlayerDetails { java.util.Objects.requireNonNull(player); java.util.Objects.requireNonNull(skills); }
+    }
+    record ScopedPlayerDetailsPage(CareerScope scope, ClubRef club, List<PlayerDetails> items, int offset, int total) {
+        public ScopedPlayerDetailsPage {
+            java.util.Objects.requireNonNull(scope); java.util.Objects.requireNonNull(club);
+            if (!scope.equals(club.scope())) throw new IllegalArgumentException("Scope mismatch");
+            items = List.copyOf(items);
+            if (offset < 0 || total < 0 || items.size() > Math.max(0, total - offset)) throw new IllegalArgumentException("Invalid page");
+        }
+    }
     /** Current calendar only, not a schedule/event stream. Requires loader 0.5.0 and game.read. */
     default ScopedCalendar scopedCalendar() { throw new UnsupportedOperationException("Calendario atual exige loader 0.5.0"); }
     /** Integer balance in unspecified game monetary units. No history or currency conversion. */
