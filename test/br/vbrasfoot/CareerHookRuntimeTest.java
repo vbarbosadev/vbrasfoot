@@ -100,7 +100,8 @@ public final class CareerHookRuntimeTest {
         List<HookProbe.Observation> transcript = new ArrayList<>();
         List<String> callbackThreads = new ArrayList<>();
         var hub = new CareerObservationHub();
-        CareerLifecycle lifecycle = new CareerLifecycle(hub);
+        var ioHub = new CareerIoEventHub();
+        CareerLifecycle lifecycle = new CareerLifecycle(hub, ioHub);
         List<String> modObservations = Collections.synchronizedList(new ArrayList<>());
         var modLogger = java.util.logging.Logger.getLogger("real-io-observer-fixture"); modLogger.setUseParentHandlers(false);
         var modHandler = new java.util.logging.Handler() {
@@ -111,7 +112,7 @@ public final class CareerHookRuntimeTest {
             public void close() { }
         };
         modLogger.addHandler(modHandler);
-        try (hub; var observerMod = new ModLoader(modLogger, hub);
+        try (hub; ioHub; var observerMod = new ModLoader(modLogger, hub, ioHub);
              var dispatcher = new ProbeDispatcher(128, java.time.Duration.ofMillis(500), event -> {
                  synchronized (events) { events.add(event); transcript.add(event); callbackThreads.add(Thread.currentThread().getName()); events.notifyAll(); }
              });
@@ -142,6 +143,7 @@ public final class CareerHookRuntimeTest {
                 check(lifecycle.snapshot().phase() == CareerLifecycle.Phase.ACTIVE && lifecycle.snapshot().loadedFile().equals("input")
                         && lifecycle.snapshot().loads() == 1 && lifecycle.snapshot().inFlight() == 0, "original load binds synchronous guard");
                 check(lifecycle.snapshot().initializedReadPaths() == 0, "synthetic frame skips initialization path, not mistaken for complete UI load");
+                check(ioHub.state().existingLoads() == 0 && ioHub.state().phase() == br.vbrasfoot.api.CareerIoEvents.Phase.UNKNOWN, "public IO stream rejects synthetic-frame read as qualified load");
                 GameAccess.Snapshot baseline = new CareerBridge(runtime).snapshot();
                 check(baseline.loaded(), "decoded career readable");
                 CareerBridge bridge = new CareerBridge(runtime);
@@ -166,6 +168,7 @@ public final class CareerHookRuntimeTest {
                 check(lifecycle.snapshot().completeSaveSequences() == 1 && lifecycle.snapshot().lastSaveOutcome().metadataClosed()
                         && lifecycle.snapshot().lastSaveOutcome().completeSequence(), "original metadata/primary/backup return observed together");
                 check(lifecycle.snapshot().lastSaveOutcome().streamClosed() && !lifecycle.snapshot().lastSaveOutcome().streamCloseFailed(), "original save underlying stream close observed");
+                check(ioHub.state().completedSaves() == 0, "all original save stages insufficient without qualified load generation");
                 check(Files.isRegularFile(saves.resolve("output.s22")) && Files.mismatch(saves.resolve("output.s22"), saves.resolve("output.sbck")) == -1, "save and backup bytes agree");
                 events.clear();
                 var beforeReload = bridge.scopedClubs("", 0, 1).items().get(0).reference();
@@ -251,6 +254,7 @@ public final class CareerHookRuntimeTest {
                     }
                     check(modObservations.stream().filter(s -> s.contains("career-observer kind=READ_COMPLETED")).count() == 3, "SDK-only mod receives three original reads including fallback once");
                     check(modObservations.stream().filter(s -> s.contains("career-observer kind=PRIMARY_WRITE_COMPLETED")).count() == 3, "SDK-only mod receives primary writes, distinct from full save sequence");
+                    check(modObservations.stream().noneMatch(s -> s.contains("career-io kind=EXISTING_LOAD_COMPLETED") || s.contains("career-io kind=SAVE_SEQUENCE_COMPLETED")), "SDK-only new API consumer receives no falsely qualified events in original I/O fixture");
                 }
                  check(hub.state().reads() == 3 && hub.state().primaryWrites() == 3 && hub.state().phase() == br.vbrasfoot.api.CareerObservations.Phase.UNKNOWN,
                         "public state matches original hook guard without exposing save paths");

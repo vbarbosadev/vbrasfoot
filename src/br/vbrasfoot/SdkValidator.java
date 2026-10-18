@@ -18,8 +18,8 @@ public final class SdkValidator {
                     + ",\"apiMajor\":" + Sdk.API_VERSION + ",\"gameProfile\":" + quote(Sdk.GAME_PROFILE)
                     + ",\"experimental\":true,\"permissions\":" + strings(ModManifest.KNOWN_PERMISSIONS.stream().sorted().toList())
                     + ",\"capabilities\":" + strings(ModManifest.KNOWN_CAPABILITIES.stream().sorted().toList())
-                    + ",\"conditionalCapabilities\":[\"events.career.observed\"],\"observationFlag\":\"--probe-career-hooks\""
-                    + ",\"featureMinimums\":{\"query.scoped\":\"0.3.0\",\"query.calendar.current\":\"0.5.0\",\"query.club.balance\":\"0.5.0\"}"
+                    + ",\"conditionalCapabilities\":[\"events.career.observed\",\"events.career.io\"],\"observationFlag\":\"--probe-career-hooks\""
+                    + ",\"featureMinimums\":{\"query.scoped\":\"0.3.0\",\"query.calendar.current\":\"0.5.0\",\"query.club.balance\":\"0.5.0\",\"events.career.io\":\"0.8.0\"}"
                     + ",\"uiFeatures\":{\"ui.panel.embedded\":{\"minimumLoader\":\"0.6.0\",\"method\":\"ModContext.registerPanel\",\"placement\":\"career-window-overlay\",\"originalContentPreserved\":true}}"
                     + ",\"themeRolesMinimumLoader\":\"0.7.0\""
                     + ",\"readMethods\":{\"query.calendar.current\":\"GameAccess.scopedCalendar\",\"query.club.balance\":\"GameAccess.scopedClubBalance\"}"
@@ -46,7 +46,7 @@ public final class SdkValidator {
                         + ",\"optionalDependencies\":" + strings(manifest.optionalDependencies())
                         + ",\"conflicts\":" + strings(manifest.conflicts())
                         + ",\"requiredCapabilities\":" + strings(manifest.requiredCapabilities().stream().sorted().toList()) + "}"
-                        + ",\"observationModeRequired\":" + manifest.requiredCapabilities().contains("events.career.observed")
+                        + ",\"observationModeRequired\":" + (manifest.requiredCapabilities().contains("events.career.observed") || manifest.requiredCapabilities().contains("events.career.io"))
                         + ",\"codeInitialized\":false,\"scope\":\"single-jar\",\"installedSetValidated\":false,\"sandbox\":false}");
                 return 0;
             } catch (Exception | LinkageError failure) {

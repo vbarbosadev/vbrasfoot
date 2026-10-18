@@ -117,6 +117,13 @@ por disco cheio. Caminho normal de c.a.ae confirma close subjacente real em fixt
 Esse escopo nao prova fsync, consistencia do grafo, atomicidade .info/.s22/.sbck,
 CareerUnloaded, identidade persistente, todas rotas de save ou readiness de criacao.
 
+Atualizacao0.8.0: guard publica [CareerIoEvents](CAREER-IO-EVENTS.md) separado,
+com contador/revisao/prova de load qualificado para a geracao. SaveSequence exige
+essa geracao alem de completeSequence interno; frame sintetico nao qualifica.
+Observacoes antigas preservadas; nenhum evento Unloaded ou identidade/P3.
+Sessao real0.7.4 confirmou streamClosedtrue/failedfalse, conforme VALIDACAO.md;
+isso corrobora marcador subjacente, nao ainda entrega do novo stream0.8.0 na UI.
+
 - 39 testes sinteticos: geracao, save atrasado em thread propria, fallback,
   falhas/parcialidade, tentativas sobrepostas, overflow, fechamento, relatorio e
   independencia de callback falho/fila saturada.

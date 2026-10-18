@@ -98,7 +98,7 @@ public final class Main {
                 Path backup = backup(game, home);
                 System.out.println("Backup antes de iniciar: " + backup);
                 logger.info("stage=backup-verified directory=" + backup);
-                try (ModUi ui = new ModUi(runtime, logger); ModLoader mods = new ModLoader(logger, probe == null ? null : probe.observations())) {
+                try (ModUi ui = new ModUi(runtime, logger); ModLoader mods = new ModLoader(logger, probe == null ? null : probe.observations(), probe == null ? null : probe.ioEvents())) {
                     if (!options.safe) {
                         mods.load(manifests, new CareerBridge(runtime), ui, home.resolve("data"));
                         ModManagerPanel.register(ui, home, sessionDirectory, mods::fileStates, mods::failures,

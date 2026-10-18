@@ -1393,3 +1393,61 @@ sem tag/publicacao/upload. API major1/metodos/capacidades inalterados.
 UI real0.7.4 pendente, assim como demais rotas de save/criacao/unload/troca,
 fsync/commit atomico/graph snapshot/identidade persistente/P3. Fechamento subjacente
 agora observado nesses caminhos, nao liberar eventos completos automaticamente.
+
+### Corroboracao real0.7.4
+
+Usuario confirmou "pronto" ao roteiro load/save/fechar. Sessao privada
+13b58cd0-a16a-42df-ac43-0928fb39aea4:1load/initializedPaths1,1save/completo1,
+streamClosedtrue/streamCloseFailedfalse/streamCloseFailures0, metadata/primary/
+backup/returned/boundtrue. Partial/failed/stale/unbound/pendentes0, healthytrue.
+Load EDT/save Thread-1, dispatcher2/2 sem perdas/workerAlivefalse, stderr vazio.
+Save/backup atuais SHAacd4238eb72f45debb00816f80d372a4bc2a4c179c33fb558385938a7d7742c1
+iguais; .info252bytes nao desserializado, EXE e loader0.7.4 hashes intactos.
+Hash igual ao anterior sem avancar nao significa ausencia de operacao: fechamento
+observado. Nenhuma falha fisica de disco/fsync/unload provada nessa sessao.
+
+## SDK0.8.0 — contrato publico qualificado de I/O, nao lifecycle completo
+
+Contrato definido em CAREER-IO-EVENTS.md antes da implementacao. Java SDK in-process,
+nao HTTP/servico remoto: skills/instrucoes Postman consultadas, nenhuma workspace,
+collection/spec artificial criada e nenhum recurso privado enviado a servico.
+CareerIoEvents DTOs imutaveis/default ModContext.careerIoEvents/capability
+events.career.io. EXISTING_LOAD_COMPLETED exige decode exclusivo/retorno/geracao
+e ramo best.f.ap observado; SAVE_SEQUENCE_COMPLETED exige load qualificado atual
+e todas etapas metadata/primary/stream/backup/retorno/bound. Fallback uma vez;
+frame existente que pula ramo nao qualifica. Nao criacao/unload/ID persistente.
+
+Hub typed usa o dispatcher existente com estado/revisao independente; antigas
+CareerObservations Kind/DTO inalteradas.32workers compartilhados por budget
+atomico,4assinaturas totais por mod entre streams; retired callback ignora interrupt
+retém slot ate sair. Cleanup/falha/init/overflow/permissions/capability/provider
+e revogacao por ownership reutilizados.36 novos checks sinteticos: replay/FIFO/
+paths ausentes, qualificacao, partial/closefailure/stale/overlap/fallback/reset,
+callback failure/replay de recovery/worker resourcecap/per-mod/revogacao/preflight.
+Build e suites headless/bytecode/modelos aprovados; UI smoke separado aprovado.
+test.ps1 -IncludeUi agregado ultrapassou180/300s: nao relatar execucoes truncadas
+como aprovadas; build.ps1 e UiSmokeTest reexecutados separadamente com exit0,
+logs qualified-build-final.log/qualified-ui-final.log. Nenhum processo de usuario
+encerrado; timeouts do harness nao sao evidencias de lifecycle.
+
+Original I/O fixture72checks aprovada:
+Temp/opencode/vbrasfoot-hook-io-e5a37bf75c0c4e9eb6e5504c3b0b399f.
+Observador0.8.0 JAR SDK-only assina os dois streams. O frame sintetico do I/O
+original entrega reads/writes antigos, mas NAO eventos qualificados de load/save;
+checks verificam ausencia de falsos positivos e counters0 do stream novo.
+Evento positivo do novo stream validado sinteticamente, nao afirmar UI real dele
+ou mod terceiro humano. Report privado adiciona io.existingLoads/completedSaves/phase.
+
+Portable0.8.0 gerado/regressao aprovada:
+Temp/opencode/vbrasfoot-install-f53fa26629d643e3aa0cb5e8ec6b0bcb.
+SDK zip/API-only quatroprojetos fora checkout aprovado:
+Temp/opencode/vbrasfoot-sdk-author-a7355f5dbbd3480b9c8578e49cf18c94.
+Novo guia incluido na allowlist, Javadocs e JSON validator condicional/minLoader
+testados. Pacotes dist/portable-0.8.0-io-final e dist/sdk-0.8.0-io-final.zip locais,
+sem tag/upload/publicacao. Novo observador nao instalado automaticamente; exige
+flag e duas capabilities, enquanto comparador permanece independente dessa flag.
+Sem fsync/graph consistency/atomicidade/sidecars/P3/lifecycle completo/gameplay.
+
+Pacotes revisados com guias finais tambem aprovados:
+dist/portable-0.8.0-io-reviewed (fixture7a5041591cc34fcaa6d819b0069bceaa) e
+dist/sdk-0.8.0-io-reviewed.zip (fixture9d1cab12a48442f4b1a6a3f047ed4214).

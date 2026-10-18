@@ -65,6 +65,7 @@ $result = Run-Validator 'template-validation' @($mod)
 if (-not $result.Contains('br.sdk.fixture')) { throw 'Mod personalizado nao reconhecido' }
 $description = Run-Validator 'sdk-description' @('--describe-sdk') | ConvertFrom-Json
 if ($description.format -ne 1 -or $description.kind -ne 'sdk-description' -or $description.sandbox -ne $false -or $description.sdkVersion -ne $version) { throw 'Contrato machine-readable divergente' }
+if ($description.conditionalCapabilities -notcontains 'events.career.io' -or $description.featureMinimums.'events.career.io' -ne '0.8.0') { throw 'Contrato de eventos de I/O ausente' }
 $jsonMod = Run-Validator 'template-json' @('--json',$mod) | ConvertFrom-Json
 if ($jsonMod.valid -ne $true -or $jsonMod.mod.id -ne 'br.sdk.fixture' -or $jsonMod.codeInitialized -ne $false -or $jsonMod.installedSetValidated -ne $false) { throw 'Validacao JSON do mod incorreta' }
 if ($jsonMod.mod.name -cne $quotedName) { throw 'JSON perdeu quotes/acentos do manifesto UTF8' }
@@ -74,6 +75,8 @@ Copy-Item -LiteralPath (Join-Path $sdk 'examples\career-observer') -Destination 
 if ($LASTEXITCODE -ne 0) { throw 'Observador SDK-only falhou' }
 $observer = Join-Path $observerProject 'dist\career-observer.jar'
 $null = Run-Validator 'observer-validation' @($observer)
+$observerJson = Run-Validator 'observer-json' @('--json',$observer) | ConvertFrom-Json
+if ($observerJson.observationModeRequired -ne $true -or $observerJson.mod.requiredCapabilities -notcontains 'events.career.io') { throw 'Consumidor SDK-only de eventos sem contrato condicional' }
 $comparatorProject = Join-Path $fixture 'comparador'
 Copy-Item -LiteralPath (Join-Path $sdk 'examples\player-comparator') -Destination $comparatorProject -Recurse
 & (Join-Path $comparatorProject 'build.ps1') -Sdk $api

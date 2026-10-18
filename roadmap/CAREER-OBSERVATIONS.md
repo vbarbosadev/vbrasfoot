@@ -1,5 +1,10 @@
 # Observacoes experimentais para mods — SDK 0.4.0 / API major 1
 
+SDK0.8.0 preserva este contrato e adiciona stream separado de eventos qualificados
+[CareerIoEvents](CAREER-IO-EVENTS.md). Limites32 workers/4assinaturas por mod sao
+compartilhados entre ambos. Enum/DTO antigos nao receberam novos kinds.
+Observador atualizado0.8.0 assina ambos e exige as duas capabilities.
+
 `ModContext.careerObservations()` exige **events.career.read**. Manifesto pode
 requerer **events.career.observed**; conjunto que a requer e recusado sem
 `--probe-career-hooks`, antes de inicializar mods. `--validate-mod` reconhece a

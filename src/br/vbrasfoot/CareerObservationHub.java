@@ -15,12 +15,17 @@ final class CareerObservationHub implements CareerObservations, AutoCloseable {
     private final long closeMillis;
     private volatile State state;
     private boolean closed;
-    private long nextListener;
+    private final CareerSubscriberBudget budget;
 
     CareerObservationHub() { this(64, 32, Duration.ofMillis(500)); }
     CareerObservationHub(int capacity, int maxListeners, Duration closeGrace) {
+        this(capacity, maxListeners, closeGrace, new CareerSubscriberBudget(maxListeners));
+    }
+    CareerObservationHub(CareerSubscriberBudget budget) { this(64, 32, Duration.ofMillis(500), budget); }
+    CareerObservationHub(int capacity, int maxListeners, Duration closeGrace, CareerSubscriberBudget budget) {
         if (capacity < 1 || maxListeners < 1 || closeGrace.isNegative()) throw new IllegalArgumentException();
         this.capacity = capacity; this.maxListeners = maxListeners; this.closeMillis = closeGrace.toMillis();
+        this.budget = java.util.Objects.requireNonNull(budget);
     }
     synchronized void initialize(State initial) {
         if (state != null) throw new IllegalStateException("Hub ja inicializado");
@@ -47,12 +52,16 @@ final class CareerObservationHub implements CareerObservations, AutoCloseable {
         java.util.Objects.requireNonNull(callback);
         if (closed || state().phase() == Phase.CLOSED) throw new IllegalStateException("Sessao encerrada");
         if (listeners.size() >= maxListeners) throw new IllegalStateException("Limite de assinantes de carreira atingido");
-        Listener listener = new Listener(callback, ++nextListener);
-        listener.offer(new Update(Kind.CURRENT_STATE, state(), false));
-        listeners.add(listener);
-        try { listener.worker.start(); }
-        catch (RuntimeException | Error failure) { listeners.remove(listener); listener.stop(Status.CLOSED); throw failure; }
-        return listener;
+        if (!budget.acquire()) throw new IllegalStateException("Limite compartilhado de workers de carreira atingido");
+        Listener listener = null;
+        try {
+            listener = new Listener(callback, budget.nextId());
+            listener.offer(new Update(Kind.CURRENT_STATE, state(), false)); listeners.add(listener);
+            listener.worker.start(); return listener;
+        } catch (RuntimeException | Error failure) {
+            if (listener != null) { listeners.remove(listener); listener.stop(Status.CLOSED); }
+            budget.release(); throw failure;
+        }
     }
     private final class Listener implements Subscription {
         final ArrayBlockingQueue<Update> queue = new ArrayBlockingQueue<>(capacity);
@@ -75,7 +84,7 @@ final class CareerObservationHub implements CareerObservations, AutoCloseable {
                     catch (Throwable failure) { stop(Status.CALLBACK_FAILED); }
                 }
             } catch (InterruptedException interrupted) { stop(Status.CLOSED); Thread.currentThread().interrupt(); }
-            finally { synchronized (CareerObservationHub.this) { listeners.remove(this); } }
+            finally { synchronized (CareerObservationHub.this) { listeners.remove(this); } budget.release(); }
         }
         void stop(Status reason) {
             synchronized (CareerObservationHub.this) {

@@ -17,7 +17,7 @@ Nesta pasta, sem executar o build principal do loader:
 Fora do checkout, copie esta pasta e use o JAR publico do SDK-only:
 
 ```powershell
-.\build.ps1 -Sdk 'C:\SDK\api\vbrasfoot-api-0.7.4.jar'
+.\build.ps1 -Sdk 'C:\SDK\api\vbrasfoot-api-0.8.0.jar'
 ```
 
 O default e `lib/vbrasfoot-api.jar`. Nao baixa nem instala dependencias. Compila
@@ -28,7 +28,7 @@ ficam fora do JAR. Cada build usa diretorio exclusivo em `build/`.
 Validacao opcional, sem abrir o jogo ou inicializar o mod:
 
 ```powershell
-java -jar 'C:\SDK\tools\vbrasfoot-validator-0.7.4.jar' .\dist\player-comparator.jar
+java -jar 'C:\SDK\tools\vbrasfoot-validator-0.8.0.jar' .\dist\player-comparator.jar
 ```
 
 Build nao instala o mod. Com jogo fechado e loader0.7.2+ instalado, revise o JAR:

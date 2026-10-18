@@ -14,6 +14,10 @@ public interface ModContext {
     default CareerObservations careerObservations() {
         throw new UnsupportedOperationException("Observacoes exigem loader 0.4.0+ e --probe-career-hooks");
     }
+    /** Qualified existing-load/save sequence events; loader0.8.0+, events.career.read and required events.career.io. Opt-in, not durable. */
+    default CareerIoEvents careerIoEvents() {
+        throw new UnsupportedOperationException("Eventos de I/O exigem loader 0.8.0+ e --probe-career-hooks");
+    }
     /** Actions run on Swing's event dispatch thread; loader removes them on failure/shutdown. */
     void registerAction(String id, String label, Runnable action);
     /**

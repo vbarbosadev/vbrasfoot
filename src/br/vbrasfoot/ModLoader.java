@@ -44,9 +44,13 @@ final class ModLoader implements AutoCloseable {
     }
     private final Map<Mod, ResourceOwner> subscriptions = new java.util.IdentityHashMap<>();
     private final br.vbrasfoot.api.CareerObservations observations;
+    private final br.vbrasfoot.api.CareerIoEvents ioEvents;
     private boolean closed;
     ModLoader(Logger logger) { this(logger, null); }
-    ModLoader(Logger logger, br.vbrasfoot.api.CareerObservations observations) { this.logger = logger; this.observations = observations; }
+    ModLoader(Logger logger, br.vbrasfoot.api.CareerObservations observations) { this(logger, observations, null); }
+    ModLoader(Logger logger, br.vbrasfoot.api.CareerObservations observations, br.vbrasfoot.api.CareerIoEvents ioEvents) {
+        this.logger = logger; this.observations = observations; this.ioEvents = ioEvents;
+    }
     private synchronized void state(String id, br.vbrasfoot.api.ModState state) {
         states.put(id, state);
         logger.info("mod=" + id + " state=" + state);
@@ -82,7 +86,8 @@ final class ModLoader implements AutoCloseable {
         return failures.snapshot();
     }
     static void requireObservationMode(List<ModManifest> manifests, boolean enabled) throws IOException {
-        for (ModManifest manifest : manifests) if (!enabled && manifest.requiredCapabilities().contains("events.career.observed")) {
+        for (ModManifest manifest : manifests) if (!enabled && (manifest.requiredCapabilities().contains("events.career.observed")
+                || manifest.requiredCapabilities().contains("events.career.io"))) {
             throw new IOException("Mod " + manifest.id() + " requer --probe-career-hooks; observacoes experimentais indisponiveis neste modo");
         }
     }
@@ -158,6 +163,47 @@ final class ModLoader implements AutoCloseable {
                     };
                 }
                 public Logger logger() { return logger; }
+                private <T> br.vbrasfoot.api.CareerObservations.Subscription subscribeOwned(
+                        java.util.function.Function<java.util.function.Consumer<T>, br.vbrasfoot.api.CareerObservations.Subscription> source,
+                        java.util.function.Consumer<T> callback) {
+                    synchronized (owned) {
+                        if (owned.closed) throw new IllegalStateException("Mod encerrando");
+                        owned.items.removeIf(s -> s.status() != br.vbrasfoot.api.CareerObservations.Status.ACTIVE);
+                        if (owned.items.size() >= 4) throw new IllegalStateException("Limite de 4 assinaturas por mod");
+                        java.util.Objects.requireNonNull(callback);
+                        var delegate = source.apply(update -> {
+                            synchronized (owned) { if (owned.closed) return; }
+                            try { callback.accept(update); }
+                            catch (RuntimeException | Error failure) {
+                                failures.record(manifest.jar().getFileName().toString(), manifest.id(), ModFailures.Stage.CAREER_CALLBACK, failure);
+                                throw failure;
+                            }
+                        });
+                        var subscription = new br.vbrasfoot.api.CareerObservations.Subscription() {
+                            private final java.util.concurrent.atomic.AtomicBoolean overflowRecorded = new java.util.concurrent.atomic.AtomicBoolean();
+                            public br.vbrasfoot.api.CareerObservations.Status status() {
+                                var status = delegate.status();
+                                if (status == br.vbrasfoot.api.CareerObservations.Status.OVERFLOW && overflowRecorded.compareAndSet(false, true)) failures.record(
+                                        manifest.jar().getFileName().toString(), manifest.id(), ModFailures.Stage.CAREER_OVERFLOW,
+                                        "OVERFLOW", "Fila de carreira cheia; assinatura encerrada. Reassinar explicitamente para recuperar.");
+                                return status;
+                            }
+                            public void close() { status(); delegate.close(); }
+                        };
+                        owned.items.add(subscription); return subscription;
+                    }
+                }
+                public br.vbrasfoot.api.CareerIoEvents careerIoEvents() {
+                    require("events.career.read");
+                    if (!manifest.requiredCapabilities().contains("events.career.io")) throw new SecurityException("Declare requiredCapabilities=events.career.io");
+                    if (ioEvents == null) throw new UnsupportedOperationException("Use --probe-career-hooks para eventos delimitados de I/O");
+                    return new br.vbrasfoot.api.CareerIoEvents() {
+                        public State state() { require("events.career.read"); return ioEvents.state(); }
+                        public br.vbrasfoot.api.CareerObservations.Subscription subscribe(java.util.function.Consumer<Update> callback) {
+                            require("events.career.read"); return subscribeOwned(ioEvents::subscribe, callback);
+                        }
+                    };
+                }
                 public br.vbrasfoot.api.CareerObservations careerObservations() {
                     require("events.career.read");
                     if (observations == null) throw new UnsupportedOperationException("Use --probe-career-hooks para observacoes experimentais");
@@ -165,32 +211,7 @@ final class ModLoader implements AutoCloseable {
                         public State state() { require("events.career.read"); return observations.state(); }
                         public Subscription subscribe(java.util.function.Consumer<Update> callback) {
                             require("events.career.read");
-                            synchronized (owned) {
-                                if (owned.closed) throw new IllegalStateException("Mod encerrando");
-                                owned.items.removeIf(s -> s.status() != Status.ACTIVE);
-                                if (owned.items.size() >= 4) throw new IllegalStateException("Limite de 4 assinaturas por mod");
-                                java.util.Objects.requireNonNull(callback);
-                                Subscription delegate = observations.subscribe(update -> {
-                                    synchronized (owned) { if (owned.closed) return; }
-                                    try { callback.accept(update); }
-                                    catch (RuntimeException | Error failure) {
-                                        failures.record(manifest.jar().getFileName().toString(), manifest.id(), ModFailures.Stage.CAREER_CALLBACK, failure);
-                                        throw failure;
-                                    }
-                                });
-                                Subscription subscription = new Subscription() {
-                                    private final java.util.concurrent.atomic.AtomicBoolean overflowRecorded = new java.util.concurrent.atomic.AtomicBoolean();
-                                    public Status status() {
-                                        Status status = delegate.status();
-                                        if (status == Status.OVERFLOW && overflowRecorded.compareAndSet(false, true)) failures.record(
-                                                manifest.jar().getFileName().toString(), manifest.id(), ModFailures.Stage.CAREER_OVERFLOW,
-                                                "OVERFLOW", "Fila de observacoes cheia; assinatura encerrada. Reassinar explicitamente para recuperar.");
-                                        return status;
-                                    }
-                                    public void close() { status(); delegate.close(); }
-                                };
-                                owned.items.add(subscription); return subscription;
-                            }
+                            return subscribeOwned(observations::subscribe, callback);
                         }
                     };
                 }

@@ -1,4 +1,7 @@
-# SDK 0.7.4 — API major 1 (experimental)
+# SDK 0.8.0 — API major 1 (experimental)
+
+Novo contrato delimitado: [CareerIoEvents](CAREER-IO-EVENTS.md), opt-in0.8.0.
+Eventos de I/O qualificados, nao lifecycle completo/durabilidade ou sidecars.
 
 [Primeiro mod sem checkout](SDK-QUICKSTART.md) · [Compatibilidade](SDK-COMPATIBILITY.md).
 [Criacao assistida por IA e contrato JSON](AI-MOD-AUTHORING.md).

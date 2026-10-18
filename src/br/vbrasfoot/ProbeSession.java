@@ -11,13 +11,16 @@ final class ProbeSession implements AutoCloseable {
     private final ProbeDispatcher dispatcher;
     private final AutoCloseable subscription;
     private final AutoCloseable lifecycleSubscription;
-    private final CareerObservationHub observations = new CareerObservationHub();
-    private final CareerLifecycle lifecycle = new CareerLifecycle(observations);
+    private final CareerSubscriberBudget subscriberBudget = new CareerSubscriberBudget(32);
+    private final CareerObservationHub observations = new CareerObservationHub(subscriberBudget);
+    private final CareerIoEventHub ioEvents = new CareerIoEventHub(subscriberBudget);
+    private final CareerLifecycle lifecycle = new CareerLifecycle(observations, ioEvents);
     private final Thread shutdown;
     private final Logger logger;
     private final Path report;
     private boolean closed;
     br.vbrasfoot.api.CareerObservations observations() { return observations; }
+    br.vbrasfoot.api.CareerIoEvents ioEvents() { return ioEvents; }
 
     ProbeSession(Logger logger, Path report) {
         this.logger = logger; this.report = report;
@@ -84,6 +87,7 @@ final class ProbeSession implements AutoCloseable {
         // Internal session disposal, NOT CareerUnloaded delivered to a mod.
         CareerLifecycle.Snapshot finalState = lifecycle.closeAndSnapshot();
         observations.close();
+        ioEvents.close();
         dispatcher.close();
         ProbeDispatcher.Stats stats = dispatcher.stats();
         logger.info("career-hook-probe-delivery=" + stats);
@@ -114,6 +118,9 @@ final class ProbeSession implements AutoCloseable {
         state.setProperty("save.partialSequences", Long.toString(finalState.partialSaveSequences()));
         state.setProperty("save.failedSequences", Long.toString(finalState.failedSaveSequences()));
         state.setProperty("save.streamCloseFailures", Long.toString(finalState.streamCloseFailures()));
+        state.setProperty("io.existingLoads", Long.toString(finalState.ioState().existingLoads()));
+        state.setProperty("io.completedSaves", Long.toString(finalState.ioState().completedSaves()));
+        state.setProperty("io.phase.beforeClose", finalState.ioState().phase().name());
         state.setProperty("save.inFlight.beforeClose", Integer.toString(finalState.inFlightSaves()));
         var outcome = finalState.lastSaveOutcome();
         if (outcome != null) {
