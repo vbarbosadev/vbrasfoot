@@ -85,6 +85,38 @@ sem partial/failed/stale/unbound/pendentes e dispatcher sem perdas. Usuario
 confirmou funcionamento do roteiro; .s22/.sbck atuais tem hashes iguais. Nao
 generaliza para criacao/unload nem remove o limite do close subjacente de Kryo.
 
+### Incremento0.7.4 — fechamento subjacente observado
+
+Sonda transforma tambem com.esotericsoftware.kryo.io.Output em memoria, somente
+Java17/21/opt-in. SHA da classe73ba15ba16dbcff3a2ce8456de5b70126077c1b62b4128359bcbb2d2dfc4e04a,
+um close(), uma chamada flush, um OutputStream.close e um handler IOException
+com ASTORE exatos. Divergencia recusa antes de defineClass; modo normal intocado.
+Caller c.a.ae duplica receiver antes de Output.close e registra sua identidade
+na tentativa corrente da thread. Marcadores apos close normal e no handler
+original so afetam esse receiver, nao outros Outputs/threads/operacoes.
+Receiver retido somente durante a tentativa e liberado no retorno/falha; report
+e estado publico contem flags/counters, nunca stream/Throwable/objeto do jogo.
+
+streamClosed exige retorno da chamada subjacente. streamCloseFailed marca a
+IOException que a biblioteca engole; flag e persistente naquela tentativa e
+nao e apagada por marcador posterior de sucesso. O jogo continua engolindo a
+excecao, copiando backup ou retornando exatamente como antes; sem fechar duas
+vezes, retry, rethrow, flush/fsync extra, reparo ou alteracao de bytes gravados.
+Falha conhecida impede bound/PRIMARY_WRITE_COMPLETED e completeSequence.
+Sequencia completa0.7.4 tambem exige streamClosed: unknown/null-stream nao vira
+completa. Kind experimental legado ainda significa wrapper-return quando close
+subjacente nao foi observado, nao durabilidade; sem expandir sua API.
+Report adiciona save.last.streamClosed/streamCloseFailed e counter
+save.streamCloseFailures. Versoes anteriores nao tinham esses campos e seu
+completeSequence nao deve ser reinterpretado como fechamento subjacente provado.
+
+43 guard checks,9 bytecode sintetico e69 checks original I/O/biblioteca aprovados.
+Falha de close/flush foi induzida com Output original e streams de codigo proprio,
+ticket/metadata/backup sinteticos; nao falha de FileOutputStream do save completo
+por disco cheio. Caminho normal de c.a.ae confirma close subjacente real em fixture.
+Esse escopo nao prova fsync, consistencia do grafo, atomicidade .info/.s22/.sbck,
+CareerUnloaded, identidade persistente, todas rotas de save ou readiness de criacao.
+
 - 39 testes sinteticos: geracao, save atrasado em thread propria, fallback,
   falhas/parcialidade, tentativas sobrepostas, overflow, fechamento, relatorio e
   independencia de callback falho/fila saturada.

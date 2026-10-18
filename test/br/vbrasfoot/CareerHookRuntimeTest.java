@@ -9,6 +9,65 @@ import javax.swing.JFrame;
 
 /** Real original I/O methods on newly named fixture saves, not a gameplay/UI test. */
 public final class CareerHookRuntimeTest {
+    private static final class OutputStreamFixture extends java.io.OutputStream {
+        final boolean failWrite, failClose;
+        int closes, writes;
+        OutputStreamFixture(boolean failWrite, boolean failClose) { this.failWrite = failWrite; this.failClose = failClose; }
+        public void write(int value) throws java.io.IOException { writes++; if (failWrite) throw new java.io.IOException("owned write failure"); }
+        public void close() throws java.io.IOException { closes++; if (failClose) throw new java.io.IOException("owned close failure"); }
+    }
+    private static void outputCloseChecks(Path game, Path home) throws Exception {
+        CareerLifecycle state = new CareerLifecycle();
+        List<HookProbe.Observation> events = new ArrayList<>();
+        try (var guard = HookProbe.attachLifecycle(state); var sink = HookProbe.attach(events::add);
+             LegacyRuntime plain = LegacyRuntime.prepare(Profile.verify(game), home.resolve("output-plain"));
+             LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home.resolve("output-probe"), true)) {
+            Class<?> type = Class.forName("com.esotericsoftware.kryo.io.Output", true, runtime);
+            check(schema(type).equals(schema(Class.forName("com.esotericsoftware.kryo.io.Output", false, plain))), "original Output schema unchanged");
+            var constructor = type.getConstructor(java.io.OutputStream.class); var close = type.getMethod("close"); var write = type.getMethod("writeInt", int.class);
+            // Synthetic accepted ticket only for these owned stream tests, not a complete game/UI load.
+            HookProbe.enterLoad("owned-stream-ticket", false); HookProbe.rootAssigned(); HookProbe.decodedLoad(); HookProbe.exitLoad(true); events.clear();
+            OutputStreamFixture good = new OutputStreamFixture(false, false); Object output = constructor.newInstance(good); write.invoke(output, 42);
+            HookProbe.enterSave("owned-good"); HookProbe.metadataClosed(); HookProbe.primaryOutputClosing(output); close.invoke(output);
+            HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
+            check(good.closes == 1 && good.writes == 4 && state.snapshot().lastSaveOutcome().streamClosed()
+                    && state.snapshot().lastSaveOutcome().completeSequence(), "original Output successful underlying close observed once");
+            check(events.size() == 1 && events.get(0).completed() && state.snapshot().saves() == 1, "normal original Output path keeps observed write");
+            OutputStreamFixture bad = new OutputStreamFixture(false, true); Object failing = constructor.newInstance(bad); write.invoke(failing, 42);
+            HookProbe.enterSave("owned-close-failed"); HookProbe.metadataClosed(); HookProbe.primaryOutputClosing(failing); close.invoke(failing);
+            HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
+            check(bad.closes == 1 && bad.writes == 4 && events.size() == 2 && events.get(1).returnedSuccess() && !events.get(1).completed()
+                    && !events.get(1).aborted(), "original Output still swallows close IOException but probe refuses success");
+            check(state.snapshot().lastSaveOutcome().streamCloseFailed() && !state.snapshot().lastSaveOutcome().streamClosed()
+                    && !state.snapshot().lastSaveOutcome().bound() && state.snapshot().saves() == 1
+                    && state.snapshot().completeSaveSequences() == 1 && state.snapshot().streamCloseFailures() == 1, "hidden original close failure cannot count bound or complete save");
+            OutputStreamFixture noWrite = new OutputStreamFixture(true, false); Object flushing = constructor.newInstance(noWrite); write.invoke(flushing, 42);
+            HookProbe.enterSave("owned-flush-failed"); HookProbe.primaryOutputClosing(flushing);
+            boolean propagated = false;
+            try { close.invoke(flushing); }
+            catch (java.lang.reflect.InvocationTargetException expected) {
+                propagated = expected.getCause().getClass().getName().equals("com.esotericsoftware.kryo.KryoException");
+                HookProbe.abortSave(expected.getCause());
+            }
+            check(propagated && noWrite.closes == 0 && events.get(2).aborted() && state.snapshot().saves() == 1,
+                    "original flush exception remains propagated, no added close/retry");
+            OutputStreamFixture recovery = new OutputStreamFixture(false, false); Object recovered = constructor.newInstance(recovery);
+            HookProbe.enterSave("owned-recovery"); HookProbe.metadataClosed(); HookProbe.primaryOutputClosing(recovered); close.invoke(failing); close.invoke(recovered);
+            HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
+            check(state.snapshot().lastSaveOutcome().completeSequence() && state.snapshot().saves() == 2
+                    && state.snapshot().streamCloseFailures() == 1 && state.snapshot().inFlightSaves() == 0,
+                    "unrelated Output failure ignored and later matched success recovers");
+            var report = new Properties();
+            report.setProperty("coverage", "Original library Output.close with owned injected streams and synthetic ticket/metadata/backup markers; not full original save under disk failure or fsync");
+            report.setProperty("saves", Long.toString(state.snapshot().saves()));
+            report.setProperty("completeSequences", Long.toString(state.snapshot().completeSaveSequences()));
+            report.setProperty("streamCloseFailures", Long.toString(state.snapshot().streamCloseFailures()));
+            report.setProperty("inFlightSaves", Integer.toString(state.snapshot().inFlightSaves()));
+            report.setProperty("originalCloseFailureSwallowed", "true");
+            report.setProperty("probeWriteSuccessRefused", "true");
+            try (var writer = Files.newBufferedWriter(home.resolve("output-close-observations.properties"))) { report.store(writer, "Private original library close fixture"); }
+        } finally { state.close(); }
+    }
     private static int checks;
     private static void check(boolean condition, String label) { if (!condition) throw new AssertionError(label); checks++; }
     private static HookProbe.Observation only(List<HookProbe.Observation> events, String operation) throws InterruptedException {
@@ -106,6 +165,7 @@ public final class CareerHookRuntimeTest {
                 check(lifecycle.snapshot().saves() == 1 && lifecycle.snapshot().lastSavedFile().equals("output"), "original save binds current guard");
                 check(lifecycle.snapshot().completeSaveSequences() == 1 && lifecycle.snapshot().lastSaveOutcome().metadataClosed()
                         && lifecycle.snapshot().lastSaveOutcome().completeSequence(), "original metadata/primary/backup return observed together");
+                check(lifecycle.snapshot().lastSaveOutcome().streamClosed() && !lifecycle.snapshot().lastSaveOutcome().streamCloseFailed(), "original save underlying stream close observed");
                 check(Files.isRegularFile(saves.resolve("output.s22")) && Files.mismatch(saves.resolve("output.s22"), saves.resolve("output.sbck")) == -1, "save and backup bytes agree");
                 events.clear();
                 var beforeReload = bridge.scopedClubs("", 0, 1).items().get(0).reference();
@@ -200,6 +260,7 @@ public final class CareerHookRuntimeTest {
                 Files.writeString(home.resolve("runtime-observations.txt"), "Checks=" + checks + "\nCoverage=Original I/O methods; synthetic frame bypasses full UI lifecycle; no gameplay/reopening EXE test\nInput.sha256=" + before + "\nProduced.sha256=" + Profile.digest(saves.resolve("output.s22")) + "\nGuard=" + lifecycle.snapshot() + "\n" + transcript.stream().map(Object::toString).collect(java.util.stream.Collectors.joining("\n")) + "\n");
             } finally { CareerBridge.onEdt(() -> { frame.dispose(); return null; }); }
         } finally { lifecycle.close(); modLogger.removeHandler(modHandler); CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; }); }
+        outputCloseChecks(game, home);
         System.out.println("PASS: " + checks + " original career I/O probe checks; no gameplay gate approved.");
     }
 }

@@ -671,6 +671,13 @@ P0 continua bloqueante. Nao anunciar P1/P2 completos ou suporte a gameplay.
 
 ### P2/P5 — composicao visual0.7.0
 
+P4/0.7.4: fechamento subjacente e IOException engolida agora observados na sonda
+por identidade do Output da tentativa; erro impede update de write/completo, sem
+mudar catch/return/backup.43 guard+9bytecode+69I/O/biblioteca checks aprovados.
+Teste de falha usa stream proprio no Output original, nao disco cheio/FileOutputStream
+do save completo. UI0.7.4, fsync/atomicidade/readiness criacao/unload/P3 continuam
+pendentes; nenhum evento completo promovido por este incremento.
+
 Usuario confirmou visual0.7.2 bem melhor e adiou refinamentos esteticos. Seguinte
 entrega prioriza P4, nao novo redesign: guard de saves sobrepostos e observacao
 separada de .info/.s22/.sbck/retorno, com marcador do ramo completo de leitura.

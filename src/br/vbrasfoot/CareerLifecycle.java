@@ -14,12 +14,12 @@ final class CareerLifecycle {
     record SaveAttempt(Ticket ticket, long id, long interference, boolean exclusive) { }
     /** Observed original stages, never a durability or graph-consistency guarantee. */
     record SaveOutcome(boolean metadataClosed, boolean primaryClosed, boolean backupCopied,
-                       boolean returned, boolean bound, boolean completeSequence) { }
+                       boolean returned, boolean bound, boolean completeSequence, boolean streamClosed, boolean streamCloseFailed) { }
     record Snapshot(String session, long generation, Phase phase, String loadedFile, boolean loadedBackup,
                     String lastSavedFile, long loads, long saves, long invalidations, long staleCompletions,
                     long unboundSaves, int inFlight, boolean healthy, long initializedReadPaths,
                     long completeSaveSequences, long partialSaveSequences, long failedSaveSequences,
-                    int inFlightSaves, SaveOutcome lastSaveOutcome) { }
+                    int inFlightSaves, SaveOutcome lastSaveOutcome, long streamCloseFailures) { }
     private final String session = UUID.randomUUID().toString();
     private long generation, loads, saves, invalidations, staleCompletions, unboundSaves;
     private Phase phase = Phase.EMPTY;
@@ -30,6 +30,7 @@ final class CareerLifecycle {
     private final Set<Long> inFlightSaves = new HashSet<>();
     private long saveInterference, initializedReadPaths, completeSaveSequences, partialSaveSequences, failedSaveSequences;
     private SaveOutcome lastSaveOutcome;
+    private long streamCloseFailures;
     private boolean healthy = true;
 
     CareerLifecycle() { this(null); }
@@ -101,17 +102,19 @@ final class CareerLifecycle {
         inFlightSaves.add(attempt.id());
         return attempt;
     }
-    synchronized SaveOutcome finishSave(SaveAttempt attempt, String file, boolean metadata, boolean primary, boolean backup, boolean returned) {
+    synchronized SaveOutcome finishSave(SaveAttempt attempt, String file, boolean metadata, boolean primary, boolean backup, boolean returned,
+                                        boolean streamClosed, boolean streamFailed) {
         // No duplicate/foreign completion may replace the last valid diagnostic outcome.
         if (attempt == null || !session.equals(attempt.ticket().session()) || !inFlightSaves.remove(attempt.id())) return null;
         boolean exclusive = attempt.exclusive() && attempt.interference() == saveInterference && inFlightSaves.isEmpty();
         boolean bound = false;
-        if (primary && returned) {
+        if (primary && returned && !streamFailed) {
             if (!exclusive) staleCompletions++;
             else bound = saved(attempt.ticket(), file);
         }
-        boolean complete = metadata && primary && backup && returned && bound;
-        lastSaveOutcome = new SaveOutcome(metadata, primary, backup, returned, bound, complete);
+        boolean complete = metadata && primary && backup && returned && bound && streamClosed && !streamFailed;
+        lastSaveOutcome = new SaveOutcome(metadata, primary, backup, returned, bound, complete, streamClosed, streamFailed);
+        if (streamFailed) streamCloseFailures++;
         if (complete) completeSaveSequences++;
         else if (primary) partialSaveSequences++;
         else failedSaveSequences++;
@@ -121,7 +124,7 @@ final class CareerLifecycle {
         return new Snapshot(session, generation, phase, loadedFile, loadedBackup, lastSavedFile,
                 loads, saves, invalidations, staleCompletions, unboundSaves, inFlight.size(), healthy,
                 initializedReadPaths, completeSaveSequences, partialSaveSequences, failedSaveSequences,
-                inFlightSaves.size(), lastSaveOutcome);
+                inFlightSaves.size(), lastSaveOutcome, streamCloseFailures);
     }
     synchronized void close() {
         if (phase == Phase.CLOSED) return;

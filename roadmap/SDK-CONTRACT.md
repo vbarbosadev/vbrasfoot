@@ -1,4 +1,4 @@
-# SDK 0.7.3 — API major 1 (experimental)
+# SDK 0.7.4 — API major 1 (experimental)
 
 [Primeiro mod sem checkout](SDK-QUICKSTART.md) · [Compatibilidade](SDK-COMPATIBILITY.md).
 [Criacao assistida por IA e contrato JSON](AI-MOD-AUTHORING.md).

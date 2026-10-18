@@ -13,6 +13,9 @@ public final class CareerLifecycleSelfTest {
     private static void load(String file) {
         HookProbe.enterLoad(file, false); HookProbe.rootAssigned(); HookProbe.rootAssigned(); HookProbe.decodedLoad(); HookProbe.exitLoad(true);
     }
+    private static void closedStream() {
+        Object output = new Object(); HookProbe.primaryOutputClosing(output); HookProbe.primaryStreamClosed(output);
+    }
     public static void main(String[] args) throws Exception {
         CareerLifecycle state = new CareerLifecycle();
         check(state.snapshot().phase() == CareerLifecycle.Phase.EMPTY, "initial guard empty");
@@ -73,7 +76,7 @@ public final class CareerLifecycleSelfTest {
             HookProbe.enterLoad("stages", false); HookProbe.rootAssigned(); HookProbe.rootAssigned(); HookProbe.decodedLoad();
             HookProbe.loadInitializationPathFinished(); HookProbe.exitLoad(true);
             check(stages.snapshot().initializedReadPaths() == 1, "initialization path recorded only with accepted read");
-            HookProbe.enterSave("complete"); HookProbe.metadataClosed(); HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
+            HookProbe.enterSave("complete"); closedStream(); HookProbe.metadataClosed(); HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
             check(stages.snapshot().completeSaveSequences() == 1 && stages.snapshot().lastSaveOutcome().completeSequence(), "all observed save stages required for full sequence");
             HookProbe.enterSave("metadata-missing"); HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
             check(stages.snapshot().partialSaveSequences() == 1 && !stages.snapshot().lastSaveOutcome().metadataClosed()
@@ -104,11 +107,22 @@ public final class CareerLifecycleSelfTest {
             check(!otherSave.isAlive() && stages.snapshot().saves() == 3 && stages.snapshot().inFlightSaves() == 0
                     && !stages.snapshot().lastSaveOutcome().completeSequence(), "first overlapping save also refused, both released");
             var cleanSave = stages.beginSave();
-            check(stages.finishSave(cleanSave, "clean", true, true, true, true).completeSequence(), "later exclusive save recovers tracking");
+            check(stages.finishSave(cleanSave, "clean", true, true, true, true, true, false).completeSequence(), "later exclusive save recovers tracking");
             var last = stages.snapshot();
-            check(stages.finishSave(cleanSave, "duplicate", true, true, true, true) == null && stages.snapshot().equals(last), "duplicate completion cannot overwrite outcome or count");
+            check(stages.finishSave(cleanSave, "duplicate", true, true, true, true, true, false) == null && stages.snapshot().equals(last), "duplicate completion cannot overwrite outcome or count");
             var foreignSave = new CareerLifecycle().beginSave();
-            check(stages.finishSave(foreignSave, "foreign", true, true, true, true) == null, "foreign save attempt refused");
+            check(stages.finishSave(foreignSave, "foreign", true, true, true, true, true, false) == null, "foreign save attempt refused");
+            long beforeFailedClose = stages.snapshot().saves();
+            Object output = new Object();
+            HookProbe.enterSave("hidden-close-failure"); HookProbe.primaryOutputClosing(output);
+            HookProbe.metadataClosed(); HookProbe.primaryStreamCloseFailed(new Object()); HookProbe.primaryStreamClosed(output);
+            HookProbe.primaryStreamCloseFailed(output); HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
+            check(stages.snapshot().saves() == beforeFailedClose && !stages.snapshot().lastSaveOutcome().bound()
+                    && !stages.snapshot().lastSaveOutcome().completeSequence() && stages.snapshot().streamCloseFailures() == 1,
+                    "matched hidden close failure suppresses write update even with successful wrapper/backup");
+            check(stages.snapshot().lastSaveOutcome().streamClosed() && stages.snapshot().lastSaveOutcome().streamCloseFailed(), "failure sticky even with success marker");
+            HookProbe.enterSave("unknown-stream"); HookProbe.metadataClosed(); HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
+            check(!stages.snapshot().lastSaveOutcome().streamClosed() && !stages.snapshot().lastSaveOutcome().completeSequence(), "unknown underlying close cannot complete sequence");
         }
         CareerLifecycle saveCapped = new CareerLifecycle();
         for (int i = 0; i < 65; i++) saveCapped.beginSave();
@@ -117,7 +131,7 @@ public final class CareerLifecycleSelfTest {
         CareerLifecycle pendingSave = new CareerLifecycle();
         var pending = pendingSave.beginSave(); var beforeClose = pendingSave.closeAndSnapshot();
         check(beforeClose.inFlightSaves() == 1 && beforeClose.completeSaveSequences() == 0, "shutdown records unfinished save, never synthesizes completion");
-        check(pendingSave.finishSave(pending, "late", true, true, true, true) == null && pendingSave.snapshot().lastSaveOutcome() == null, "save return after disposal refused");
+        check(pendingSave.finishSave(pending, "late", true, true, true, true, true, false) == null && pendingSave.snapshot().lastSaveOutcome() == null, "save return after disposal refused");
 
         CareerLifecycle independent = new CareerLifecycle();
         CountDownLatch started = new CountDownLatch(1), release = new CountDownLatch(1);
@@ -134,7 +148,7 @@ public final class CareerLifecycleSelfTest {
         var quiet = java.util.logging.Logger.getLogger("lifecycle-fixture"); quiet.setUseParentHandlers(false);
         var probe = new ProbeSession(quiet, reportDirectory.resolve("probe-delivery.properties"));
         load("report-fixture");
-        HookProbe.enterSave("report-fixture"); HookProbe.metadataClosed(); HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
+        HookProbe.enterSave("report-fixture"); closedStream(); HookProbe.metadataClosed(); HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
         probe.close(); probe.close();
         var report = new java.util.Properties();
         try (var reader = java.nio.file.Files.newBufferedReader(reportDirectory.resolve("career-lifecycle.properties"))) { report.load(reader); }
@@ -142,6 +156,8 @@ public final class CareerLifecycleSelfTest {
                 && report.getProperty("loads").equals("1") && report.getProperty("inFlight.beforeClose").equals("0"), "session writes internal report without EDT or synthetic unload");
         check(report.getProperty("save.completeSequences").equals("1") && report.getProperty("save.last.metadataClosed").equals("true")
                 && report.getProperty("save.inFlight.beforeClose").equals("0"), "save-stage report survives callback delivery independently");
+        check(report.getProperty("save.last.streamClosed").equals("true") && report.getProperty("save.last.streamCloseFailed").equals("false")
+                && report.getProperty("save.streamCloseFailures").equals("0"), "underlying close flags/counter in private report");
         try (var next = HookProbe.attachLifecycle(new CareerLifecycle())) { check(true, "close releases synchronous subscription"); }
         System.out.println("PASS: " + checks + " lifecycle guard tests (internal, no public events).");
     }

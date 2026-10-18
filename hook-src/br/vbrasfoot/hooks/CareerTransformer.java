@@ -83,6 +83,9 @@ public final class CareerTransformer {
                         super.visitLabel(start);
                     }
                     @Override public void visitMethodInsn(int op, String owner, String name, String desc, boolean iface) {
+                        if (save && owner.equals("com/esotericsoftware/kryo/io/Output") && name.equals("close") && desc.equals("()V")) {
+                            super.visitInsn(Opcodes.DUP); call("primaryOutputClosing", "(Ljava/lang/Object;)V");
+                        }
                         super.visitMethodInsn(op, owner, name, desc, iface);
                         if (load && owner.equals("com/esotericsoftware/kryo/io/Input") && name.equals("close") && desc.equals("()V")) {
                             counts[2]++; call("decodedLoad", "()V");
