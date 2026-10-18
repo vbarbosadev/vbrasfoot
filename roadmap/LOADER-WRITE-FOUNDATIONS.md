@@ -72,6 +72,10 @@ Conservador intencional: nao sacrificar seguranca para reexecutar automaticament
 Entrega posterior adicionou dispatcher e adaptador original LIMITADOS conforme
 secao5abaixo. Ainda NAO ha protocolo publico de reconciliacao,carregamento do
 ledger vinculado automaticamente em startup ou commit conjunto com save.
+Entrega posterior adiciona inspectRecovery/quarantinePending e janela de exclusao
+beginSave/endSave, ainda internas e sem startup/hook conectado. Veja
+JOURNAL-RECOVERY-AND-SAVE-FENCES.md: classificacao/quarentena nao resolvem efeitos
+incertos nem reancoram journals; fechar janela nao reativa contexto anterior.
 Mesmo APPLIED pode significar efeito em memoria nao salvo. Restore/copia do save
 exigem decisao explicita; nenhum teste atual estabelece exactly-once interarquivos.
 

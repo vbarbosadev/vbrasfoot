@@ -76,7 +76,9 @@ public final class FinanceOriginalRuntimeTest {
                     boolean nonEdt = false; try { adapter.snapshot(human); } catch (IllegalStateException expected) { nonEdt = true; }
                     check(nonEdt, "original finance reads refuse caller outside EDT");
                     var beforeSave = CareerBridge.onEdt(() -> adapter.snapshot(human));
-                    CareerBridge.onEdt(() -> { saveMethod.invoke(null, "finance-output"); return null; });
+                    var saveFence = gate.beginSave();
+                    try { CareerBridge.onEdt(() -> { saveMethod.invoke(null, "finance-output"); return null; }); }
+                    finally { gate.endSave(saveFence); } // Even writer failure must not restore the old context.
                     check(Files.isRegularFile(game.resolve("sav/finance-output.s22")) && Files.mismatch(game.resolve("sav/finance-output.s22"), game.resolve("sav/finance-output.sbck")) == -1,
                             "original writer produces private output and matching backup");
                     check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "finance-output", false)), "original loader reloads private financially modified save");
@@ -96,8 +98,13 @@ public final class FinanceOriginalRuntimeTest {
                     try { journal.read(outputObservation.revision()); }
                     catch (CareerSidecarStore.Failure expected) { journalMismatch = expected.reason() == CareerSidecarStore.Reason.SAVE_REVISION_MISMATCH; }
                     check(journalMismatch, "journal not silently reanchored to financially modified output save");
+                    var recovery = journal.inspectRecovery(revision, outputObservation.revision());
+                    check(recovery.status() == CareerCommandJournal.RecoveryStatus.HISTORICAL_EFFECTS && recovery.revisionChanged(),
+                            "original roundtrip still classified as historical effects, not automatic journal reconciliation");
+                    check(journal.quarantinePending(revision, recovery.snapshot().token()).token().equals(recovery.snapshot().token()),
+                            "startup quarantine cannot rewrite terminal original financial receipts");
                     var oldPlanResult = dispatcher.execute(owner, context, changed.intent("old-roots"), journal.read(revision).token(), changed);
-                    check(oldPlanResult.kind() == Kind.DENIED && oldPlanResult.receipt().reason() == CareerCommandGate.Reason.STALE_CONTEXT, "old decoded roots cannot authorize new financial command");
+                    check(oldPlanResult.kind() == Kind.DENIED && oldPlanResult.receipt().reason() == CareerCommandGate.Reason.NO_CONTEXT, "save window invalidates old context; reloaded roots never automatically authorize command");
                 }
                 check(Profile.digest(game.resolve("sav/input.s22")).equals(inputHash), "private input save untouched");
             } finally { CareerBridge.onEdt(() -> { frame.dispose(); return null; }); }
