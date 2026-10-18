@@ -16,6 +16,12 @@ final class CareerCommandJournal {
     record Receipt(UUID operationId, Intent intent, State state) { }
     record Snapshot(String token, List<Receipt> receipts) { Snapshot { receipts = List.copyOf(receipts); } }
     record Prepared(Snapshot snapshot, Optional<Lease> lease) { }
+    enum RecoveryStatus { EMPTY, NO_EFFECT_ONLY, HISTORICAL_EFFECTS, UNCERTAIN }
+    /** Diagnostic only: even matching bytes do not establish effects in the loaded graph. */
+    record Recovery(Snapshot snapshot, CareerSidecarStore.SaveRevision recordedSave,
+                    CareerSidecarStore.SaveRevision observedSave, RecoveryStatus status) {
+        boolean revisionChanged() { return !recordedSave.equals(observedSave); }
+    }
     static final class Lease {
         private final UUID journal, operation;
         private final Intent intent;
@@ -35,6 +41,31 @@ final class CareerCommandJournal {
     }
     Snapshot read(CareerSidecarStore.SaveRevision save) throws IOException {
         var view = store.read(key, save); return snapshot(view.token(), decode(view));
+    }
+    /** Explicit known old anchor required. Never retargets the journal, searches history or grants a lease. */
+    Recovery inspectRecovery(CareerSidecarStore.SaveRevision recordedSave, CareerSidecarStore.SaveRevision observedSave) throws IOException {
+        Objects.requireNonNull(observedSave);
+        Snapshot snapshot = read(recordedSave);
+        RecoveryStatus status = snapshot.receipts().isEmpty() ? RecoveryStatus.EMPTY
+                : snapshot.receipts().stream().anyMatch(r -> r.state() == State.OUTCOME_UNKNOWN) ? RecoveryStatus.UNCERTAIN
+                : snapshot.receipts().stream().anyMatch(r -> r.state() == State.APPLIED) ? RecoveryStatus.HISTORICAL_EFFECTS
+                : RecoveryStatus.NO_EFFECT_ONLY;
+        return new Recovery(snapshot, recordedSave, observedSave, status);
+    }
+    /** Monotonic recovery: persist PREPARED as UNKNOWN, preserving all keys/digests/UUIDs and terminal results.
+     * May conservatively fence a still-live lease, but can never make an uncertain command executable again. */
+    Snapshot quarantinePending(CareerSidecarStore.SaveRevision save, String expectedToken) throws IOException {
+        var view = store.read(key, save); requireToken(view, expectedToken); var values = decode(view);
+        boolean changed = false;
+        for (var entry : values.entrySet()) {
+            Receipt receipt = entry.getValue();
+            if (receipt.state() == State.PREPARED) {
+                entry.setValue(new Receipt(receipt.operationId(), receipt.intent(), State.OUTCOME_UNKNOWN)); changed = true;
+            }
+        }
+        if (!changed) return snapshot(view.token(), values);
+        var committed = store.write(key, save, SCHEMA, expectedToken, encode(values));
+        return snapshot(committed.token(), values);
     }
     Prepared prepare(CareerSidecarStore.SaveRevision save, String expectedToken, Intent intent) throws IOException {
         Objects.requireNonNull(intent); var view = store.read(key, save); requireToken(view, expectedToken);

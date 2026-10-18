@@ -1,5 +1,48 @@
 # Validacao — 16/10/2026
 
+## Recuperacao conservadora do diario e exclusao durante save — 18/10/2026
+
+- `CareerCommandJournal.inspectRecovery` compara ancora registrada conhecida e
+  revisao observada sem migrar HEAD. Classifica EMPTY, NO_EFFECT_ONLY,
+  HISTORICAL_EFFECTS e UNCERTAIN. Mesmo hash igual nao comprova efeito no grafo.
+- `quarantinePending` persiste apenas PREPARED -> OUTCOME_UNKNOWN com CAS e lock,
+  preservando keys/UUIDs/digests/resultados terminais. Nao reemite lease, nao
+  resolve incerteza como sucesso/ausencia de efeito e nao desbloqueia intents.
+  Complete tardio nao pode substituir UNKNOWN por APPLIED/NO_EFFECT, mesmo com
+  token relido. Corridas recovery/complete tem um unico vencedor CAS.
+- `CareerCommandGate.beginSave/endSave` fornece exclusao cooperativa ANTES do
+  writer original; recusa queued/running/timed-out ainda em execucao. Durante a
+  janela, nega reserva e novo contexto. Fechar janela em retorno/falha nao
+  restaura roots/contexto anterior nem muda ancora de associacao/journal. Dispatcher
+  retem exclusao ate retorno da persistencia terminal, nao so ate retorno do handler.
+- 54 checks novos aprovados em `build/recovery-finance-final.log`: estados de
+  recovery, mismatch sem migracao, quarentena idempotente, leases tardias, duas
+  corridas CAS, tres etapas de fault injection, EDT, autoridade e ciclo da fence,
+  dispatcher sem handler/intent durante save ou apos falha, e completion I/O
+  pausado impedindo save/troca de contexto. Fixture propria:
+  `Temp/opencode/command-recovery-8202244687060114063`.
+- 26 checks do fluxo financeiro original aprovados com writer/reload dentro da
+  fence fornecida EXPLICITAMENTE pela fixture. Saldo e 14 campos de ledger
+  preservados; old context recusado; historico financeiro nao reancorado ao output.
+  Copia privada: `Temp/opencode/vbrasfoot-finance-686ca51a8f284e8db5fc04759d081a7b`.
+  Origem EXE/save preservada por hashes do wrapper. Nao e interceptacao standalone.
+- 132 checks I/O/schema originais aprovados em `build/recovery-hooks-final.log`;
+  fixture privada `Temp/opencode/vbrasfoot-hook-io-560df06a6ef8468da3f2f539273c7a06`.
+- SDK-only fora do checkout aprovado em `build/recovery-sdk-final-test.log`, fixture
+  `Temp/opencode/vbrasfoot-sdk-author-38258a31086c45fa99ba032ffdcf89dd`;
+  archive local `dist/sdk-0.9.3-recovery-final.zip`. Sem publicacao/release.
+- Loader instalado continua 0.9.3 com SHA256
+  `3662113df6f2277c7c3ab05d3e9bb0143664a707dcf798dbf3109f8b235004f7`.
+
+Limites: servicos internos ainda sem Main/ModContext/startup/hook de writer
+conectado. Fence nao e lock de outra instancia do jogo. Quarentena pode cercar
+conservadoramente uma lease ainda viva, sem cancelar/encerrar seu handler.
+Sem inventario global de journals, prova dos bytes realmente decodificados,
+reconciliacao de efeitos APPLIED/UNKNOWN, migracao entre revisoes, UI ou
+atomicidade save+sidecars. Fault injection usa excecoes controladas, nao power-loss.
+Ainda faltam calendario/mercado e API publica. Nenhum mod criado ou instalado.
+Contrato e pendencias: `roadmap/JOURNAL-RECOVERY-AND-SAVE-FENCES.md`.
+
 ## Associacoes explicitas de saves — observacao nao e carreira carregada
 
 SaveFileObserver le arquivo .s22/.sbck selecionado fora da EDT,nomes/pasta

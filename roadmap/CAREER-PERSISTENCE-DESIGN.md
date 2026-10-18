@@ -5,6 +5,9 @@ CAS,previous explicito,intents e testes sinteticos. Entrega posterior adiciona
 SaveFileObserver/CareerSaveAssociations para decisoes explicitas sobre bytes de
 save e metadados externos;veja EXPLICIT-SAVE-ASSOCIATIONS.md. Nao estao ligados
 a ModContext/UI/contexto do jogo e nao habilitam P3. Veja LOADER-WRITE-FOUNDATIONS.md.
+Inspecao/quarentena de journals e exclusao cooperativa antes do writer foram
+adicionadas internamente; contratos/limites em JOURNAL-RECOVERY-AND-SAVE-FENCES.md.
+Nao significam reconciliacao de efeitos concluida ou startup integrado.
 
 ## Invariantes antes de implementar P3
 

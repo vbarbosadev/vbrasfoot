@@ -49,6 +49,7 @@ final class CareerCommandDispatcher {
                 return new Result(reserved.receipt().status() == CareerCommandGate.Status.OUTCOME_UNKNOWN ? Kind.UNCERTAIN : Kind.DENIED,
                         Detail.GATE_REFUSED, reserved.receipt(), Optional.empty());
             permit = reserved.permit().orElseThrow();
+            gate.retainDispatch(permit);
             rememberInterruption();
             CareerCommandJournal.Prepared prepared;
             try { prepared = journal.prepare(context.save(), expectedJournalToken, intent); }
@@ -80,7 +81,10 @@ final class CareerCommandDispatcher {
                 return new Result(Kind.UNCERTAIN, Detail.JOURNAL_FAILURE, receipt, Optional.empty());
             }
         } finally {
-            if (permit != null) gate.cancel(permit); // Only still-RESERVED work can be cancelled without assuming rollback.
+            if (permit != null) {
+                gate.cancel(permit); // Only still-RESERVED work can be cancelled without assuming rollback.
+                gate.releaseDispatch(permit);
+            }
             // Keep interruption cleared during journal completion and restore it for the caller on exit.
             interrupted |= interruptedDuringWait.get(); interruptedDuringWait.remove();
             if (interrupted) Thread.currentThread().interrupt();

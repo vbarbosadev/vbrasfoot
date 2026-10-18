@@ -63,3 +63,10 @@ CAS e lineage. WindowsfileKey pode faltar:strongrename continua indisponivel;
 existe escolha humana separada,sem fabricar prova. Nao migra moddata/journal ou
 ativa comandos automaticamente. EXPLICIT-SAVE-ASSOCIATIONS.md lista gates de
 UI/coordenador/bytesdecodificados,discovery/quotasglobais e reconciliacao pendentes.
+
+Incremento de recuperacao:diario classifica efeitos historicos versus incerteza e
+persiste PREPARED->UNKNOWN sem replay ou migracao de revisao; gate pode excluir
+comandos cooperativos durante janela obtida ANTES do writer e invalida contexto
+apos retorno/falha. Ainda nao conectado ao startup/hooks. Nao resolve efeitos
+incertos por confirmacao humana ou igualdade de bytes. Veja
+JOURNAL-RECOVERY-AND-SAVE-FENCES.md para evidencia e integracao restante.
