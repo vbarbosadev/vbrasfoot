@@ -1,4 +1,4 @@
-# Primeiro mod com o SDK independente — 0.8.1 experimental
+# Primeiro mod com o SDK independente — 0.8.2 experimental
 
 Guia para o **ZIP SDK-only**, sem checkout, EXE, saves, Maven, rede ou classes do
 jogo para compilar/testar. Para jogar, voce precisa separadamente do loader portable
@@ -16,8 +16,8 @@ Estrutura do SDK-only:
 
 ```text
 README.md / LICENSE / sdk-package.json / checksums.json / verify.ps1
-api/vbrasfoot-api-0.8.1.jar
-tools/vbrasfoot-validator-0.8.1.jar
+api/vbrasfoot-api-0.8.2.jar
+tools/vbrasfoot-validator-0.8.2.jar
 docs/                 # contratos, compatibilidade e este guia
 javadoc/index.html
 template-read-only/   # copie para seu projeto
@@ -33,7 +33,7 @@ redistribuidos. Avisos legais dos recursos gerados pelo Javadoc sao preservados.
 No PowerShell, ajuste os dois caminhos para pastas suas:
 
 ```powershell
-$SdkRoot = 'C:\Downloads\vbrasfoot-sdk-0.8.1'
+$SdkRoot = 'C:\Downloads\vbrasfoot-sdk-0.8.2'
 $Project = 'C:\Mods\meu-primeiro-mod'
 if (Test-Path -LiteralPath $Project) { throw 'Escolha projeto novo; nao sobrescrever.' }
 Copy-Item -LiteralPath (Join-Path $SdkRoot 'template-read-only') -Destination $Project -Recurse
@@ -55,8 +55,8 @@ JAR do loader, API ou bibliotecas/classes do jogo para dentro do seu mod.
 ## 3. Compilar, testar e validar sem jogo
 
 ```powershell
-& (Join-Path $Project 'build.ps1') -Sdk (Join-Path $SdkRoot 'api\vbrasfoot-api-0.8.1.jar')
-java -jar (Join-Path $SdkRoot 'tools\vbrasfoot-validator-0.8.1.jar') (Join-Path $Project 'dist\meu-mod.jar')
+& (Join-Path $Project 'build.ps1') -Sdk (Join-Path $SdkRoot 'api\vbrasfoot-api-0.8.2.jar')
+java -jar (Join-Path $SdkRoot 'tools\vbrasfoot-validator-0.8.2.jar') (Join-Path $Project 'dist\meu-mod.jar')
 ```
 
 Build usa apenas a API publica e Java, com --release 17. Teste usa fake SDK proprio,

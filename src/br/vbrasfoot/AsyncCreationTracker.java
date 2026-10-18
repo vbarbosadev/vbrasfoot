@@ -7,6 +7,11 @@ import java.util.*;
 final class AsyncCreationTracker {
     record Report(long id, long origin, long parent, String originLabel, String label, long generation, boolean scheduleReturned,
                   boolean scheduleFailed, boolean started, boolean returned, boolean failed, boolean stale) { }
+    record Progress(long sequence, long origin, long parent, String originLabel, String method, String stage,
+                    int panel, long generation, long thread, boolean matched, boolean rootsMatched, boolean receiverKnown) { }
+    record Snapshot(List<Report> tasks, List<Progress> progress, long rejected, long unbound, long dropped, long outside) { }
+    private static final Set<String> METHODS = Set.of("V", "aa", "ap", "at", "ax");
+    private static final Set<String> PROGRESS_STAGES = Set.of("ENTER", "RETURN", "FAILED", "PANEL_REQUEST", "PANEL_RETURN");
     private record Context(long epoch, long origin, long parent, String originLabel, String label, long generation,
                            WeakReference<Object> primary, WeakReference<Object> secondary) { }
     private static final class Task {
@@ -20,8 +25,28 @@ final class AsyncCreationTracker {
     private final ThreadLocal<ArrayDeque<Context>> contexts = ThreadLocal.withInitial(ArrayDeque::new);
     private final ThreadLocal<ArrayDeque<Schedule>> schedules = ThreadLocal.withInitial(ArrayDeque::new);
     private final List<Task> tasks = new ArrayList<>();
+    private final ArrayDeque<Progress> progress = new ArrayDeque<>();
+    private long progressSequence, progressDropped, progressOutside;
     private long epoch, nextId, rejected, unbound;
-    synchronized void reset() { epoch++; tasks.clear(); rejected = 0; unbound = 0; contexts.remove(); schedules.remove(); }
+    synchronized void reset() {
+        epoch++; tasks.clear(); progress.clear(); progressSequence = 0; progressDropped = 0; progressOutside = 0;
+        rejected = 0; unbound = 0; contexts.remove(); schedules.remove();
+    }
+    synchronized void progress(String method, String stage, int panel, Object receiver, Object primary, Object secondary, long generation) {
+        if (!METHODS.contains(method) || !PROGRESS_STAGES.contains(stage)) { rejected++; return; }
+        var stack = contexts.get(); Context context = stack.peek();
+        if (stack.isEmpty()) contexts.remove();
+        if (context == null || context.origin() == 0 || context.epoch() != epoch) { progressOutside++; return; }
+        if (progress.size() >= 512) { progress.removeFirst(); progressDropped++; }
+        boolean rootsMatched = valid(context, epoch, primary, secondary, generation);
+        progress.addLast(new Progress(++progressSequence, context.origin(), context.parent(), context.originLabel(), method, stage,
+                panel, generation, Thread.currentThread().getId(), receiver != null && receiver == primary && rootsMatched,
+                rootsMatched, receiver != null));
+    }
+    synchronized List<Progress> progress() { return List.copyOf(progress); }
+    synchronized long progressDropped() { return progressDropped; }
+    synchronized long progressOutside() { return progressOutside; }
+    synchronized Snapshot capture() { return new Snapshot(snapshot(), progress(), rejected, unbound, progressDropped, progressOutside); }
     private static boolean valid(Context context, long epoch, Object primary, Object secondary, long generation) {
         return context != null && context.epoch() == epoch && generation >= 0 && context.generation() == generation
                 && primary != null && secondary != null && context.primary().get() == primary && context.secondary().get() == secondary;

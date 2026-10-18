@@ -191,6 +191,41 @@ inedito na copia e observar qual candidato/task rodou; nao jogar/forcar save.
 Salvar automaticamente pelo original continua possivel; nao prometer zero I/O
 ao criar. Nao pedir variantes amistoso/temporada antes de ver o primeiro report.
 
+### Caminho sincronico0.8.2
+
+Rodada0.8.1 real7124ea6e-777a-42cd-b080-11be81238907 observou AB/az/V e
+nenhuma tarefa capturada (count/rejected/unbound0). Nao afirmar que todo caminho
+e sincronico; evidencia negativa limitada aos alvos desta sonda. Guard UNKNOWN,
+save de criacao unbound, erro preexistente de equipe E8CC1702/forge_can.ban
+inalterado. Por isso0.8.2 detalha corpos V/aa/ap/at/ax de best.f na sonda.
+
+Classe original SHA dbd5bd8633e3a1c2f211e8bd6c322db8f7401c5ccf7cc622cc4050f0624df71b;
+metodos/access/descriptor/1RETURN exatos,1site painel em ap/at/ax e0em V/aa.
+Transformacao so em memoria com --probe-career-hooks17/21, sem adicionar/remover
+campo/metodo/assinatura/hierarquia, sem mudar schema ou bytes de save/cache/EXE.
+Grafo best.f serializado exige teste shape e I/O original alem da fixture propria.
+
+Marca ENTER/RETURN/FAILED e PANEL_REQUEST/PANEL_RETURN; request preserva int
+original, return preserva JPanel na pilha. Painel apenas solicitado/construido,
+nao pronta, renderizado ou sem trabalho pendente. Capture so sob contexto causal
+AB/AC/pn ou task associada; fora incrementa progress.outside, nao cria origem.
+Ring512 eventos com seq/threadID/origin/parent/label/metodo/stage/panel/generation;
+progress.dropped informa eviccoes e impede interpretar ausencia como nao-execucao.
+Nenhum getter/I/O/callback/Swing no tracker; excecao original repropagada e
+handlers legados preservados. Trace e tasks capturados atomicamente no lock ao
+gerar report; tarefas que continuam depois da captura nao sao esperadas.
+
+Mapas de pilha legados descartam this para TOP perto de RETURN em aa. Entrada
+observa receiver real; marcadores posteriores/catch NAO leem locals descartados.
+receiverKnown=false/matched=false nesses pontos, rootsMatched compara apenas
+raizes/epoch/geracao atuais. Nao reinterpretar rootsMatched como identidade
+conhecida do receiver ou estado atomico do grafo. PANEL_RETURN usa panel=-1;
+o codigo foi observado no request, nao inferido retroativamente no retorno.
+Record de FAILED nao substitui Throwable original nem conta como RETURN.
+
+Sem promover nova carreira/UNKNOWN ou produzir eventos SDK novos. Antes de novo
+gate real: schema de best.f e I/O original precisam passar com a transformacao.
+
 0.7.4 instrumenta Output.close da biblioteca local por SHA/sitecounts exatos,
 sem alterar catch/return/schema/cache em disco. Receivers correlacionados a c.a.ae
 evitam atribuir falha de outro Output ao save. Report inclui close subjacente e

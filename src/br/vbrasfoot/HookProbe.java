@@ -138,6 +138,13 @@ public final class HookProbe {
     static java.util.List<AsyncCreationTracker.Report> asyncCreationReports() { return asyncCreation.snapshot(); }
     static long asyncCreationRejected() { return asyncCreation.rejected(); }
     static long asyncCreationUnbound() { return asyncCreation.unbound(); }
+    public static void creationProgress(String method, String stage, int panel, Object receiver, Object primary, Object secondary) {
+        try { asyncCreation.progress(method, stage, panel, receiver, primary, secondary, generation()); } catch (Throwable ignored) { }
+    }
+    static java.util.List<AsyncCreationTracker.Progress> creationProgress() { return asyncCreation.progress(); }
+    static long creationProgressDropped() { return asyncCreation.progressDropped(); }
+    static long creationProgressOutside() { return asyncCreation.progressOutside(); }
+    static AsyncCreationTracker.Snapshot asyncCreationSnapshot() { return asyncCreation.capture(); }
     public static void enterReset() {
         try {
             Reset frame = new Reset(); resets.get().push(frame);

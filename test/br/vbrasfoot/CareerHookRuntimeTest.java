@@ -122,7 +122,8 @@ public final class CareerHookRuntimeTest {
              LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home.resolve("probe"), true)) {
              observerMod.load(List.of(ModManifest.read(Path.of(args[2]))), null, null, home.resolve("mod-data"));
             Class<?> state = Class.forName("c.a", false, runtime);
-            check(schema(Class.forName("c.a", false, plain)).equals(schema(state)), "c.a schema unchanged");
+             check(schema(Class.forName("c.a", false, plain)).equals(schema(state)), "c.a schema unchanged");
+             check(schema(Class.forName("best.f", false, plain)).equals(schema(Class.forName("best.f", false, runtime))), "serialized root best.f schema unchanged by body-only trace");
             for (String candidate : List.of("a.bV", "a.cR", "a.cS", "a.hk", "a.ho")) {
                 check(schema(Class.forName(candidate, false, plain)).equals(schema(Class.forName(candidate, false, runtime))), candidate + " candidate schema unchanged, not initialized");
             }

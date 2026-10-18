@@ -1,4 +1,4 @@
-# Instalacao portable experimental — 0.8.1
+# Instalacao portable experimental — 0.8.2
 
 P0 ainda nao aprovado: primeiro use uma copia completa isolada do jogo. Os testes
 automatizados de instalacao nao substituem carregar/jogar/salvar/reabrir no original.
@@ -8,7 +8,7 @@ automatizados de instalacao nao substituem carregar/jogar/salvar/reabrir no orig
 Desenvolvedor (JDK 17+):
 
 ```powershell
-.\release.ps1 -Output .\dist\portable-0.8.1
+.\release.ps1 -Output .\dist\portable-0.8.2
 ```
 
 O destino deve ser novo. O pacote inclui loader, scripts, licenca MIT, hashes e
@@ -89,7 +89,7 @@ do usuario permanecem. Nao faz remocao recursiva nem restaura saves.
 ## Testar o pacote
 
 ```powershell
-.\test-portable.ps1 -Package .\dist\portable-0.8.1
+.\test-portable.ps1 -Package .\dist\portable-0.8.2
 ```
 
 Usa fixture privada apenas com EXE correto; nao representa jogo completo nem testa
