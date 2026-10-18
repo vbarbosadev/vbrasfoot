@@ -5,7 +5,7 @@ $fixture = Join-Path $env:LOCALAPPDATA ('Temp\opencode\vbrasfoot-author-template
 [IO.Directory]::CreateDirectory($fixture) | Out-Null
 $project = Join-Path $fixture 'my-new-mod'
 Copy-Item -LiteralPath (Join-Path $packageRoot 'sdk\template-read-only') -Destination $project -Recurse
-$sdk = Join-Path $packageRoot 'sdk\vbrasfoot-api-0.9.1.jar'
+$sdk = Join-Path $packageRoot 'sdk\vbrasfoot-api-0.9.2.jar'
 # Build from a copied project; it has no paths back to loader source/classes.
 & (Join-Path $project 'build.ps1') -Sdk $sdk
 if ($LASTEXITCODE -ne 0) { throw 'Template independente falhou' }

@@ -15,6 +15,7 @@ public final class HookProbe {
     private static final CreationContentTracker creationContent = new CreationContentTracker();
     private static final AsyncCreationTracker asyncCreation = new AsyncCreationTracker();
     private static final CreationDialogTracker creationDialogs = new CreationDialogTracker();
+    private static final CreationEntryTracker creationEntries = new CreationEntryTracker();
     private static final ThreadLocal<ArrayDeque<Load>> loads = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Save>> saves = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Reset>> resets = ThreadLocal.withInitial(ArrayDeque::new);
@@ -41,6 +42,7 @@ public final class HookProbe {
         creationContent.reset();
         asyncCreation.reset();
         creationDialogs.reset();
+        creationEntries.reset();
         return () -> observer.compareAndSet(sink, null);
     }
     static AutoCloseable attachLifecycle(CareerLifecycle state) {
@@ -142,8 +144,16 @@ public final class HookProbe {
     static long asyncCreationRejected() { return asyncCreation.rejected(); }
     static long asyncCreationUnbound() { return asyncCreation.unbound(); }
     public static void creationDialog(String method, String stage, int result, Object primary, Object secondary) {
+        try { creationEntries.dialog(method, stage, result, primary, secondary, generation()); } catch (Throwable ignored) { }
         try { creationDialogs.marker(method, stage, result, primary, secondary, generation()); } catch (Throwable ignored) { }
     }
+    public static void creationEntry(String stage, Object panel, Object primary, Object secondary) {
+        try { creationEntries.preparation(stage, panel, primary, secondary, generation()); } catch (Throwable ignored) { }
+    }
+    public static void creationEntryAttempt(Object panel, Object primary, Object secondary) {
+        try { creationEntries.attempt(panel, primary, secondary, generation()); } catch (Throwable ignored) { }
+    }
+    static CreationEntryTracker.Snapshot creationEntries() { return creationEntries.capture(); }
     static CreationDialogTracker.Snapshot creationDialogs() { return creationDialogs.capture(); }
     public static void creationProgress(String method, String stage, int panel, Object receiver, Object primary, Object secondary) {
         try { asyncCreation.progress(method, stage, panel, receiver, primary, secondary, generation()); } catch (Throwable ignored) { }

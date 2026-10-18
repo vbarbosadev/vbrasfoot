@@ -108,6 +108,32 @@ final class ProbeSession implements AutoCloseable {
         }
         try (var writer = Files.newBufferedWriter(report.resolveSibling("creation-dialog.properties"))) { dialogs.store(writer, "Bounded creation dialog diagnostics"); }
         catch (Exception failure) { System.err.println("Falha ao registrar creation dialog: " + failure); }
+        var entrySnapshot = HookProbe.creationEntries();
+        Properties entries = new Properties();
+        entries.setProperty("format", "1");
+        entries.setProperty("coverage", "Weak panel binding from hU settings preparation to bV callback only; not career readiness, graph consistency or persistent identity");
+        entries.setProperty("count", Integer.toString(entrySnapshot.events().size()));
+        entries.setProperty("dropped", Long.toString(entrySnapshot.dropped()));
+        entries.setProperty("rejected", Long.toString(entrySnapshot.rejected()));
+        entries.setProperty("outside", Long.toString(entrySnapshot.outside()));
+        entries.setProperty("attempts.bound", Long.toString(entrySnapshot.boundAttempts()));
+        entries.setProperty("attempts.unbound", Long.toString(entrySnapshot.unboundAttempts()));
+        int entryIndex = 0;
+        for (var value : entrySnapshot.events()) {
+            String prefix = "event." + entryIndex++ + ".";
+            entries.setProperty(prefix + "sequence", Long.toString(value.sequence()));
+            entries.setProperty(prefix + "entry", Long.toString(value.entry()));
+            entries.setProperty(prefix + "attempt", Long.toString(value.attempt()));
+            entries.setProperty(prefix + "stage", value.stage());
+            entries.setProperty(prefix + "generation", Long.toString(value.generation()));
+            entries.setProperty(prefix + "thread", Long.toString(value.thread()));
+            entries.setProperty(prefix + "bound", Boolean.toString(value.bound()));
+            entries.setProperty(prefix + "rootsMatched", Boolean.toString(value.rootsMatched()));
+            entries.setProperty(prefix + "resultKnown", Boolean.toString(value.resultKnown()));
+            entries.setProperty(prefix + "result", Integer.toString(value.result()));
+        }
+        try (var writer = Files.newBufferedWriter(report.resolveSibling("creation-entry.properties"))) { entries.store(writer, "Bounded weak creation entry binding"); }
+        catch (Exception failure) { System.err.println("Falha ao registrar creation entry: " + failure); }
         Properties candidates = new Properties();
         candidates.setProperty("format", "1");
         candidates.setProperty("coverage", "Candidate path/content observations only; not CareerLoaded, commit, persistent identity or proof of initialization");

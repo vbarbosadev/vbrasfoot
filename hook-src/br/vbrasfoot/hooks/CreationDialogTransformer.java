@@ -37,7 +37,18 @@ public final class CreationDialogTransformer {
                         super.visitMethodInsn(Opcodes.INVOKESTATIC, "br/vbrasfoot/HookProbe", "creationDialog",
                                 "(Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;Ljava/lang/Object;)V", false);
                     }
-                    @Override public void visitCode() { super.visitCode(); marker("ENTER", false); super.visitLabel(start); }
+                    @Override public void visitCode() {
+                        super.visitCode();
+                        if (name.equals("oq")) {
+                            super.visitVarInsn(Opcodes.ALOAD, 0);
+                            if (roots) { super.visitFieldInsn(Opcodes.GETSTATIC, "c/a", "SR", "Lbest/f;");
+                                super.visitFieldInsn(Opcodes.GETSTATIC, "c/a", "afQ", "Lbest/ay;"); }
+                            else { super.visitInsn(Opcodes.ACONST_NULL); super.visitInsn(Opcodes.ACONST_NULL); }
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, "br/vbrasfoot/HookProbe", "creationEntryAttempt",
+                                    "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V", false);
+                        }
+                        marker("ENTER", false); super.visitLabel(start);
+                    }
                     @Override public void visitInsn(int op) {
                         if (op == Opcodes.RETURN) { returns.merge(name, 1, Integer::sum); marker("RETURN", false); }
                         super.visitInsn(op);

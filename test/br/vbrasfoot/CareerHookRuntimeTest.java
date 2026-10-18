@@ -124,7 +124,7 @@ public final class CareerHookRuntimeTest {
             Class<?> state = Class.forName("c.a", false, runtime);
              check(schema(Class.forName("c.a", false, plain)).equals(schema(state)), "c.a schema unchanged");
              check(schema(Class.forName("best.f", false, plain)).equals(schema(Class.forName("best.f", false, runtime))), "serialized root best.f schema unchanged by body-only trace");
-            for (String candidate : List.of("a.bV", "a.cR", "a.cS", "a.hk", "a.ho")) {
+             for (String candidate : List.of("a.bV", "a.cR", "a.cS", "a.hk", "a.ho", "a.hU", "best.S")) {
                 check(schema(Class.forName(candidate, false, plain)).equals(schema(Class.forName(candidate, false, runtime))), candidate + " candidate schema unchanged, not initialized");
             }
             Class.forName("best.M", true, runtime).getConstructor(boolean.class).newInstance(true);

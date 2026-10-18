@@ -1,7 +1,7 @@
 # Criacao e descarregamento — mapa estatico18/10/2026
 
-Estado: mapeamento parcial reproducivel, **nao novos eventos publicos**. Loader
-permanece0.8.0. EXE conhecido22-23, SHA
+Estado: mapeamento parcial reproducivel, **nao novos eventos publicos**. Base
+historica0.8.0 abaixo, ampliada nas secoes0.8.2/0.9.1/0.9.2. EXE conhecido22-23, SHA
 2fa65476a92611419ce28c0cfd158a0c7f741af235aa988b0bed00c44443bb1c.
 
 ## Ferramenta somente leitura
@@ -128,3 +128,38 @@ com identificador causal de oq/pl e roots/geracao observados; nao converter
 int em evento de sucesso/cancelamento. Precisa preservar operand stack/Throwable,
 fingerprints/schema, bounds e teste de0/1/2/-1 antes de solicitar outro teste
 humano. Nao instalada nesta entrega de mapa; nenhuma nova repeticao solicitada.
+
+## Corroboracao real0.9.1 e origem anterior0.9.2
+
+Sessao4da73e9a-ff85-4272-963e-afea042d9551:6events de dialogo,oqENTER->plENTER
+->DIALOG_RETURN1/resultKnowntrue->AB->plRETURN->oqRETURN,thread37/generation4/
+rootsMatchedtrue,dropped/rejected/outside0. Corrobora NO_OPTION observado, nao
+apenas relato feito. Progress78/V1/ap13/at12/ax12,aaausente,painel2 request39/
+callreturn40,VRETURN78,tasks0,semFAILED capturado. GuardUNKNOWN/healthytrue,io0/0,
+sem save,pending,stale;dispatcher3/3. Erro E8CC1702 de equipe preexistente continua.
+Nenhum desses fatos fornece identidade persistente ou prova prontidao global.
+
+Recorte estatico ampliado0.9.2:1038classes/86referencias/45checks sinteticos do
+mapper, TSV privado build/creation-entry-binding-sites.tsv. Cinco sites novos:
+cc.actionPerformed->bV.oq;hU.b->hU.oq;aY->aZ;hU.oq->p.dg e forms.p->p.dg.
+Logo dg isolado NAO e origem exclusiva. hU.oq define opcoes/ano e, no ramo em que
+best.f.bj() e true, chama p.dg@107 e aY(1)@111; o outro ramo apenas mensagem e
+RETURN. best.h.mh/mi e startup gq.mi anteriormente examinados nao substituem
+essa origem mais especifica da UI. Nao executados pelo agente.
+
+Em aY(1), new bV e guardado em best.S.gL@121. aY chama aZ, que instala conteudo,
+solicita revalidate/repaint, chama bV.on/eg.on conforme painel e setVisible.
+CORRECAO: aY(2) retorna null; nao retorna o elenco construido. PANEL_RETURN em
+traces antigas significa apenas retorno da chamada aY; nao prova JPanel recebido,
+renderizacao concluida ou fila EDT drenada. A sonda preserva esse null original.
+ap ainda executa logica/possivel autosave apos aY(2); nao tomar o site do painel
+como a ultima operacao da criacao. A trace de V/AB completa o recorte observado,
+nao certifica ausencia de trabalho indireto/reflexivo ou callbacks pendentes.
+
+0.9.2 liga hU.oq (ENTER,retorno de dg,assign gL,retorno de aY,RETURN) a mesma
+instancia fraca de bV na entrada de oq, mesmo que em callback/thread posterior.
+Roots/geracao devem coincidir em cada marker; nao herda ThreadLocal atraves de
+callbacks. Assinatura completa/classes fingerprintadas, sem alterar schema.
+Validade de origem e apenas diagnostica; nao promove UNKNOWN, nao vincula save.
+Rota forms.p e outros percursos nao observados continuam fora deste binding;
+sem binding deve ser UNBOUND, nao uma falha inventada da carreira.

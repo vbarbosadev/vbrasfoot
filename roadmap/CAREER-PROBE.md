@@ -191,7 +191,40 @@ inedito na copia e observar qual candidato/task rodou; nao jogar/forcar save.
 Salvar automaticamente pelo original continua possivel; nao prometer zero I/O
 ao criar. Nao pedir variantes amistoso/temporada antes de ver o primeiro report.
 
-### Dialogo e nesting0.9.1
+### Binding de entrada0.9.2
+
+Opt-in Java17/21, adiciona transformacao em memoria de a.hU e best.S por hashes
+37fb17d876aab1263756bca97c3f9488007b7afe59f8c68494cf711a0f61a234 e
+5214a1a13d24c947fcad6a0939168ba132e43535c7aaa5f01230685fc19d2643.
+hU.oq private()V/1RETURN/1site dg/1site aY, best.S.aY publicstatic(I)JPanel e
+1PUTSTATIC gL exatos. Duplica receiver antes do fieldwrite e o observa apos
+assign; mantem stack e null retornado originalmente por aY(1/2). bV.oq observa
+receiver apenas na entrada (nao le locals descartados no retorno/catch).
+
+creation-entry.properties,format1: eventos PREPARE_ENTER/SETTINGS_RETURN/
+PANEL_ASSIGNED/PANEL_RETURN/RETURN/FAILED e ATTEMPT_ENTER/pl_DIALOG_RETURN/
+AB_CANDIDATE_ENTER/oq_RETURN/FAILED. entry/attempt sao IDs temporarios deste
+tracker, NAO IDs de frame/dialog/task/async ou carreira. Nao unir namespaces.
+bound informa origem preparada e roots/geracao correspondentes naquele marker;
+rootsMatched isolado nao significa que uma preparacao incompleta ficou bound.
+attempts.bound/unbound contam entradas de callback, nao sucesso nem estado final.
+resultKnown so no dialogo; zero placeholder nao e YES_OPTION observado.
+
+Ligacao requer instancia exata de painel (weak),raizes fracas/epoch/geracao,
+retorno de dg e aY e retorno normal externo hU.oq. Sem um desses stages,erro,
+reentrada,overflow,substituicao de roots/painel ou reset,nao qualifica binding.
+Assignment do mesmo painel fora de preparacao revoga binding antigo.
+64bindings fracos vivos; capacidade recusa em vez de expulsar binding vivo.
+Ring512eventos/drop/rejected/outside explicitos;8frames por thread de preparacao
+e tentativa, sem garantia de numero global de threads. Eventos primitivos/strings
+fixas apenas; nao captura nome de carreira,opcoes sensiveis ou objetos do jogo.
+Report detached/atomico so deste tracker,nao de todas as traces/grafo.
+
+Sem Swing/getter/I/O/callback no tracker; sem mudanca no guard ou SDK publico.
+Executar/retornar preparacao nao prova prontidao. Corroboracao positiva dos novos
+markers em UI original pendente; teste schema/I/O nao chama hU.oq ou cria carreira.
+
+### Dialogo e nesting0.9.1 (detalhes)
 
 Sonda adicional somente em a.bV fingerprintada (SHA ja usada em CreationPathTransformer),
 Java17/21 e --probe-career-hooks. Compoe com AB/az/V existentes, instrumenta apenas
