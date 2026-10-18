@@ -27,7 +27,8 @@ public final class HookProbe {
     private static final class Reset { CareerLifecycle.Attempt attempt; }
     private static final class Save {
         String name;
-        boolean metadata, closed, backup;
+        boolean metadata, closed, backup, streamClosed, streamCloseFailed;
+        Object output;
         CareerLifecycle.SaveAttempt attempt;
         Save(String name) { this.name = name; }
     }
@@ -186,6 +187,24 @@ public final class HookProbe {
     public static void primaryClosed() {
         try { Save frame = saves.get().peek(); if (frame != null) frame.closed = true; } catch (Throwable ignored) { }
     }
+    public static void primaryOutputClosing(Object output) {
+        try {
+            Save frame = saves.get().peek();
+            if (frame != null && frame.output == null) frame.output = output;
+            else if (frame == null) saves.remove();
+        } catch (Throwable ignored) { }
+    }
+    public static void primaryStreamClosed(Object output) { streamClosed(output, false); }
+    public static void primaryStreamCloseFailed(Object output) { streamClosed(output, true); }
+    private static void streamClosed(Object output, boolean failed) {
+        try {
+            Save frame = saves.get().peek();
+            if (frame == null) { saves.remove(); return; }
+            if (output == null || frame.output != output) return;
+            if (failed) frame.streamCloseFailed = true;
+            else frame.streamClosed = true;
+        } catch (Throwable ignored) { }
+    }
     public static void backupCopied() {
         try { Save frame = saves.get().peek(); if (frame != null) frame.backup = true; } catch (Throwable ignored) { }
     }
@@ -198,8 +217,9 @@ public final class HookProbe {
             Save frame = stack.pop();
             if (stack.isEmpty()) saves.remove();
             CareerLifecycle state = lifecycle.get();
-            if (state != null) state.finishSave(frame.attempt, frame.name, frame.metadata, frame.closed, frame.backup, !aborted);
-            emit("save", frame.name, frame.closed && !aborted, frame.backup, !aborted, false, aborted);
+            if (state != null) state.finishSave(frame.attempt, frame.name, frame.metadata, frame.closed, frame.backup, !aborted,
+                    frame.streamClosed, frame.streamCloseFailed);
+            emit("save", frame.name, frame.closed && !aborted && !frame.streamCloseFailed, frame.backup, !aborted, false, aborted);
         } catch (Throwable ignored) { }
     }
 }

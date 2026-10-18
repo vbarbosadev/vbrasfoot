@@ -23,6 +23,11 @@ Diagnostico separado observa .info/backup/retorno, sem ampliar a semantica deste
 Kind ou adicionar um evento CareerSaved. Resultado completo observado nao e
 durabilidade. Veja CAREER-LIFECYCLE.md; API/manifesto permanecem os mesmos.
 
+0.7.4 observa tambem o close subjacente e o handler IOException do Output original.
+Falha conhecida suprime PRIMARY_WRITE_COMPLETED; nao muda o retorno/catch/backup
+do jogo nem adiciona fsync. completeSequence do diagnostico privado exige close
+subjacente observado; este Kind continua experimental, nao CareerSaved duravel.
+
 `State` tem session, generation, revision, phase, reads, primaryWrites e healthy.
 Nao contem nomes/caminhos, referencias legadas ou referencias mutaveis. Sessao e
 geracao pertencem ao guard, **nao** sao a CareerScope do SDK. EMPTY significa nao

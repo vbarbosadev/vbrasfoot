@@ -150,6 +150,14 @@ que mudanca de timestamp/hash nao e criterio de evento. Detalhes em VALIDACAO.md
 
 ## Pendencias antes da API
 
+0.7.4 instrumenta Output.close da biblioteca local por SHA/sitecounts exatos,
+sem alterar catch/return/schema/cache em disco. Receivers correlacionados a c.a.ae
+evitam atribuir falha de outro Output ao save. Report inclui close subjacente e
+IOException engolida; sequencia completa exige close subjacente observado.
+Teste de biblioteca original com streams proprios induz IOException e flush
+failure preservando a politica original. Nao e teste de disco cheio em save real.
+Fingerprint/schema/controle normal/falha/recuperacao aprovados; UI0.7.4 pendente.
+
 Incremento de etapas instrumenta fechamento do FileOutputStream de .info e
 retorno de best.f.ap no ramo completo da leitura. Guard registra sequencias
 completas/parciais/falhas de save e recusa tickets de saves sobrepostos.

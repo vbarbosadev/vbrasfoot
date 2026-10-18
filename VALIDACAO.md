@@ -1347,3 +1347,49 @@ fila EDT pronta, unload/troca ou durabilidade. Confirmacao humana do roteiro e
 registrada, mas log do loader nao observa reabertura pelo EXE original separadamente.
 Limite de IOException engolida por Kryo Output.close permanece; nao liberar
 CareerSaved/CareerLoaded/CareerUnloaded completos, identidade ou P3 por esta evidencia.
+
+## P4/0.7.4 — IOException do close subjacente detectada
+
+OutputCloseTransformer novo, apenas memoria/opt-in17/21, sem distribuir/copiar
+bytecode da biblioteca. SHA Output.class local extraido do Kryo conhecido:
+73ba15ba16dbcff3a2ce8456de5b70126077c1b62b4128359bcbb2d2dfc4e04a.
+Reusa inspecao javap0.7.3, sem repetir setup/provider REA indisponivel. Um close,
+flush, chamada OutputStream.close, handler IOException e ASTORE exatos exigidos.
+Marcador normal apos invocacao e falha apos ASTORE do catch original. Frames,
+schema/catch/return permanecem originais; nenhuma politica de erro alterada.
+LegacyRuntime verifica Output transformado antes de validate-only, CodeSource
+da biblioteca e correto e cache/JAR original nao e transformado em disco.
+
+CareerTransformer registra receiver antes do wrapper close, preservando stack.
+HookProbe correlaciona por identidade/ThreadLocal; outros Outputs fora da tentativa
+nao atribuem sucesso/falha. Receiver so vive durante tentativa; flags/counter no
+guard/report, nao streams/Throwable/objetos publicados. Falha sticky impede bound/
+PRIMARY_WRITE_COMPLETED e completo; completeSequence0.7.4 exige streamClosed.
+Wrapper-return sem close conhecido conserva semantica experimental anterior,
+mas nao sequencia completa. Sem fechar duas vezes/retry/rethrow/fsync/reparo do jogo.
+
+43 guard checks +9 novos bytecode checks sinteticos + test.ps1 -IncludeUi aprovados.
+Primeira compilacao de teste tentou importar ASM com --release17: erro detectado;
+negative agora e classe fixture propria sem handler, preservando toolchain normal.
+Fingerprint recusado/handler ausente/normal/IOException engolida/matching Output/
+fora de save/null/sticky/cleanup/report exercitados com codigo proprio.
+
+69 checks I/O/biblioteca originais aprovados:
+Temp/opencode/vbrasfoot-hook-io-e4029e52c1f64da98aa2fe4134c7ca53.
+Pipeline c.a.ae real observa streamClosedtrue e schema preservado. Falha subjacente
+foi induzida com stream proprio injetado no Output ORIGINAL, ticket e marcadores
+metadata/backup sinteticos: metodo engole IOException/retorna, guard recusa sucesso
+e conta falha. Flush failure ainda propaga KryoException e nao chama close extra.
+Recuperacao exclusiva funciona; falha de outro Output nao contamina o atual.
+Resultado em output-close-observations.properties privado. Nao e falha de disco
+cheio/IO real de FileOutputStream no save completo; nao anunciar tal cobertura.
+
+Portable0.7.4 gerado/regressao aprovada:
+Temp/opencode/vbrasfoot-install-f68d45f10a4e49eeb2426d908bb0058e.
+SDK-only zip fora checkout aprovado (quatroprojetos/hash/allowlist/negative/JSON):
+Temp/opencode/vbrasfoot-sdk-author-2b566056cb5f4038a67a398b66ae6ec4.
+Pacotes dist/portable-0.7.4-close-final e dist/sdk-0.7.4-close-final.zip locais,
+sem tag/publicacao/upload. API major1/metodos/capacidades inalterados.
+UI real0.7.4 pendente, assim como demais rotas de save/criacao/unload/troca,
+fsync/commit atomico/graph snapshot/identidade persistente/P3. Fechamento subjacente
+agora observado nesses caminhos, nao liberar eventos completos automaticamente.

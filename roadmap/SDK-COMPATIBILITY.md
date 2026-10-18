@@ -1,11 +1,11 @@
-# Compatibilidade do SDK — 0.7.3 experimental
+# Compatibilidade do SDK — 0.7.4 experimental
 
 ## Quatro identidades diferentes
 
 1. **API major**: atualmente 1. Manifesto aceita 1 ou intervalo inteiro `[min,max)`
    contendo 1; nao e range SemVer. Metodos anteriores sao preservados; adicoes
    podem ter default que recusa loader antigo, em vez de inventar capacidade.
-2. **Loader/SDK SemVer**: 0.7.3 nesta entrega. `minLoaderVersion` e minimo explicito
+2. **Loader/SDK SemVer**: 0.7.4 nesta entrega. `minLoaderVersion` e minimo explicito
    com major.minor.patch, nao inferido do Java nem da versao do seu mod.
 3. **Perfil do jogo**: somente `brasfoot22-23` conhecido, fingerprint completo do
    EXE validado pelo loader. Mesmo nome comercial com bytes diferentes e recusado.
