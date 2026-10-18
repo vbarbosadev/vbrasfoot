@@ -677,6 +677,13 @@ separada de .info/.s22/.sbck/retorno, com marcador do ramo completo de leitura.
 39 checks guard sintetico e61 I/O original aprovados; UI completa/criacao/unload/
 durabilidade ainda nao demonstrados. Nao habilita P3 ou eventos completos.
 
+Atualizacao de evidencia0.7.3: usuario confirmou roteiro funcionando; sessao real
+008c347b-75ed-4b54-85f4-61c4e13f56a5 com initializedReadPaths1/completeSaveSequences1,
+sem partial/failed/stale/unbound/pendentes/perdas e stderr vazio. Novo marcador do
+ramo de inicializacao corroborado nessa leitura existente, nao toda UI/criacao/
+unload/durabilidade. Proxima lacuna: close subjacente que Kryo pode esconder;
+sem promover eventos completos/sidecars automaticamente. Detalhes em VALIDACAO.md.
+
 Revisao0.7.2: comparador900x590, X superior, menos faixas, botoes com relevo LAF
 e cabecalhos normais para aproximar captura nativa fornecida. Smoke exige tamanho
 compacto e listas visiveis; SDK-only aprovado. Portable gerado/regressao bloqueada

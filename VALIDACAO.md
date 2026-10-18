@@ -1323,3 +1323,27 @@ runtime nesta entrega. completeSequence segue sendo apenas sequencia de marcador
 nao prova de ausencia de erro subjacente. Este limite impede anunciar CareerSaved
 confiavel sem novo mapeamento/corroboracao; nao adicionar close/fsync ao jogo para
 mascarar o problema e nao instrumentar biblioteca sem fingerprint/schema/testes.
+
+### Corroboracao UI real0.7.3 — caminho de leitura e etapas de save
+
+Usuario respondeu "funcionou" ao roteiro de carregar carreira existente/salvar/
+fechar/reabrir. Sessao privada008c347b-75ed-4b54-85f4-61c4e13f56a5 conferida:
+loads1/read.initializedPaths1, phase.beforeClose ACTIVE/afterClose CLOSED,
+generation3, saves1/completeSequences1, partial0/failed0, healthytrue,
+staleCompletions0/unboundSaves0 e ambas contagens inFlight0 no fechamento.
+Ultimo save: metadataClosed/primaryClosed/backupCopied/returned/bound/completo
+todos true. Load na AWT-EventQueue-0, save na Thread-1. Dispatcher accepted2/
+delivered2, dropped/failed/discarded0, workerAlivefalse; stderr vazio.
+
+Hashes atuais do .s22 e .sbck iguais:
+acd4238eb72f45debb00816f80d372a4bc2a4c179c33fb558385938a7d7742c1.
+.info existe252bytes; nao desserializado. EXE permanece SHA original conhecido.
+Igualdade atual nao prova snapshot atomico nem ausencia de alteracoes externas
+desde a sessao. Nomes/caminhos privados nao copiados para este registro publico.
+
+Novo marcador de passagem do ramo completo de inicializacao agora corroborado
+na UI real para essa leitura existente, sem ampliar para criacao, todas telas,
+fila EDT pronta, unload/troca ou durabilidade. Confirmacao humana do roteiro e
+registrada, mas log do loader nao observa reabertura pelo EXE original separadamente.
+Limite de IOException engolida por Kryo Output.close permanece; nao liberar
+CareerSaved/CareerLoaded/CareerUnloaded completos, identidade ou P3 por esta evidencia.

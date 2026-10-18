@@ -79,6 +79,12 @@ completeSequence representam os marcadores observados, NAO ausencia de todo erro
 de fechamento do arquivo. Antes de CareerSaved exigir evidencia desse caminho,
 sem modificar o comportamento original; nao inferir sucesso duravel desses flags.
 
+UI real0.7.3 corroborada na sessao008c347b-75ed-4b54-85f4-61c4e13f56a5:
+uma leitura aceita com initializedPaths1, save com todos marcadores/counters1,
+sem partial/failed/stale/unbound/pendentes e dispatcher sem perdas. Usuario
+confirmou funcionamento do roteiro; .s22/.sbck atuais tem hashes iguais. Nao
+generaliza para criacao/unload nem remove o limite do close subjacente de Kryo.
+
 - 39 testes sinteticos: geracao, save atrasado em thread propria, fallback,
   falhas/parcialidade, tentativas sobrepostas, overflow, fechamento, relatorio e
   independencia de callback falho/fila saturada.
