@@ -82,6 +82,7 @@ public final class CareerHookRuntimeTest {
                 check(loaded && observation.completed() && !observation.backup() && observation.thread().startsWith("AWT-EventQueue"), "real primary load on EDT");
                 check(lifecycle.snapshot().phase() == CareerLifecycle.Phase.ACTIVE && lifecycle.snapshot().loadedFile().equals("input")
                         && lifecycle.snapshot().loads() == 1 && lifecycle.snapshot().inFlight() == 0, "original load binds synchronous guard");
+                check(lifecycle.snapshot().initializedReadPaths() == 0, "synthetic frame skips initialization path, not mistaken for complete UI load");
                 GameAccess.Snapshot baseline = new CareerBridge(runtime).snapshot();
                 check(baseline.loaded(), "decoded career readable");
                 CareerBridge bridge = new CareerBridge(runtime);
@@ -103,6 +104,8 @@ public final class CareerHookRuntimeTest {
                 observation = only(events, "save");
                 check(observation.completed() && observation.backup(), "primary close and legacy backup completed");
                 check(lifecycle.snapshot().saves() == 1 && lifecycle.snapshot().lastSavedFile().equals("output"), "original save binds current guard");
+                check(lifecycle.snapshot().completeSaveSequences() == 1 && lifecycle.snapshot().lastSaveOutcome().metadataClosed()
+                        && lifecycle.snapshot().lastSaveOutcome().completeSequence(), "original metadata/primary/backup return observed together");
                 check(Files.isRegularFile(saves.resolve("output.s22")) && Files.mismatch(saves.resolve("output.s22"), saves.resolve("output.sbck")) == -1, "save and backup bytes agree");
                 events.clear();
                 var beforeReload = bridge.scopedClubs("", 0, 1).items().get(0).reference();
@@ -126,6 +129,8 @@ public final class CareerHookRuntimeTest {
                 observation = only(events, "save");
                 check(!observation.completed() && !observation.backup() && observation.returnedSuccess(), "swallowed primary failure not marked completed");
                 check(lifecycle.snapshot().saves() == 1, "failed primary does not increment guard saves");
+                check(lifecycle.snapshot().lastSaveOutcome().metadataClosed() && !lifecycle.snapshot().lastSaveOutcome().primaryClosed()
+                        && lifecycle.snapshot().failedSaveSequences() == 1, "successful metadata with failed primary is not complete save");
                 events.clear();
                 Files.createDirectory(saves.resolve("backup-failed.sbck"));
                 Files.writeString(saves.resolve("backup-failed.sbck/keep"), "nonempty fixture directory");
@@ -133,6 +138,19 @@ public final class CareerHookRuntimeTest {
                 observation = only(events, "save");
                 check(observation.completed() && !observation.backup(), "backup failure distinct from primary success");
                 check(lifecycle.snapshot().saves() == 2, "guard tracks primary close despite backup failure, not durable commit");
+                check(!lifecycle.snapshot().lastSaveOutcome().completeSequence() && lifecycle.snapshot().partialSaveSequences() == 1, "backup failure cannot complete full save sequence");
+                events.clear();
+                Files.createDirectory(saves.resolve("metadata-failed.info"));
+                CareerBridge.onEdt(() -> { save.invoke(null, "metadata-failed"); return null; });
+                observation = only(events, "save");
+                check(observation.completed() && observation.backup() && !lifecycle.snapshot().lastSaveOutcome().metadataClosed(), "original swallowed metadata failure distinguished despite primary and backup success");
+                check(lifecycle.snapshot().saves() == 3 && lifecycle.snapshot().completeSaveSequences() == 1
+                        && lifecycle.snapshot().partialSaveSequences() == 2 && lifecycle.snapshot().inFlightSaves() == 0, "only fully observed sequence counted complete, attempts cleaned");
+                events.clear();
+                CareerBridge.onEdt(() -> { save.invoke(null, (Object) null); return null; });
+                observation = only(events, "save");
+                check(!observation.completed() && !lifecycle.snapshot().lastSaveOutcome().metadataClosed()
+                        && lifecycle.snapshot().saves() == 3 && lifecycle.snapshot().failedSaveSequences() == 2, "null save return contains no write markers or completed sequence");
                 events.clear();
                 Files.write(saves.resolve("fallback.s22"), new byte[] {0});
                 Files.copy(saves.resolve("output.s22"), saves.resolve("fallback.sbck"));
@@ -172,14 +190,14 @@ public final class CareerHookRuntimeTest {
                         java.util.concurrent.TimeUnit.NANOSECONDS.timedWait(modObservations, remaining);
                     }
                     check(modObservations.stream().filter(s -> s.contains("career-observer kind=READ_COMPLETED")).count() == 3, "SDK-only mod receives three original reads including fallback once");
-                    check(modObservations.stream().filter(s -> s.contains("career-observer kind=PRIMARY_WRITE_COMPLETED")).count() == 2, "SDK-only mod receives two original primary writes, not failed save");
+                    check(modObservations.stream().filter(s -> s.contains("career-observer kind=PRIMARY_WRITE_COMPLETED")).count() == 3, "SDK-only mod receives primary writes, distinct from full save sequence");
                 }
-                check(hub.state().reads() == 3 && hub.state().primaryWrites() == 2 && hub.state().phase() == br.vbrasfoot.api.CareerObservations.Phase.UNKNOWN,
+                 check(hub.state().reads() == 3 && hub.state().primaryWrites() == 3 && hub.state().phase() == br.vbrasfoot.api.CareerObservations.Phase.UNKNOWN,
                         "public state matches original hook guard without exposing save paths");
                 check(callbackThreads.stream().allMatch("vbrasfoot-probe-dispatch"::equals), "actual I/O observations delivered off game thread");
                 check(dispatcher.stats().dropped() == 0 && dispatcher.stats().failed() == 0, "actual I/O dispatcher without losses or callback failures");
                 check(Profile.digest(original).equals(before) && Profile.digest(game.resolve("bf22-23.exe")).equals(executableBefore), "fixture input/exe unchanged");
-                Files.writeString(home.resolve("runtime-observations.txt"), "Checks=" + checks + "\nCoverage=Original I/O methods; synthetic frame bypasses full UI lifecycle; no gameplay/reopening EXE test\nInput.sha256=" + before + "\nProduced.sha256=" + Profile.digest(saves.resolve("output.s22")) + "\n" + transcript.stream().map(Object::toString).collect(java.util.stream.Collectors.joining("\n")) + "\n");
+                Files.writeString(home.resolve("runtime-observations.txt"), "Checks=" + checks + "\nCoverage=Original I/O methods; synthetic frame bypasses full UI lifecycle; no gameplay/reopening EXE test\nInput.sha256=" + before + "\nProduced.sha256=" + Profile.digest(saves.resolve("output.s22")) + "\nGuard=" + lifecycle.snapshot() + "\n" + transcript.stream().map(Object::toString).collect(java.util.stream.Collectors.joining("\n")) + "\n");
             } finally { CareerBridge.onEdt(() -> { frame.dispose(); return null; }); }
         } finally { lifecycle.close(); modLogger.removeHandler(modHandler); CareerBridge.onEdt(() -> { for (Window window : Window.getWindows()) window.dispose(); return null; }); }
         System.out.println("PASS: " + checks + " original career I/O probe checks; no gameplay gate approved.");

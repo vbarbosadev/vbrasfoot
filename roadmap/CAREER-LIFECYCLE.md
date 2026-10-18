@@ -41,11 +41,49 @@ pode impedir o relatorio. Nomes de saves sao privados: revisar antes de comparti
 
 ## Evidencia e limites
 
-- 22 testes sinteticos: geracao, save atrasado em thread propria, fallback,
+### Etapas de I/O e exclusividade de save (incremento interno)
+
+SaveAttempt captura ticket na entrada, ate64 tentativas ativas por guard. Saves
+sobrepostos (inclusive recursivos) tornam ambas conclusoes ambiguas: nao incrementam
+primaryWrites nem sequencia completa. O jogo continua executando normalmente; isso
+nao e lock/serializacao do save original. Fim/falha libera a tentativa; duplicatas,
+outro guard e completions depois de close nao substituem o ultimo resultado.
+Overflow deixa healthy=false e invalida geracao. Load/reset durante save continua
+invalidando o ticket; nao cancela mutacao original nem torna grafo consistente.
+
+SaveOutcome privado distingue metadataClosed (.info apos FileOutputStream.close),
+primaryClosed (.s22 apos Output.close), backupCopied (.sbck apos Files.copy), returned,
+bound e completeSequence. Completo exige todos marcadores, retorno sem abort e
+associacao aceita ao ticket exclusivo ativo. Falha engolida de .info ou backup nao
+vira sequencia completa mesmo quando a observacao PRIMARY_WRITE_COMPLETED ocorre.
+Counters complete/partial/failed sao agregados da sessao, nao identidade da carreira
+ou journal; ultimo resultado e historico e nao deve ser associado ao loadedFile
+atual por suposicao. primaryClosed com abort/unbound/overlap conta como parcial.
+
+read.initializedPaths conta apenas leitura aceita com passagem pelo caminho
+best.f.ap() no ramo de inicializacao de c.a.c. Frame ja registrado pula esse ramo.
+Marcador apos retorno de ap e antes do retorno externo, nao comprovacao de toda
+UI/event queue pronta ou criacao. Fallback propaga o marcador do decode aceito
+sem contar o retorno externo false como nova leitura. UNKNOWN de criacao inalterado.
+
+Sites adicionais exigem SHA original e exatamente um FileOutputStream.close no
+save e um best.f.ap na leitura. Nenhum campo/metodo/descriptor original alterado.
+Relatorio career-lifecycle.properties inclui estagios/counters/inFlightSaves sem
+I/O ou Swing nos metodos instrumentados. Relatorio nao e duravel em crash/kill.
+Sem CareerLoaded/CareerSaved/CareerUnloaded publico, fsync, commit atomico de tres
+arquivos, sidecars/P3, IDs persistentes ou garantia de snapshot.
+
+Limite adicional confirmado estaticamente: Kryo4.0.2 Output.close chama flush e
+engole IOException do close do stream subjacente. Portanto primaryClosed e ate
+completeSequence representam os marcadores observados, NAO ausencia de todo erro
+de fechamento do arquivo. Antes de CareerSaved exigir evidencia desse caminho,
+sem modificar o comportamento original; nao inferir sucesso duravel desses flags.
+
+- 39 testes sinteticos: geracao, save atrasado em thread propria, fallback,
   falhas/parcialidade, tentativas sobrepostas, overflow, fechamento, relatorio e
   independencia de callback falho/fila saturada.
 - 15 checks de bytecode sintetico, incluindo excecao do construtor repropagada.
-- 41 checks nos metodos originais em fixture privada: schema, load/save/reload,
+- 61 checks nos metodos originais em fixture privada: schema, load/save/reload,
   fallback, falhas, reset e setter; frame sintetico, nao gameplay/UI completa.
 
 Pendente: UI real de criar/trocar/descarregar, atribuicoes fora dos metodos

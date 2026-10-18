@@ -1,4 +1,4 @@
-# vbrasfoot 0.7.2 (experimental)
+# vbrasfoot 0.7.3 (experimental)
 
 [Criar mods com ajuda de IA](roadmap/AI-MOD-AUTHORING.md): capacidades reais,
 prompt inicial, testes e validador `--describe-sdk` / `--json mod.jar` sem jogo.
