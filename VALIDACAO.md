@@ -1,5 +1,51 @@
 # Validacao — 16/10/2026
 
+## Pedido financeiro interno reproduzivel — 19/10/2026
+
+FinanceRequest v1 define codec canonico limitado a4096bytes: perfil/fingerprint,
+career/binding/save hash+tamanho, owner/key, locator composto do clube, raw6/7,
+quantia e precondicao de saldo+14campos. Digest SHA256 nao usa nonce/token/geracao.
+Decode rejeita versao/perfil desconhecidos, valores invalidos, truncamento,
+trailing/noncanonical bytes. Nao e store de producao, autoridade ou witness de
+efeito. Fixture grava payload em arquivo proprio; journal continua guardando
+intent/digest/receipt, nao contrato inteiro.
+
+Adapter prepara plano fraco one-shot a partir do request imutavel, valida locator
+e snapshot integral na EDT antes de plano/efeito e nao atualiza precondicao velha.
+Dispatcher consulta escopo do handler (owner/career/binding/revisao) antes de
+reservar/persistir. Nenhum owner publico, ModContext.write ou instalacao nova.
+
+Evidencia contra fontes finais compiladas em saida isolada:
+-52checks de payload, outra JVM, todos os campos individualmente, bytes invalidos,
+ contexto e journal reaberto, sem nova lease para APPLIED nem overwrite de key.
+-44checks financeiros originais em copia PRIVADA:
+ `Temp/opencode/persistent-finance-final-7e1b95b879d94d6ba8616aafee9c059c/fixture/runtime-test.log`.
+ Credito e debito usam pedidos canonicos; negados owner/career/binding/save/locator
+ errados e precondicao velha, sem journal/efeito indevido. Repeticao do clube foi
+ inserida/removida SOMENTE na lista da fixture para testar recusa de ambiguidade,
+ antes de qualquer save/efeito. Writer/reload originais preservam saldo e ledger.
+ Restore do input na fixture e journal reaberto com gate NOVO retornam
+ RECORDED_ONLY para pedido aplicado, sem pagamento duplicado. Autoridades desses
+ testes sao ARTIFICIAIS, nao qualificacao operacional do loader instalado.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos aprovado em
+ `build/persistent-finance-sdk-test.log`, fixture
+ `Temp/opencode/vbrasfoot-sdk-author-8b30fb1740a0467f9e3340c5ddd60243`.
+
+Tentativa inicial exigindo ID gD globalmente unico foi RECUSADA pelo original
+antes do efeito: IDs se repetem no save fornecido. Logs iniciais preservados em
+ `build/persistent-finance-validation.log` e
+ `Temp/opencode/persistent-finance-final-e3c594fe9cd541b29abc89ec222604c9/fixture/runtime-test.log`.
+Nao contar essas tentativas como positivas. Locator final e revisao EXATA do save
++indice+ID+nome, exigindo par ID/nome unico e referencia nao repetida em P, alem
+de clube humano exato em P/aN. Nao e ID global, nao migra entre revisoes/copies.
+
+Fontes/save originais tiveram hashes conferidos antes/depois da execucao final.
+Nenhum processo pessoal encerrado, save pessoal/EXE/mod instalado sobrescrito,
+release/tag ou nova sessao humana realizada. APPLIED/UNKNOWN/inclusao no save,
+request-store de producao, categorias/UI e reabertura standalone permanecem sem
+aceite; os testes nao deduzem efeito persistido apenas de saldo ou ledger.
+Contrato e limites: `roadmap/PERSISTENT-FINANCE-REQUEST.md`.
+
 ## Contexto interno revisado e reconciliacao NO_EFFECT — 19/10/2026
 
 Main conecta o coordenador ao MESMO gate privado de ProbeSession/interlock.

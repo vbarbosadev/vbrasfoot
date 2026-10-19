@@ -17,6 +17,8 @@ final class CareerCommandDispatcher {
     interface Handler {
         CareerCommandGate.Status apply() throws Exception;
         default boolean accepts(CareerCommandJournal.Intent intent) { return false; }
+        /** Payload-level scope check in addition to gate/journal checks; legacy handlers remain compatible. */
+        default boolean acceptsContext(CareerCommandGate.Context context, String owner) { return true; }
     }
     private final CareerCommandGate gate;
     private final CareerCommandJournal journal;
@@ -34,7 +36,8 @@ final class CareerCommandDispatcher {
         Objects.requireNonNull(context); Objects.requireNonNull(intent); Objects.requireNonNull(handler);
         if (!journal.matches(context, gate.ownerId(owner)))
             return new Result(Kind.DENIED, Detail.BINDING_MISMATCH, null, Optional.empty());
-        if (!handler.accepts(intent)) return new Result(Kind.DENIED, Detail.HANDLER_MISMATCH, null, Optional.empty());
+        if (!handler.accepts(intent) || !handler.acceptsContext(context, gate.ownerId(owner)))
+            return new Result(Kind.DENIED, Detail.HANDLER_MISMATCH, null, Optional.empty());
         boolean interrupted = Thread.interrupted();
         CareerCommandGate.Permit permit = null;
         try {

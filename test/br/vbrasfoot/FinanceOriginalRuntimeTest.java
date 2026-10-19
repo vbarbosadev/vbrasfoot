@@ -45,18 +45,59 @@ public final class FinanceOriginalRuntimeTest {
                     // Explicit fixture authority only; this is NOT production discovery/qualification of a career.
                     var context = gate.installContext(career, binding, 1, revision, roots.primary(), roots.secondary());
                     var dispatcher = new CareerCommandDispatcher(gate, journal, adapter::roots, Duration.ofSeconds(5));
-                    var credit = CareerBridge.onEdt(() -> adapter.prepare(human, FinanceDelta.Direction.CREDIT_RAW_6, 123));
-                    var mismatchedIntent = new CareerCommandJournal.Intent("wrong-direction", CareerCommandGate.Operation.FINANCE_DEBIT, credit.intent("ignored").payloadDigest());
+                    var creditRequest = CareerBridge.onEdt(() -> adapter.request(context, key.mod(), "owned-credit", human, FinanceDelta.Direction.CREDIT_RAW_6, 123));
+                    boolean duplicateRefused = CareerBridge.onEdt(() -> {
+                        @SuppressWarnings("unchecked") var clubs = (List<Object>) CareerBridge.call(roots.primary(), "P");
+                        int size = clubs.size(); clubs.add(human); // Owned graph only, removed before any financial effect/save.
+                        try { adapter.prepare(creditRequest); return false; }
+                        catch (IllegalStateException expected) { return true; }
+                        finally { clubs.remove(size); }
+                    });
+                    check(duplicateRefused && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(before), "repeated compound locator refuses plan in owned graph without financial effect");
+                    Path requestFile = Files.write(home.resolve("owned-credit.request"), creditRequest.encode());
+                    var decodedRequest = FinanceRequest.decode(Files.readAllBytes(requestFile));
+                    var credit = CareerBridge.onEdt(() -> adapter.prepare(decodedRequest));
+                    var reconstructed = CareerBridge.onEdt(() -> adapter.prepare(FinanceRequest.decode(Files.readAllBytes(requestFile))));
+                    check(credit.intent("owned-credit").equals(reconstructed.intent("owned-credit")), "separate weak plans reconstruct same versioned durable intent from stored request");
+                    check(!credit.acceptsContext(new CareerCommandGate.Context(UUID.randomUUID(), career, UUID.randomUUID(), 1, revision), key.mod())
+                                    && !credit.acceptsContext(context, "br.other.owner"), "persistent handler refuses wrong binding or owner");
+                    boolean replacedKey = false;
+                    try { credit.intent("other-key"); } catch (IllegalArgumentException expected) { replacedKey = true; }
+                    check(replacedKey, "durable operation key cannot be substituted by plan caller");
+                    var mismatchedIntent = new CareerCommandJournal.Intent("owned-credit", CareerCommandGate.Operation.FINANCE_DEBIT, creditRequest.digest());
                     check(dispatcher.execute(owner, context, mismatchedIntent, CareerSidecarStore.EMPTY, credit).detail() == Detail.HANDLER_MISMATCH,
                             "original credit adapter cannot be dispatched under debit authority");
                     check(journal.read(revision).receipts().isEmpty(), "mismatched adapter never persists intent");
+                    var wrongOwnerRequest = new FinanceRequest(career, binding, revision, "br.other.owner", "owned-credit", creditRequest.club(), creditRequest.direction(), creditRequest.amount(), creditRequest.before());
+                    var wrongOwnerPlan = CareerBridge.onEdt(() -> adapter.prepare(wrongOwnerRequest));
+                    check(dispatcher.execute(owner, context, wrongOwnerRequest.intent(), CareerSidecarStore.EMPTY, wrongOwnerPlan).detail() == Detail.HANDLER_MISMATCH
+                                    && journal.read(revision).receipts().isEmpty(), "dispatcher rejects foreign durable owner before journal or effect");
+                    for (var wrongScope : List.of(
+                            new FinanceRequest(UUID.randomUUID(), binding, revision, key.mod(), creditRequest.key(), creditRequest.club(), creditRequest.direction(), creditRequest.amount(), before),
+                            new FinanceRequest(career, UUID.randomUUID(), revision, key.mod(), creditRequest.key(), creditRequest.club(), creditRequest.direction(), creditRequest.amount(), before),
+                            new FinanceRequest(career, binding, new CareerSidecarStore.SaveRevision("0".repeat(64), revision.size()), key.mod(), creditRequest.key(), creditRequest.club(), creditRequest.direction(), creditRequest.amount(), before))) {
+                        var wrongScopePlan = CareerBridge.onEdt(() -> adapter.prepare(wrongScope));
+                        check(dispatcher.execute(owner, context, wrongScope.intent(), CareerSidecarStore.EMPTY, wrongScopePlan).detail() == Detail.HANDLER_MISMATCH
+                                        && journal.read(revision).receipts().isEmpty(), "dispatcher refuses durable scope mismatch before any journal intent");
+                    }
+                    var wrongLocator = new FinanceRequest(career, binding, revision, key.mod(), creditRequest.key(),
+                            new FinanceRequest.Club(creditRequest.club().index(), creditRequest.club().id(), "Not the original name"),
+                            creditRequest.direction(), creditRequest.amount(), before);
+                    boolean wrongTarget = false;
+                    try { CareerBridge.onEdt(() -> adapter.prepare(wrongLocator)); } catch (IllegalStateException expected) { wrongTarget = true; }
+                    check(wrongTarget && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(before), "exact original locator mismatch refuses plan without financial mutation");
                     var applied = dispatcher.execute(owner, context, credit.intent("owned-credit"), CareerSidecarStore.EMPTY, credit);
                     check(applied.kind() == Kind.EXECUTED, "journaled original v(int,int) invoked on EDT");
                     check(CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(credit.expected()), "original balance and all14numeric ledger fields match exact predicted credit");
                     check(credit.expected().balance() == before.balance() + 123 && credit.expected().ledger().get("dO") == before.ledger().get("dO") + 123, "original raw category6 changes correct accumulator");
+                    boolean staleRequest = false;
+                    try { CareerBridge.onEdt(() -> adapter.prepare(decodedRequest)); } catch (IllegalStateException expected) { staleRequest = true; }
+                    check(staleRequest && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(credit.expected()), "reconstructing request after financial state changed cannot refresh its precondition");
                     check(dispatcher.execute(owner, context, credit.intent("owned-credit"), applied.journal().orElseThrow().token(), credit).kind() == Kind.DENIED,
                             "duplicate original command not invoked twice");
-                    var debit = CareerBridge.onEdt(() -> adapter.prepare(human, FinanceDelta.Direction.DEBIT_RAW_7, 23));
+                    var debitRequest = CareerBridge.onEdt(() -> adapter.request(context, key.mod(), "owned-debit", human, FinanceDelta.Direction.DEBIT_RAW_7, 23));
+                    var debit = CareerBridge.onEdt(() -> adapter.prepare(FinanceRequest.decode(debitRequest.encode())));
+                    check(debit.intent("owned-debit").equals(debitRequest.intent()), "raw debit also uses canonical durable request identity");
                     var debited = dispatcher.execute(owner, context, debit.intent("owned-debit"), applied.journal().orElseThrow().token(), debit);
                     check(debited.kind() == Kind.EXECUTED, "journaled original w(int,int) invoked");
                     check(CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(debit.expected()) && debit.expected().balance() == before.balance() + 100,
@@ -120,6 +161,22 @@ public final class FinanceOriginalRuntimeTest {
                             "startup quarantine cannot rewrite terminal original financial receipts");
                     var oldPlanResult = dispatcher.execute(owner, context, changed.intent("old-roots"), journal.read(revision).token(), changed);
                     check(oldPlanResult.kind() == Kind.DENIED && oldPlanResult.receipt().reason() == CareerCommandGate.Reason.NO_CONTEXT, "save window invalidates old context; reloaded roots never automatically authorize command");
+                    check(!decodedRequest.matches(new CareerCommandGate.Context(UUID.randomUUID(), career, binding, 2, outputObservation.revision()), key.mod()),
+                            "persistent request cannot cross into output revision even after original write/reload");
+                    check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "input", false)), "original input can be decoded again only inside fixture");
+                    var inputRoots = CareerBridge.onEdt(adapter::roots);
+                    Object inputHuman = CareerBridge.onEdt(() -> ((List<?>) CareerBridge.call(inputRoots.primary(), "aN")).get(0));
+                    var restartPlan = CareerBridge.onEdt(() -> adapter.prepare(FinanceRequest.decode(Files.readAllBytes(requestFile))));
+                    check(restartPlan.intent("owned-credit").equals(creditRequest.intent()), "request identity survives original graph reload without session nonce");
+                    try (var restartGate = new CareerCommandGate()) {
+                        var restartOwner = restartGate.owner(key.mod(), Set.of(CareerCommandGate.Operation.FINANCE_CREDIT));
+                        var restartContext = restartGate.installContext(career, binding, 2, revision, inputRoots.primary(), inputRoots.secondary());
+                        var restartJournal = new CareerCommandJournal(new CareerSidecarStore(home.resolve("finance-journal")), key);
+                        var retry = new CareerCommandDispatcher(restartGate, restartJournal, adapter::roots, Duration.ofSeconds(5))
+                                .execute(restartOwner, restartContext, decodedRequest.intent(), restartJournal.read(revision).token(), restartPlan);
+                        check(retry.kind() == Kind.RECORDED_ONLY && CareerBridge.onEdt(() -> adapter.snapshot(inputHuman)).equals(before),
+                                "reopened journal and fresh gate never replay historical APPLIED request on restored input graph");
+                    }
                 }
                 check(Profile.digest(game.resolve("sav/input.s22")).equals(inputHash), "private input save untouched");
             } finally { CareerBridge.onEdt(() -> { frame.dispose(); return null; }); }
