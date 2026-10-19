@@ -69,6 +69,9 @@ comandos aos mods ou resolver resultados incertos por suposicao.
 O [pedido financeiro interno reproduzivel](roadmap/PERSISTENT-FINANCE-REQUEST.md)
 vincula intent a owner/carreira/binding/revisao e precondicao completa, sem nonce
 de sessao no novo caminho; nao e API publica nem prova de inclusao no save.
+O [armazenamento interno dos pedidos](roadmap/FINANCE-REQUEST-STORE.md) grava o
+contrato antes do diario e do efeito, sem liberar comandos aos mods ou resolver
+incerteza de efeitos/revisoes automaticamente.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

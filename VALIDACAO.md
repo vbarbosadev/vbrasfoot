@@ -1,5 +1,57 @@
 # Validacao — 16/10/2026
 
+## Contrato financeiro gravado antes do diario/efeito — 19/10/2026
+
+FinanceRequestStore implementa agregado interno append-only de ate32pedidos
+completos v1 por career/binding/owner, em root dedicado e ancora exata do save.
+Reusa CAS/lock/HEAD checksummed/previous e quotas do sidecar. Mesmo payload/key
+confirma read-only; outro payload sob mesma key conflita, sem eviction. Leitura
+revalida counts/lengths/keys/schema/ancoras/escopos; namespace sem HEAD comprometido
+e reconciliacao obrigatoria, nunca historico vazio. Nenhuma migracao automatica.
+
+executeStoredFinance confere contexto/owner/handler/request/journal/store, revisa
+journal antes e depois de persistir contrato e so entao entra no dispatcher
+journal-before-effect existente. Plano persistente pelo execute comum recebe
+REQUEST_REQUIRED sem intent/efeito. Nova key sob PREPARED/UNKNOWN, token velho,
+payload historico conflitante e journal orphan sao recusados antes de armazenar
+novo contrato. Mesmo com gate novo, historico registrado nao recebe outra lease.
+
+Evidencia:
+-46checks finais do request-store em compilacao isolada propria:
+ `Temp/opencode/finance-store-final-10fd4cd7e5714ef28954395d66cadc8d`.
+ Cobrem persistencia/reabertura/CAS, chave imutavel, quotas, schema/corrupcao,
+ duplicate/anchor/owner/EDT, ordem payload->PREPARED->efeito->receipt, falhas de
+ payload/journal em RECORD_WRITTEN/HEAD_STAGED/HEAD_COMMITTED e gate novo sem
+ replay, novas keys bloqueadas por incerteza e conflito antes da persistencia.
+-47checks originais na mesma compilacao isolada, fixture PRIVADA em
+ `Temp/opencode/finance-store-final-10fd4cd7e5714ef28954395d66cadc8d/fixture/runtime-test.log`:
+ credito/debito agora exigem contratos armazenados, bypass recusado, payloads
+ exatos preservados em ordem, writer/reload originais e restore do input na
+ fixture nao reexecutam APPLIED. Hashes do EXE/save de origem conferidos antes/
+ depois. Autoridades da fixture sao ARTIFICIAIS, nao aceitacao de Main/gameplay.
+-Wrapper completo `test-finance-commands.ps1` tambem passou em
+ `build/finance-request-store-validation.log`: build/suite,52checks de request,
+ 32iniciais de store e47originais. Os guards/testes adicionais posteriores foram
+ validados em compilacao isolada com46checks; nao confundir32com suite final.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos aprovados em
+ `build/finance-request-store-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-5bc229d4422645edaace030610a6643e`.
+
+Uma tentativa de comando local da fixture parou antes de copiar/iniciar o jogo
+por usar variavel PowerShell HOME read-only; reexecucao com loaderHome passou.
+Nao contar erro de harness como positivo. Fault probes continuam excecoes
+controladas, nao power-loss nem garantia de durability multi-file.
+
+Main ainda NAO cria request-store nem owners/handlers publicos. Quotas globais,
+retencao/compactacao, inventario de contratos no contexto e protocolo de revisoes
+continuam pendentes. Store recusa outra revisao mesmo apos metadata/NO_EFFECT
+reancorados; nao contornar com migracao silenciosa. APPLIED/UNKNOWN/inclusao no
+save, categorias/UI/standalone e API publica permanecem sem aceite. Sem transacao
+save+journal+contrato, exatamente-uma-vez, rollback ou retry automatico.
+Nenhum mod criado, instalacao pessoal/save/EXE alterado ou processo pessoal
+encerrado. Nenhuma nova sessao humana/release/tag. Contrato:
+ `roadmap/FINANCE-REQUEST-STORE.md`.
+
 ## Pedido financeiro interno reproduzivel — 19/10/2026
 
 FinanceRequest v1 define codec canonico limitado a4096bytes: perfil/fingerprint,

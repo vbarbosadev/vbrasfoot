@@ -55,6 +55,17 @@ final class CareerCommandJournal {
     Snapshot read(CareerSidecarStore.SaveRevision save) throws IOException {
         var view = store.read(key, save); return snapshot(view.token(), decode(view));
     }
+    /** New persisted-payload path cannot interpret an interrupted initial journal write as a clean history. */
+    void reviewStoredRequest(CareerSidecarStore.SaveRevision save, String expectedToken, Intent intent) throws IOException {
+        var view = store.read(key, save); requireToken(view, expectedToken); var values = decode(view);
+        if (view.value().isEmpty() && store.inventoryBinding(key.career(), key.binding()).tokens().containsKey(key.mod()))
+            throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Existing uncommitted journal requires review, not retry");
+        var previous = values.get(intent.key());
+        if (previous != null && !previous.intent().equals(intent))
+            throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.CONFLICT, "Historical journal key has another payload");
+        if (previous == null && values.values().stream().anyMatch(receipt -> receipt.state() == State.PREPARED || receipt.state() == State.OUTCOME_UNKNOWN))
+            throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Uncertain journal blocks a new stored request");
+    }
     /** Explicit known old anchor required. Never retargets the journal, searches history or grants a lease. */
     Recovery inspectRecovery(CareerSidecarStore.SaveRevision recordedSave, CareerSidecarStore.SaveRevision observedSave) throws IOException {
         Objects.requireNonNull(observedSave);
