@@ -13,6 +13,10 @@ import javax.swing.SwingUtilities;
 final class CareerSidecarStore {
     static final int MAX_PAYLOAD = 1024 * 1024, MAX_FILES = 128;
     static final long MAX_BYTES = 16L * 1024 * 1024;
+    static final int MAX_BINDING_NAMESPACES = 64;
+    record NamespaceInventory(Map<String, String> tokens) {
+        NamespaceInventory { tokens = Map.copyOf(tokens); }
+    }
     static final String EMPTY = "EMPTY";
     static final String ASSOCIATION_OWNER = "br.vbrasfoot.association";
     enum Reason { WRONG_THREAD, UNSAFE_PATH, CORRUPT, CONFLICT, SAVE_REVISION_MISMATCH, RECONCILIATION_REQUIRED, BUSY, QUOTA, NOT_FOUND, ATOMIC_MOVE_UNSUPPORTED, OUTCOME_UNKNOWN }
@@ -63,6 +67,46 @@ final class CareerSidecarStore {
         View view = inspect(key);
         if (view.value().isPresent()) requireSave(view.value().orElseThrow(), expectedSave);
         return view;
+    }
+    /** Administrative bounded read of ONE explicitly supplied binding. No UUID/path/hash identity search.
+     * EMPTY token here means an existing uncommitted namespace, NOT proof of an empty command history. */
+    NamespaceInventory inventoryBinding(UUID career, UUID binding) throws IOException {
+        offEdt(); Objects.requireNonNull(career); Objects.requireNonNull(binding);
+        Path selected = root.resolve(career.toString()).resolve(binding.toString()); plain(selected);
+        BasicFileAttributes selectedAttributes;
+        try { selectedAttributes = Files.readAttributes(selected, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS); }
+        catch (NoSuchFileException missing) { return new NamespaceInventory(Map.of()); }
+        if (!selectedAttributes.isDirectory()) throw new Failure(Reason.UNSAFE_PATH, "Selected binding is not a directory");
+        long started = System.nanoTime(); Map<String, String> tokens = new TreeMap<>();
+        try (var entries = Files.newDirectoryStream(selected)) {
+            for (Path entry : entries) {
+                if (tokens.size() >= MAX_BINDING_NAMESPACES) throw new Failure(Reason.QUOTA, "Binding namespace limit exceeded; no partial inventory accepted");
+                inventoryBudget(started); plain(entry); String owner = entry.getFileName().toString();
+                try { new Key(career, binding, owner); }
+                catch (IllegalArgumentException unsafe) { throw new Failure(Reason.UNSAFE_PATH, "Unknown namespace entry preserved", unsafe); }
+                if (!Files.readAttributes(entry, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isDirectory())
+                    throw new Failure(Reason.UNSAFE_PATH, "Namespace entry is not a directory");
+                int count = 0; long bytes = 0;
+                try (var files = Files.newDirectoryStream(entry)) {
+                    for (Path file : files) {
+                        inventoryBudget(started); plain(file);
+                        if (++count > MAX_FILES) throw new Failure(Reason.QUOTA, "Namespace file inventory limit exceeded");
+                        String name = file.getFileName().toString();
+                        if (!(name.equals("HEAD") || name.equals(".lock") || name.matches("r-[a-f0-9-]{36}\\.bin") || name.matches("HEAD\\.tmp-[a-f0-9-]{36}")))
+                            throw new Failure(Reason.UNSAFE_PATH, "Unfamiliar namespace contents preserved");
+                        var attrs = Files.readAttributes(file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+                        if (!attrs.isRegularFile()) throw new Failure(Reason.UNSAFE_PATH, "Namespace contains non-file entry");
+                        if (attrs.size() > MAX_BYTES - bytes) throw new Failure(Reason.QUOTA, "Namespace byte inventory limit exceeded");
+                        bytes += attrs.size();
+                    }
+                }
+                Head head = readHead(entry); tokens.put(owner, head == null ? EMPTY : head.token());
+            }
+        } catch (DirectoryIteratorException failure) { throw failure.getCause(); }
+        inventoryBudget(started); plain(selected); return new NamespaceInventory(tokens);
+    }
+    private static void inventoryBudget(long started) throws Failure {
+        if (System.nanoTime() - started > 5_000_000_000L) throw new Failure(Reason.QUOTA, "Binding inventory time limit exceeded; no partial result accepted");
     }
     /** Administrative association metadata only, never a way for a mod to bypass revision checks. */
     View inspectAssociation(Key key) throws IOException {

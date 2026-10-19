@@ -164,6 +164,18 @@ public final class CareerHookRuntimeTest {
                         "explicit private-fixture metadata association remains read-only and unqualified for gameplay");
                 check(fixtureReview.journals().get(0).recovery().orElseThrow().status() == CareerCommandJournal.RecoveryStatus.EMPTY
                         && !Files.exists(home.resolve("association-review-fixture/journals")), "configured original-fixture journal inspection creates no empty journal or command");
+                var disabledStore = new CareerSidecarStore(home.resolve("association-review-fixture/journals"));
+                var disabledKey = new CareerSidecarStore.Key(fixtureHandle.career(), fixtureHandle.binding(), "br.owned.disabled-fixture");
+                var disabledJournal = new CareerCommandJournal(disabledStore, disabledKey);
+                var disabledIntent = new CareerCommandJournal.Intent("owned-metadata-only", CareerCommandGate.Operation.FINANCE_CREDIT, "e".repeat(64));
+                var disabledPending = disabledJournal.prepare(sourceObservation.revision(), CareerSidecarStore.EMPTY, disabledIntent);
+                var disabledReview = coordinator.review(Optional.of(fixtureHandle));
+                check(disabledReview.journals().size() == 2 && disabledReview.journals().stream().anyMatch(row -> !row.configured()
+                        && row.owner().equals(disabledKey.mod()) && row.recovery().orElseThrow().status() == CareerCommandJournal.RecoveryStatus.UNCERTAIN),
+                        "original decoder-linked review discovers disabled synthetic journal without executing any mod or financial handler");
+                coordinator.confirm(disabledReview, CareerAssociationCoordinator.Action.QUARANTINE_PENDING, Optional.of(disabledKey.mod()));
+                check(disabledJournal.read(sourceObservation.revision()).receipts().equals(disabledPending.snapshot().receipts()),
+                        "explicit disabled-journal quarantine preserves all uncertain receipts on original-load fixture");
                 var reviewBeforeSave = coordinator.review(Optional.of(fixtureHandle));
                 // Artificial command reservation authority only, to exercise admission BEFORE the original bodies.
                 Object ioPrimary = state.getField("SR").get(null), ioSecondary = state.getField("afQ").get(null);

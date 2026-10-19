@@ -28,9 +28,9 @@ final class CareerAssociationPanel {
             text.append("Revisao metadata: ").append(association.revision()).append(" / correspondencia: ").append(review.match().orElseThrow()).append('\n');
             text.append("Ultima decisao explicita: ").append(association.decision()).append('\n');
         }, () -> text.append("Nenhuma associacao selecionada. Nao identificamos carreira automaticamente por nome/hash.\n"));
-        text.append("\nDiarios: somente os owners explicitamente configurados nesta sessao.\nNao e inventario global de mods antigos/desabilitados.\n");
+        text.append("\nDiarios: owners configurados + namespaces existentes no binding explicitamente escolhido.\nInclui mods desabilitados/ausentes nesse binding. Nao e inventario global de outras carreiras ou roots.\nSem snapshot atomico; mudancas exigem nova revisao.\n");
         for (var journal : review.journals()) {
-            text.append(journal.owner()).append(": ");
+            text.append(journal.owner()).append(journal.configured() ? " [configurado]: " : " [existente, nao selecionado]: ");
             journal.recovery().ifPresentOrElse(recovery -> text.append(recovery.status()).append(" / mudanca de revisao: ").append(recovery.revisionChanged())
                     .append(" / receipts: ").append(recovery.snapshot().receipts().size()), () -> text.append("RECUSADO ").append(journal.failure().orElseThrow()));
             text.append('\n');

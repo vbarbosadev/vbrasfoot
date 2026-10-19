@@ -58,6 +58,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes do coordenador de associacao explicita falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.CareerIoInterlockSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de exclusao nas entradas originais de I/O falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.BindingJournalInventorySelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de inventario dos diarios do binding falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandGateSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da reserva de comandos falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandJournalSelfTest

@@ -10,7 +10,7 @@ import javax.swing.SwingUtilities;
 final class CareerAssociationCoordinator {
     enum Status { ASSOCIATION_REQUIRED, ASSOCIATION_CONFLICT, REVISION_REVIEW_REQUIRED, READ_ONLY_LINKED }
     enum Action { CREATE_NEW, FORK_COPY, RENAME_PROVEN, ASSERT_RENAME, ACCEPT_REVISION, RESTORE_PREVIOUS, QUARANTINE_PENDING }
-    record JournalReview(String owner, Optional<CareerCommandJournal.Recovery> recovery, Optional<CareerSidecarStore.Reason> failure) { }
+    record JournalReview(String owner, boolean configured, Optional<CareerCommandJournal.Recovery> recovery, Optional<CareerSidecarStore.Reason> failure) { }
     static final class Review {
         private final UUID coordinator;
         private final SaveFileObserver.Observation observed;
@@ -19,12 +19,14 @@ final class CareerAssociationCoordinator {
         private final Optional<CareerSaveAssociations.Match> match;
         private final List<JournalReview> journals;
         private final Status status;
+        private final Optional<CareerSidecarStore.NamespaceInventory> inventory;
         private final AtomicBoolean consumed = new AtomicBoolean();
         private Review(UUID coordinator, SaveFileObserver.Observation observed, LoadedSaveVerifier.Verified decoded,
                        Optional<CareerSaveAssociations.Association> association, Optional<CareerSaveAssociations.Match> match,
-                       List<JournalReview> journals, Status status) {
+                       List<JournalReview> journals, Status status, Optional<CareerSidecarStore.NamespaceInventory> inventory) {
             this.coordinator = coordinator; this.observed = observed; this.decoded = decoded; this.association = association;
             this.match = match; this.journals = List.copyOf(journals); this.status = status;
+            this.inventory = inventory;
         }
         LoadedSaveVerifier.Verified decoded() { return decoded; }
         Optional<CareerSaveAssociations.Association> association() { return association; }
@@ -66,12 +68,30 @@ final class CareerAssociationCoordinator {
         Optional<CareerSaveAssociations.Association> association = selected.isEmpty() ? Optional.empty() : Optional.of(associations.inspect(selected.orElseThrow()));
         Optional<CareerSaveAssociations.Match> match = association.map(value -> associations.assess(value, observed));
         var journals = new ArrayList<JournalReview>();
+        Optional<CareerSidecarStore.NamespaceInventory> reviewedInventory = Optional.empty();
         if (association.isPresent()) {
             var known = association.orElseThrow();
-            for (String owner : owners) {
-                try { journals.add(new JournalReview(owner, Optional.of(journal(known.handle(), owner).inspectRecovery(known.save(), observed.revision())), Optional.empty())); }
-                catch (CareerSidecarStore.Failure failure) { journals.add(new JournalReview(owner, Optional.empty(), Optional.of(failure.reason()))); }
+            var inventory = journalStore.inventoryBinding(known.handle().career(), known.handle().binding());
+            reviewedInventory = Optional.of(inventory);
+            var registered = new TreeSet<>(owners); registered.addAll(inventory.tokens().keySet());
+            if (registered.size() > CareerSidecarStore.MAX_BINDING_NAMESPACES) throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.QUOTA, "Configured and existing journals exceed binding inventory capacity; no partial review accepted");
+            for (String owner : registered) {
+                boolean configured = owners.contains(owner);
+                String expectedToken = inventory.tokens().getOrDefault(owner, CareerSidecarStore.EMPTY);
+                if (inventory.tokens().containsKey(owner) && expectedToken.equals(CareerSidecarStore.EMPTY)) {
+                    journals.add(new JournalReview(owner, configured, Optional.empty(), Optional.of(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED)));
+                    continue; // Existing directory without committed HEAD must never masquerade as clean empty history.
+                }
+                try {
+                    var recovery = journal(known.handle(), owner).inspectRecovery(known.save(), observed.revision());
+                    if (!recovery.snapshot().token().equals(expectedToken)) throw conflict("Diario mudou durante inventario; revisar novamente");
+                    journals.add(new JournalReview(owner, configured, Optional.of(recovery), Optional.empty()));
+                } catch (CareerSidecarStore.Failure failure) {
+                    if (failure.reason() == CareerSidecarStore.Reason.CONFLICT) throw failure;
+                    journals.add(new JournalReview(owner, configured, Optional.empty(), Optional.of(failure.reason())));
+                }
             }
+            if (!inventory.equals(journalStore.inventoryBinding(known.handle().career(), known.handle().binding()))) throw conflict("Namespaces ou HEADs mudaram durante revisao");
             if (!associations.inspect(known.handle()).token().equals(known.token())) throw conflict("Associacao mudou durante revisao");
         }
         if (!decoded.equals(verifier.verify(observed))) throw conflict("Carregamento mudou durante revisao");
@@ -82,7 +102,7 @@ final class CareerAssociationCoordinator {
                 : metadataChanged ? Status.ASSOCIATION_CONFLICT
                 : match.orElseThrow() == CareerSaveAssociations.Match.EXACT_OBSERVATION || match.orElseThrow() == CareerSaveAssociations.Match.FILE_IDENTITY_UNAVAILABLE
                 ? Status.READ_ONLY_LINKED : Status.ASSOCIATION_CONFLICT;
-        return new Review(instance, observed, decoded, association, match, journals, status);
+        return new Review(instance, observed, decoded, association, match, journals, status, reviewedInventory);
     }
     /** Call only after showing this exact review and receiving an explicit action-specific human confirmation.
      * One-shot even on error. A returned handle is metadata identity, never game readiness. */
@@ -96,6 +116,11 @@ final class CareerAssociationCoordinator {
             var selected = review.association;
             if (selected.isPresent() && !associations.inspect(selected.orElseThrow().handle()).token().equals(selected.orElseThrow().token()))
                 throw conflict("Associacao mudou desde a revisao");
+            if (selected.isPresent()) {
+                var handle = selected.orElseThrow().handle();
+                if (!review.inventory.orElseThrow().equals(journalStore.inventoryBinding(handle.career(), handle.binding())))
+                    throw conflict("Diarios ou namespaces mudaram desde a revisao; confirmar novamente");
+            }
             if (action == Action.CREATE_NEW) {
                 if (selected.isPresent()) throw conflict("Criar IDs novos requer nenhuma associacao selecionada; copia deve usar fork explicito");
                 return associations.create(review.observed, CareerSaveAssociations.Confirmation.CREATE_NEW_CAREER).handle();
@@ -111,7 +136,7 @@ final class CareerAssociationCoordinator {
                 case QUARANTINE_PENDING -> {
                     String owner = journalOwner.orElseThrow(() -> new IllegalArgumentException("Explicit journal owner required"));
                     var row = review.journals.stream().filter(value -> value.owner().equals(owner)).findFirst()
-                            .orElseThrow(() -> new IllegalArgumentException("Journal owner not present in reviewed registry"));
+                            .orElseThrow(() -> new IllegalArgumentException("Journal owner not present in reviewed binding inventory"));
                     var recovery = row.recovery().orElseThrow(() -> conflict("Diario indisponivel ou ancora divergente; nao ignorar erro"));
                     journal(handle, owner).quarantinePending(known.save(), recovery.snapshot().token());
                     yield handle;
