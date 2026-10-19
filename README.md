@@ -60,6 +60,9 @@ Desativada por padrao, nao habilita eventos completos de gameplay nem persistenc
 No codigo atual, inclui [revisao de origem decodificada e associacoes](roadmap/DECODED-SAVE-COORDINATOR.md)
 no menu experimental. Confirmacoes alteram somente metadados externos; nao
 habilitam pagamentos/transferencias nem a API de escrita. Nao instalada automaticamente.
+Para conferir carga pelo ramo real: [roteiro delimitado](roadmap/LOAD-ONLY-VALIDATION.md),
+`prepare-load-validation.ps1` prepara copia sem iniciar jogo e `--inspect-load-validation`
+le os reports encerrados sem autorizar escritas. Fixtures sinteticas nao substituem essa sessao.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

@@ -25,6 +25,11 @@ public final class Main {
     static void run(String[] args) throws Exception {
         Options options = Options.parse(args);
         if (options.help) { help(); return; }
+        if (options.inspectLoadValidation != null) {
+            var report = LoadValidationInspector.inspect(options.inspectLoadValidation); report.print(System.out);
+            if (report.status() != LoadValidationInspector.Status.QUALIFIED_LOAD_OBSERVED) throw new IllegalStateException("Evidencia de carga nao qualificada; nenhuma escrita habilitada");
+            return;
+        }
         if (options.validateMod != null) { ModValidator.inspect(options.validateMod); return; }
         if (options.storageStatus) {
             StorageInventory.Report report = StorageInventory.inspect(options.game, options.home);
@@ -182,12 +187,13 @@ public final class Main {
         System.out.println("Com a sonda: menu Carreira e diarios verifica stream/roots e permite confirmar apenas metadados externos; nao habilita escritas no jogo.");
         System.out.println("--validate-mod JAR: valida manifesto/mainClass sem inicializar codigo; nao precisa do jogo nem grava cache/logs.");
         System.out.println("--storage-status: inventario somente leitura do home existente; sem jogo/mods, logs/cache/backup ou limpeza.");
+        System.out.println("--inspect-load-validation PASTA-SESSAO: le relatorios encerrados sem jogo, logs novos ou permissao de escrita.");
         System.out.println("--disable-mod nome.jar | --enable-mod nome.jar: selecao para proximo inicio, com jogo fechado; sem hot reload.");
         System.out.println("Avancado: --home PASTA --game-dir PASTA; apos --, argumentos do jogo.");
     }
 
     static final class Options {
-        Path home = Path.of("vbrasfoot"), game = Path.of("Brasfoot22-23"), checkSave, validateMod;
+        Path home = Path.of("vbrasfoot"), game = Path.of("Brasfoot22-23"), checkSave, validateMod, inspectLoadValidation;
         boolean validate, list, safe, help, probe, storageStatus;
         String manageMod;
         boolean enableMod;
@@ -202,6 +208,7 @@ public final class Main {
                     case "--check-save" -> { result.checkSave = Path.of(value(args, ++i)); modes++; }
                     case "--validate-mod" -> { result.validateMod = Path.of(value(args, ++i)); modes++; }
                     case "--storage-status" -> { result.storageStatus = true; modes++; }
+                    case "--inspect-load-validation" -> { result.inspectLoadValidation = Path.of(value(args, ++i)); modes++; }
                     case "--validate-only" -> { result.validate = true; modes++; }
                     case "--list-mods" -> { result.list = true; modes++; }
                     case "--disable-mod" -> { result.manageMod = value(args, ++i); result.enableMod = false; modes++; }
@@ -218,6 +225,7 @@ public final class Main {
             if (result.validateMod != null && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Validacao individual de mod nao aceita modo seguro/sonda/argumentos do jogo");
             if (result.manageMod != null && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Selecao de mods nao aceita modo seguro/sonda/argumentos do jogo");
             if (result.storageStatus && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Inventario nao aceita modo seguro/sonda/argumentos do jogo");
+            if (result.inspectLoadValidation != null && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Inspecao de relatorios nao aceita modo seguro/sonda/argumentos do jogo");
             return result;
         }
         private static String value(String[] args, int index) {

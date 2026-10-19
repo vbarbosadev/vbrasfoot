@@ -56,11 +56,13 @@ final class ProbeSession implements AutoCloseable {
         if (closed) return;
         closed = true;
          var provenance = HookProbe.decodedProvenance();
+         String reportSession = lifecycle.ticket().session();
          var ioBeforeClose = interlock.snapshot();
          try { interlockSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach original I/O interlock"); }
          commandGate.close();
          Properties ioProtection = new Properties();
          ioProtection.setProperty("format", "1");
+         ioProtection.setProperty("session", reportSession);
          ioProtection.setProperty("coverage", "Cooperative original load/reset/save admission only; not career readiness, cross-process locking or save durability");
          ioProtection.setProperty("depth.beforeClose", Integer.toString(ioBeforeClose.depth()));
          ioProtection.setProperty("admitted", Long.toString(ioBeforeClose.admitted()));
@@ -73,6 +75,7 @@ final class ProbeSession implements AutoCloseable {
         try { lifecycleSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach lifecycle guard"); }
         Properties decoded = new Properties();
         decoded.setProperty("format", "1");
+        decoded.setProperty("session", reportSession);
         decoded.setProperty("coverage", "Original decoder stream bytes and weak root generation only; not graph consistency, persistent identity or write readiness");
         decoded.setProperty("revision", Long.toString(provenance.revision()));
         decoded.setProperty("status", provenance.status().name()); decoded.setProperty("reason", provenance.reason().name());

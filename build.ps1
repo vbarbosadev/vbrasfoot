@@ -60,6 +60,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de exclusao nas entradas originais de I/O falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.BindingJournalInventorySelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de inventario dos diarios do binding falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LoadValidationInspectorSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do inspetor offline de carga falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandGateSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da reserva de comandos falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandJournalSelfTest

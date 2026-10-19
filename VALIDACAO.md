@@ -1,5 +1,47 @@
 # Validacao — 16/10/2026
 
+## Preparacao de carga humana e inspetor offline — 19/10/2026
+
+`prepare-load-validation.ps1` reutiliza copia completa verificada/profile/hash/
+recusa de processo aberto do preparador existente, acrescenta home de sonda novo
+sem mods, exports ASM/sun.java2d, launchers e roteiro de carga EXISTENTE sem criar
+carreira/avancar/jogar/salvar/confirmar metadata. Nao inicia jogo automaticamente.
+baseline.json/load-validation.json indicam preparacao, nunca aceite da carga.
+
+`--inspect-load-validation PASTA-SESSAO` e target-free: antes de InstallPaths/
+Profile.verify/diagnostics/runtime, le somente sete reports encerrados conhecidos,
+ate128KiB cada, sem redirects. Parse estrito de contadores/booleans/enums/duplicatas,
+profile e lifecycle sessionIDs correlacionados entre provenance/interlock/lifecycle.
+Rele arquivos antes de aceitar. Nao escolhe latest nem imprime texto/paths privados
+arbitrarios. ProbeSession acrescenta sessionID aos reports de provenance/interlock;
+reports antigos sem correlacao sao INCOMPLETE, sem qualificacao retroativa.
+
+Resultados: QUALIFIED_LOAD_OBSERVED (so markers coerentes), NOT_QUALIFIED (save,
+perdas, recusas, init ausente, trabalho em voo etc.) ou INCOMPLETE (arquivos ausentes/
+inseguros/malformados/incompativeis/misturados/alterados). CLI nao-positiva retorna
+erro, sem criar home/log/cache/backup ou executar game/mod. Positivo NAO e contexto
+vivo, prova contra adulteracao, consistencia global, ausencia de todos os efeitos,
+durabilidade ou aceite humano. Nenhuma escrita e autorizada por esse resultado.
+
+31checks target-free aprovados em fixture propria
+`Temp/opencode/load-validation-inspector-3016163618733426665`: marcadores positivos
+SINTETICOS, old-frame path, save/falha de save, interlock em voo/recusa, criacao,
+perdas, mistura de sessoes/geracao, formato/counter/boolean/duplicatas/profile,
+limites/termination, EDT/parser/CLI real sem jogo/home e junction Windows. Inclui
+roundtrip dos writers reais ProbeSession/SessionDiagnostics com markers sinteticos;
+NAO e evidencia de ramo init original. Build completo local inicial passou com28
+checks; testes ampliados31foram recompilados/executados depois, sem mudar API publica.
+Sintaxe PowerShell do novo preparador aprovada. Nenhum processo do usuario encerrado.
+
+Inspecao estatica privada em `build/full-load-init-20261019.javap.txt` reutilizou
+cache original conhecido com javap existente: c.a chama ap no init completo; ap
+tem caminhos de autosave/progressao conforme estado/configuracao. Por isso nao foi
+executado automaticamente como se fosse getter sem efeitos, nem foi alterado o
+save para obter positivo. Ramo init real/menu/painel e aceite humano permanecem
+pendentes. Nao ha criacao/partida/escrita no jogo pessoal ou instalacao nova.
+Contrato e roteiro em `roadmap/LOAD-ONLY-VALIDATION.md`; STATUS.md e contexto de
+retomada, nao declaracao de que a sessao humana foi realizada.
+
 ## Inventario read-only dos journals do binding escolhido — 19/10/2026
 
 `CareerSidecarStore.inventoryBinding` le somente careerUUID/bindingUUID fornecidos
