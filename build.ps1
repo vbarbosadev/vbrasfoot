@@ -76,6 +76,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de delta financeiro falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceRequestSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de pedidos financeiros persistentes falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceRequestStoreSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do armazenamento de pedidos financeiros falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkValidatorJsonSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes JSON do validador SDK falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.DiagnosticExportSelfTest

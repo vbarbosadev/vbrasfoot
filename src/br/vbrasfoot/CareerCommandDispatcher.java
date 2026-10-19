@@ -9,9 +9,10 @@ import javax.swing.SwingUtilities;
 /** Internal journal-before-effect pipeline. No public ModContext exposure or automatic career qualification. */
 final class CareerCommandDispatcher {
     enum Kind { EXECUTED, NO_EFFECT, RECORDED_ONLY, DENIED, UNCERTAIN }
-    enum Detail { NONE, BINDING_MISMATCH, HANDLER_MISMATCH, GATE_REFUSED, QUEUE_TIMEOUT, EXECUTION_TIMEOUT, HANDLER_FAILURE, JOURNAL_FAILURE }
+    enum Detail { NONE, BINDING_MISMATCH, HANDLER_MISMATCH, REQUEST_REQUIRED, GATE_REFUSED, QUEUE_TIMEOUT, EXECUTION_TIMEOUT, HANDLER_FAILURE, JOURNAL_FAILURE }
     record Roots(Object primary, Object secondary) { }
     record Result(Kind kind, Detail detail, CareerCommandGate.Receipt receipt, Optional<CareerCommandJournal.Snapshot> journal) { }
+    record StoredResult(Result dispatch, FinanceRequestStore.Snapshot requests) { }
     interface RootsSource { Roots current() throws Exception; }
     /** Trusted adapter only. REJECTED means the adapter can prove that no mutation occurred. */
     interface Handler {
@@ -19,6 +20,7 @@ final class CareerCommandDispatcher {
         default boolean accepts(CareerCommandJournal.Intent intent) { return false; }
         /** Payload-level scope check in addition to gate/journal checks; legacy handlers remain compatible. */
         default boolean acceptsContext(CareerCommandGate.Context context, String owner) { return true; }
+        default Optional<FinanceRequest> persistentRequest() { return Optional.empty(); }
     }
     private final CareerCommandGate gate;
     private final CareerCommandJournal journal;
@@ -32,12 +34,33 @@ final class CareerCommandDispatcher {
     }
     Result execute(CareerCommandGate.Owner owner, CareerCommandGate.Context context, CareerCommandJournal.Intent intent,
                    String expectedJournalToken, Handler handler) throws Exception {
+        return executeInternal(owner, context, intent, expectedJournalToken, handler, null);
+    }
+    /** Payload commit/read-confirmation precedes journal and effect. A store failure never enqueues a handler.
+     * No atomicity with journal: a committed request alone is not permission to retry an operation. */
+    StoredResult executeStoredFinance(CareerCommandGate.Owner owner, CareerCommandGate.Context context, FinanceRequest request,
+                                     String expectedJournalToken, FinanceRequestStore requests, String expectedRequestToken, Handler handler) throws Exception {
+        if (SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Persist requests off EDT");
+        Objects.requireNonNull(request); Objects.requireNonNull(requests); Objects.requireNonNull(handler);
+        String ownerId = gate.ownerId(owner);
+        if (!requests.matches(context, ownerId) || !journal.matches(context, ownerId) || !request.matches(context, ownerId)
+                || !handler.persistentRequest().equals(Optional.of(request)) || !handler.accepts(request.intent()) || !handler.acceptsContext(context, ownerId))
+            throw new IllegalArgumentException("Stored financial request/handler/context scope mismatch");
+        journal.reviewStoredRequest(context.save(), expectedJournalToken, request.intent());
+        var committed = requests.persist(request, expectedRequestToken);
+        journal.reviewStoredRequest(context.save(), expectedJournalToken, request.intent());
+        return new StoredResult(executeInternal(owner, context, request.intent(), expectedJournalToken, handler, request), committed);
+    }
+    private Result executeInternal(CareerCommandGate.Owner owner, CareerCommandGate.Context context, CareerCommandJournal.Intent intent,
+                                   String expectedJournalToken, Handler handler, FinanceRequest stored) throws Exception {
         if (SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Journal dispatch must start off EDT");
         Objects.requireNonNull(context); Objects.requireNonNull(intent); Objects.requireNonNull(handler);
         if (!journal.matches(context, gate.ownerId(owner)))
             return new Result(Kind.DENIED, Detail.BINDING_MISMATCH, null, Optional.empty());
         if (!handler.accepts(intent) || !handler.acceptsContext(context, gate.ownerId(owner)))
             return new Result(Kind.DENIED, Detail.HANDLER_MISMATCH, null, Optional.empty());
+        if (handler.persistentRequest().isPresent() && !handler.persistentRequest().equals(Optional.ofNullable(stored)))
+            return new Result(Kind.DENIED, Detail.REQUEST_REQUIRED, null, Optional.empty());
         boolean interrupted = Thread.interrupted();
         CareerCommandGate.Permit permit = null;
         try {

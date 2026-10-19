@@ -115,6 +115,7 @@ final class LegacyFinanceAdapter {
         @Override public boolean acceptsContext(CareerCommandGate.Context context, String owner) {
             return request == null || request.matches(context, owner);
         }
+        @Override public Optional<FinanceRequest> persistentRequest() { return Optional.ofNullable(request); }
         FinanceDelta.Snapshot expected() { return after; }
         private boolean current(Object target, Object originalLedger, CareerCommandDispatcher.Roots roots) throws Exception {
             if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null

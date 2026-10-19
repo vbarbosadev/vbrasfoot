@@ -1,5 +1,10 @@
 # Pedido financeiro interno reproduzivel
 
+Incremento posterior: FINANCE-REQUEST-STORE.md implementa armazenamento interno
+limitado e pipeline payload-before-journal-before-effect, sem Main/API publica.
+As limitacoes historicas abaixo descrevem o codec isolado; quotas globais,
+migracoes de revisao e reconciliacao APPLIED/UNKNOWN continuam pendentes.
+
 Incremento experimental apos OPERATIONAL-CONTEXT.md. Nao instala loader, nao cria
 mods e nao concede API/permissoes de escrita. Categorias continuam **raw 6/7**,
 nao patrocinio/salario. Nenhuma mudanca no EXE, schemas serializados ou saves pessoais.
