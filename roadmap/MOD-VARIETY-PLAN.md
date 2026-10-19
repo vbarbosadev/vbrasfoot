@@ -80,3 +80,9 @@ configurados; confirmacao one-shot e revalidada antes de metadata/quarentena.
 Veja DECODED-SAVE-COORDINATOR.md. Esta parte da UI/metadados foi conectada ao Main
 somente em modo sonda; API de escrita/contexto de comandos continuam desconectados.
 Fixture original nao executa init UI:nao resolve gates de calendario/mercado/gameplay.
+
+Incremento de I/O:admissao sincronica antes de carga/reset/writer originais, com
+CareerIoInterlock/gate privado da ProbeSession. Recusa conflitos antes de mutacao,
+preserva fallback recursivo e libera fence somente na saida externa. Testes
+sinteticos/originais privados em ORIGINAL-IO-INTERLOCK.md. Contexto de comandos
+para mods, qualificacao real e reconciliacao de efeitos continuam pendentes.

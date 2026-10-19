@@ -114,3 +114,7 @@ catalogo/quotas/compactacao/migracoes globais, semantica e UI financeira, calend
 partidas/temporadas, ofertas/interceptacao/contrapropostas/commit de transferencias,
 API publica de escrita e autoria externa. Nao habilitar essas frentes por flags
 de prontidao artificiais, polling ou stubs que apenas retornam sucesso.
+
+Incremento posterior: ORIGINAL-IO-INTERLOCK.md conecta admissao antes dos corpos
+originais de carga/reset/save ao gate privado da ProbeSession. Ainda sem concessao
+de contexto a mods, qualificacao real ou reconciliacao de efeitos entre revisoes.

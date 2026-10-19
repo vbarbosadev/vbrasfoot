@@ -114,6 +114,10 @@ javap/scanner Java existente,sem baixar/configurar engines.
 
 Nenhuma etapa dessa lista e declarada concluida por estas fundacoes isoladas.
 
+Atualizacao posterior: ORIGINAL-IO-INTERLOCK.md conecta admissao antes do writer,
+load e reset originais ao gate privado da sessao opt-in, com cleanup/nested fallback
+testados. Nao liga comandos a mods nem resolve qualificacao/reconciliacao restantes.
+
 ## 5. Dispatcher e adaptador financeiro limitados — entrega posterior
 
 CareerCommandDispatcher liga journal+gate+EDT+handler interno. Inicio fora da EDT,

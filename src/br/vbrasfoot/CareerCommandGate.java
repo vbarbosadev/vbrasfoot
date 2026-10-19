@@ -9,7 +9,8 @@ final class CareerCommandGate implements AutoCloseable {
     enum Operation { FINANCE_CREDIT, FINANCE_DEBIT, TRANSFER_ACCEPT, TRANSFER_COUNTEROFFER }
     enum Status { RESERVED, RUNNING, APPLIED, REJECTED, OUTCOME_UNKNOWN }
     enum Reason { NONE, PERMISSION, OWNER_REVOKED, CLOSED, NO_CONTEXT, STALE_CONTEXT, REQUEST_CONFLICT, BUSY, CAPACITY,
-        WRONG_THREAD, INVALIDATED, NO_EFFECT_CONFIRMED, EXECUTION_UNCERTAIN, SAVE_IN_PROGRESS }
+        WRONG_THREAD, INVALIDATED, NO_EFFECT_CONFIRMED, EXECUTION_UNCERTAIN, SAVE_IN_PROGRESS, ORIGINAL_IO_IN_PROGRESS }
+    enum IoKind { LOAD, RESET, SAVE }
     record Context(UUID token, UUID career, UUID binding, long generation, CareerSidecarStore.SaveRevision save) { }
     record Request(UUID context, String key, Operation operation, String payloadDigest) {
         Request {
@@ -35,7 +36,8 @@ final class CareerCommandGate implements AutoCloseable {
     }
     static final class SaveFence {
         private final UUID gate;
-        private SaveFence(UUID gate) { this.gate = gate; }
+        private final IoKind kind;
+        private SaveFence(UUID gate, IoKind kind) { this.gate = gate; this.kind = kind; }
     }
     private static final class Slot {
         final Owner owner; final Request request;
@@ -79,11 +81,16 @@ final class CareerCommandGate implements AutoCloseable {
     /** Trusted coordinator must acquire BEFORE invoking the original writer, never from a post-save event.
      * Refuses queued/running work. No waiting on the EDT, no writer invocation and no save-success claim. */
     synchronized SaveFence beginSave() {
+        return beginOriginalIo(IoKind.SAVE);
+    }
+    /** Same exclusion covers original loads/resets before their first state-changing instruction. */
+    synchronized SaveFence beginOriginalIo(IoKind kind) {
+        Objects.requireNonNull(kind);
         if (closed) throw new IllegalStateException("Command gate closed");
         if (saveFence != null || active != null || !executing.isEmpty() || !dispatching.isEmpty())
             throw new IllegalStateException("Commands or original save window still active");
         invalidate();
-        return saveFence = new SaveFence(session);
+        return saveFence = new SaveFence(session, kind);
     }
     /** Closing a window does not revalidate roots, retarget journals or restore the previous context. */
     synchronized void endSave(SaveFence fence) {
@@ -98,7 +105,8 @@ final class CareerCommandGate implements AutoCloseable {
     synchronized Reservation reserve(Owner owner, Request request, Object primary, Object secondary) {
         requireOwner(owner); Objects.requireNonNull(request);
         Reason rejection = closed ? Reason.CLOSED : !owner.active ? Reason.OWNER_REVOKED
-                : !owner.operations.contains(request.operation()) ? Reason.PERMISSION : saveFence != null ? Reason.SAVE_IN_PROGRESS : Reason.NONE;
+                : !owner.operations.contains(request.operation()) ? Reason.PERMISSION
+                : saveFence != null ? saveFence.kind == IoKind.SAVE ? Reason.SAVE_IN_PROGRESS : Reason.ORIGINAL_IO_IN_PROGRESS : Reason.NONE;
         if (rejection != Reason.NONE) return denied(owner, request, rejection);
         Identity identity = new Identity(owner.id, request.key()); Slot previous = commands.get(identity);
         if (previous != null) {

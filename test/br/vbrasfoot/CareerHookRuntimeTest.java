@@ -118,6 +118,9 @@ public final class CareerHookRuntimeTest {
              });
              var attached = HookProbe.attach(dispatcher::offer);
              var guarded = HookProbe.attachLifecycle(lifecycle);
+             var commandGate = new CareerCommandGate();
+             var originalIo = new CareerIoInterlock(commandGate);
+             var guardedIo = HookProbe.attachIoInterlock(originalIo);
              LegacyRuntime plain = LegacyRuntime.prepare(Profile.verify(game), home.resolve("plain"));
              LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home.resolve("probe"), true)) {
              observerMod.load(List.of(ModManifest.read(Path.of(args[2]))), null, null, home.resolve("mod-data"));
@@ -162,6 +165,35 @@ public final class CareerHookRuntimeTest {
                 check(fixtureReview.journals().get(0).recovery().orElseThrow().status() == CareerCommandJournal.RecoveryStatus.EMPTY
                         && !Files.exists(home.resolve("association-review-fixture/journals")), "configured original-fixture journal inspection creates no empty journal or command");
                 var reviewBeforeSave = coordinator.review(Optional.of(fixtureHandle));
+                // Artificial command reservation authority only, to exercise admission BEFORE the original bodies.
+                Object ioPrimary = state.getField("SR").get(null), ioSecondary = state.getField("afQ").get(null);
+                var ioOwner = commandGate.owner("br.owned.original-io", Set.of(CareerCommandGate.Operation.FINANCE_CREDIT));
+                var ioContext = commandGate.installContext(fixtureHandle.career(), fixtureHandle.binding(), lifecycle.ticket().generation(),
+                        sourceObservation.revision(), ioPrimary, ioSecondary);
+                var ioRequest = new CareerCommandGate.Request(ioContext.token(), "block-original", CareerCommandGate.Operation.FINANCE_CREDIT, "c".repeat(64));
+                var ioPermit = commandGate.reserve(ioOwner, ioRequest, ioPrimary, ioSecondary).permit().orElseThrow();
+                var lifecycleBeforeRefusal = lifecycle.snapshot();
+                boolean writerRefused = CareerBridge.onEdt(() -> {
+                    try { save.invoke(null, "interlock-refused"); return false; }
+                    catch (java.lang.reflect.InvocationTargetException expected) { return expected.getCause() instanceof IllegalStateException; }
+                });
+                check(writerRefused && !Files.exists(saves.resolve("interlock-refused.s22")) && !Files.exists(saves.resolve("interlock-refused.sbck"))
+                        && !Files.exists(saves.resolve("interlock-refused.info")), "original writer preflight refuses queued command before any output artifact");
+                boolean decoderRefused = CareerBridge.onEdt(() -> {
+                    try { load.invoke(null, "input", false); return false; }
+                    catch (java.lang.reflect.InvocationTargetException expected) { return expected.getCause() instanceof IllegalStateException; }
+                });
+                check(decoderRefused && state.getField("SR").get(null) == ioPrimary && state.getField("afQ").get(null) == ioSecondary,
+                        "original load preflight refuses before root assignment");
+                boolean setterRefused = CareerBridge.onEdt(() -> {
+                    try { state.getMethod("a", Class.forName("best.f", false, runtime)).invoke(null, ioPrimary); return false; }
+                    catch (java.lang.reflect.InvocationTargetException expected) { return expected.getCause() instanceof IllegalStateException; }
+                });
+                check(setterRefused && lifecycle.snapshot().generation() == lifecycleBeforeRefusal.generation()
+                        && lifecycle.snapshot().saves() == lifecycleBeforeRefusal.saves(), "original setter refusal causes no diagnostic load/save or generation mutation");
+                check(HookProbe.currentProvenance(decodedBinding, ioPrimary, ioSecondary) && originalIo.snapshot().depth() == 0,
+                        "preflight refusal neither revokes unchanged decoder evidence nor leaks an I/O fence");
+                commandGate.cancel(ioPermit);
                 GameAccess.Snapshot baseline = new CareerBridge(runtime).snapshot();
                 check(baseline.loaded(), "decoded career readable");
                 CareerBridge bridge = new CareerBridge(runtime);
@@ -197,6 +229,10 @@ public final class CareerHookRuntimeTest {
                 check(scoped.scope().equals(bridge.scopedClubs("", 0, 1).scope()), "same roots keep query scope");
                 events.clear();
                 CareerBridge.onEdt(() -> { save.invoke(null, "output"); return null; });
+                check(originalIo.snapshot().depth() == 0, "real writer normal return releases automatic original I/O fence");
+                var afterSaveRequest = new CareerCommandGate.Request(ioContext.token(), "after-save", ioRequest.operation(), ioRequest.payloadDigest());
+                check(commandGate.reserve(ioOwner, afterSaveRequest, ioPrimary, ioSecondary).receipt().reason() == CareerCommandGate.Reason.NO_CONTEXT,
+                        "automatic writer admission invalidates artificial context and never restores it after save");
                 check(HookProbe.decodedProvenance().binding().isEmpty(), "original save entry invalidates decoder provenance before potential root ID mutation");
                 boolean staleReviewRefused = false;
                 try { coordinator.confirm(reviewBeforeSave, CareerAssociationCoordinator.Action.ACCEPT_REVISION, Optional.empty()); }
@@ -264,6 +300,8 @@ public final class CareerHookRuntimeTest {
                 observation = only(events, "load");
                 check(!outerResult && observation.completed() && observation.backup() && observation.fallback() && !observation.returnedSuccess(), "real recursive fallback deduplicated despite false outer return");
                 check(lifecycle.snapshot().loads() == 3 && lifecycle.snapshot().loadedBackup() && lifecycle.snapshot().inFlight() == 0, "original fallback bound once");
+                check(originalIo.snapshot().depth() == 0 && originalIo.snapshot().admitted() == originalIo.snapshot().completed(),
+                        "real original recursive fallback drains nested entries under one exclusion window");
                 var fallbackBinding = HookProbe.decodedProvenance().binding().orElseThrow();
                 check(fallbackBinding.backup() && fallbackBinding.source().equals(saves.resolve("fallback.sbck"))
                         && fallbackBinding.bytes().sha256().equals(Profile.digest(saves.resolve("fallback.sbck"))), "recursive original fallback carries backup stream proof, not failed primary bytes");

@@ -1,5 +1,54 @@
 # Validacao — 16/10/2026
 
+## Admissao nas entradas originais de I/O — 18/10/2026
+
+`CareerIoInterlock` conecta o gate cooperativo a carga/reset/save originais no
+modo sonda. CareerTransformer chama beforeOriginalIo ANTES do corpo de c/ae/setter
+e depois de super, antes da mutacao, no construtor de reset. Admissao recusada
+propaga antes do try de cleanup; nao fecha frame do pai. Retornos/Throwable liberam
+owner capturado em afterOriginalIo. Nao engolir BUSY e seguir com writer original.
+Schemas/fingerprint originais mantidos; nenhuma escrita no EXE.
+
+LOAD/RESET externos obtem fence, invalidam contexto anterior e permitem somente
+fallback/reset aninhado no mesmo thread, sob a mesma janela. SAVE nao aninha e
+threads concorrentes sao recusados. queued/running/timed-out ou persistencia de
+completion ainda ativa impedem admissao. Nao ha espera EDT, queue/retry de save
+ou restauracao de contexto depois do retorno. Stack limitada64; foreign/LIFO/
+double exits recusados. Detach fecha mas nao libera I/O em voo; contador global
+impede hot swap do owner no meio da rotina. Caller sem owner tambem e contado.
+
+ProbeSession instala gate/interlock privados antes do runtime e encerra ambos
+na disposal. Report local original-io-interlock.properties contem contagens/depth
+e writeAuthority=false, sem filenames/objetos. Esse gate NAO concede contextos a
+mods e NAO e exposto no ModContext. Nao atribuir prontidao ou reconciliacao a ele.
+
+Evidencia aprovada:
+-39checks novos em `build/original-io-interlock-final.log`, fixture propria
+ `Temp/opencode/original-io-interlock-13929383224137494441`: exclusao gate/bridge,
+ bytecode sintetico transformado, fallback/Throwable/earlyreturn/constructor,
+ competencia de threads, depthbound, LIFO, post-handler persistence, timeout,
+ attach/detach sem janela desprotegida e recusas antes de efeito.
+-149checks I/O/schema originais, fixture PRIVADA
+ `Temp/opencode/vbrasfoot-hook-io-4a82374b4a7b482285b0cc0b56041853`: uma reserva
+ ARTIFICIAL da fixture bloqueia writer antes de output, decoder/setter antes de
+ root/lifecycle/provenance mutation. Sem reserva, writer/reload/fallback originais
+ continuam funcionando, entradas balanceadas e contexto antigo nao e restaurado.
+ JFrame sintetico ainda pula init UI; nenhum gate de gameplay aprovado.
+-26checks financeiros originais aprovados em
+ `build/original-io-interlock-finance.log`, fixture privada
+ `Temp/opencode/vbrasfoot-finance-caa43a707cfa4512b7b17955d9b22b23`.
+-SDK-only ZIP/hash/allowlist/cinco projetos/negativos aprovados em
+ `build/original-io-interlock-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-fabcb931147744c1b59e4416299da117`.
+ Archive local dist/sdk-0.9.3-original-io-interlock.zip, sem release/tag/upload.
+
+Wrappers conferiram origem EXE/save por hash. Loader instalado continua0.9.3;
+nenhum mod/carreira/partida criado e nenhum save de usuario sobrescrito. Protecao
+e somente cooperativa de um gate no runtime instrumentado, nao lock cross-process
+ou sandbox. UI original pode apresentar/logar recusa propagada, sem promessa de
+dialogo customizado. Qualificacao real, reconciliacao, calendario, mercado e API
+publica ainda pendentes; contrato em `roadmap/ORIGINAL-IO-INTERLOCK.md`.
+
 ## Stream decodificado, coordenador e painel de revisao — 18/10/2026
 
 `CareerTransformer` conserva fingerprint exato de c.a e schemas, acrescentando

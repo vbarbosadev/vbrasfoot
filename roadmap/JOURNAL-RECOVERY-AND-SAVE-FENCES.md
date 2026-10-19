@@ -1,6 +1,8 @@
 # Recuperacao conservadora do diario e exclusao durante saves
 
 Implementacao inicial interna, sem ModContext ou hooks do writer no jogo instalado.
+Incremento ORIGINAL-IO-INTERLOCK.md conecta exclusao as entradas originais no codigo
+opt-in, ainda sem instalar nova versao no jogo ou autorizar contextos de escrita.
 Incremento DECODED-SAVE-COORDINATOR.md liga leitura/quarentena de diarios a painel
 de metadata opt-in no Main; nao a contexto de comandos ou startup automatico.
 Nao cria mods de patrocinio/negociacao. Complementa EXPLICIT-SAVE-ASSOCIATIONS.md;
