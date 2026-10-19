@@ -66,6 +66,9 @@ le os reports encerrados sem autorizar escritas. Fixtures sinteticas nao substit
 O codigo experimental tambem permite [preparar contexto interno e reconciliar apenas
 diarios sem efeitos confirmados](roadmap/OPERATIONAL-CONTEXT.md), sem conceder
 comandos aos mods ou resolver resultados incertos por suposicao.
+O [pedido financeiro interno reproduzivel](roadmap/PERSISTENT-FINANCE-REQUEST.md)
+vincula intent a owner/carreira/binding/revisao e precondicao completa, sem nonce
+de sessao no novo caminho; nao e API publica nem prova de inclusao no save.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

@@ -41,7 +41,39 @@ final class LegacyFinanceAdapter {
         requireEdt(); var roots = roots(); requireHumanClub(club, roots);
         FinanceDelta.Snapshot before = snapshot(club), after = FinanceDelta.predict(before, direction, amount);
         Object ledger = CareerBridge.call(club, "kL");
-        return new Plan(club, ledger, roots, before, after, direction, amount);
+        return new Plan(club, ledger, roots, before, after, direction, amount, null);
+    }
+    /** Durable intent can be reconstructed, but live plans remain weak and one-shot. No implicit owner grant. */
+    FinanceRequest request(CareerCommandGate.Context context, String owner, String key, Object club,
+                           FinanceDelta.Direction direction, int amount) throws Exception {
+        requireEdt(); var roots = roots(); requireHumanClub(club, roots);
+        return new FinanceRequest(context.career(), context.binding(), context.save(), owner, key,
+                locator(club, roots), direction, amount, snapshot(club));
+    }
+    Plan prepare(FinanceRequest request) throws Exception {
+        requireEdt(); Objects.requireNonNull(request); var roots = roots();
+        if (roots.primary() == null || roots.secondary() == null) throw new IllegalStateException("No live roots");
+        var clubs = (List<?>) CareerBridge.call(roots.primary(), "P");
+        if (request.club().index() >= clubs.size()) throw new IllegalStateException("Club locator no longer present");
+        Object club = clubs.get(request.club().index()); requireHumanClub(club, roots);
+        if (!request.club().equals(locator(club, roots)) || !request.before().equals(snapshot(club)))
+            throw new IllegalStateException("Club or full financial precondition changed");
+        return new Plan(club, CareerBridge.call(club, "kL"), roots, request.before(),
+                FinanceDelta.predict(request.before(), request.direction(), request.amount()), request.direction(), request.amount(), request);
+    }
+    private FinanceRequest.Club locator(Object club, CareerCommandDispatcher.Roots roots) throws Exception {
+        var clubs = (List<?>) CareerBridge.call(roots.primary(), "P");
+        int id = ((Number) CareerBridge.call(club, "gD")).intValue(), index = -1, matches = 0;
+        String name = (String) CareerBridge.call(club, "getNome");
+        for (int i = 0; i < clubs.size(); i++) {
+            Object candidate = clubs.get(i);
+            if (candidate == null || candidate.getClass() != clubClass) throw new IllegalStateException("Invalid club list");
+            if (((Number) CareerBridge.call(candidate, "gD")).intValue() == id
+                    && Objects.equals(name, CareerBridge.call(candidate, "getNome"))) matches++;
+            if (candidate == club) { if (index >= 0) throw new IllegalStateException("Repeated club root"); index = i; }
+        }
+        if (index < 0 || matches != 1) throw new IllegalStateException("Ambiguous club ID/name; request refused");
+        return new FinanceRequest.Club(index, id, name);
     }
     private void requireHumanClub(Object club, CareerCommandDispatcher.Roots roots) throws Exception {
         if (roots.primary() == null || roots.secondary() == null || club == null || club.getClass() != clubClass)
@@ -58,27 +90,37 @@ final class LegacyFinanceAdapter {
         private final int amount;
         private final AtomicBoolean used = new AtomicBoolean();
         private final String digest;
+        private final FinanceRequest request;
         Plan(Object club, Object ledger, CareerCommandDispatcher.Roots roots, FinanceDelta.Snapshot before, FinanceDelta.Snapshot after,
-             FinanceDelta.Direction direction, int amount) throws Exception {
+              FinanceDelta.Direction direction, int amount, FinanceRequest request) throws Exception {
             this.club = new WeakReference<>(club); this.ledger = new WeakReference<>(ledger);
             primary = new WeakReference<>(roots.primary()); secondary = new WeakReference<>(roots.secondary());
             this.before = before; this.after = after; this.direction = direction; this.amount = amount;
-            // Session plan identity: never use this digest as a persistent player/club/career ID.
-            String canonical = UUID.randomUUID() + ":" + direction + ":" + amount + ":" + before.balance() + ":" + new TreeMap<>(before.ledger());
-            digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8)));
+            this.request = request;
+            if (request != null) digest = request.digest();
+            else {
+                // Compatibility fixture plan only: not a persistent request or cross-session identity.
+                String canonical = UUID.randomUUID() + ":" + direction + ":" + amount + ":" + before.balance() + ":" + new TreeMap<>(before.ledger());
+                digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8)));
+            }
         }
         CareerCommandJournal.Intent intent(String key) {
+            if (request != null && !request.key().equals(key)) throw new IllegalArgumentException("Persistent request key cannot be replaced");
             return new CareerCommandJournal.Intent(key, direction == FinanceDelta.Direction.CREDIT_RAW_6 ? CareerCommandGate.Operation.FINANCE_CREDIT : CareerCommandGate.Operation.FINANCE_DEBIT, digest);
         }
         @Override public boolean accepts(CareerCommandJournal.Intent intent) {
-            return intent != null && intent.payloadDigest().equals(digest)
+            return intent != null && (request == null || request.key().equals(intent.key())) && intent.payloadDigest().equals(digest)
                     && intent.operation() == (direction == FinanceDelta.Direction.CREDIT_RAW_6 ? CareerCommandGate.Operation.FINANCE_CREDIT : CareerCommandGate.Operation.FINANCE_DEBIT);
+        }
+        @Override public boolean acceptsContext(CareerCommandGate.Context context, String owner) {
+            return request == null || request.matches(context, owner);
         }
         FinanceDelta.Snapshot expected() { return after; }
         private boolean current(Object target, Object originalLedger, CareerCommandDispatcher.Roots roots) throws Exception {
             if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null
                     || roots.primary() != primary.get() || roots.secondary() != secondary.get() || CareerBridge.call(target, "kL") != originalLedger) return false;
-            requireHumanClub(target, roots); return true;
+            requireHumanClub(target, roots);
+            return request == null || request.club().equals(locator(target, roots));
         }
         @Override public CareerCommandGate.Status apply() throws Exception {
             requireEdt(); if (!used.compareAndSet(false, true)) return CareerCommandGate.Status.REJECTED;

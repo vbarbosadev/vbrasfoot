@@ -1,5 +1,8 @@
 # Contexto interno revisado e reconciliacao limitada sem efeitos
 
+Incremento posterior: PERSISTENT-FINANCE-REQUEST.md define payload financeiro
+interno reproduzivel sem nonce, sem libera-lo a mods ou resolver APPLIED/UNKNOWN.
+
 Entrega de codigo experimental, sem API publica de escrita, permissao nova para
 mods ou instalacao pessoal atualizada. Nao cria mods de patrocinio/negociacao.
 Nao registrar snapshot offline ou retorno de init como prontidao global.

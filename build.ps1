@@ -73,7 +73,9 @@ try {
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerCommandDispatcherSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do despacho de comandos falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceDeltaSelfTest
-    if ($LASTEXITCODE -ne 0) { throw 'Testes aritmeticos financeiros falharam' }
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de delta financeiro falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceRequestSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de pedidos financeiros persistentes falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkValidatorJsonSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes JSON do validador SDK falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.DiagnosticExportSelfTest
