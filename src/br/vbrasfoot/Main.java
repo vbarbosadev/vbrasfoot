@@ -111,7 +111,8 @@ public final class Main {
                         if (options.probe) {
                             var associationOwners = manifests.stream().map(ModManifest::id).distinct().toList();
                             if (associationOwners.size() <= 64) CareerAssociationPanel.register(ui,
-                                    new CareerAssociationCoordinator(game.resolve("sav"), home.resolve("data").resolve(".career-state"), runtime, associationOwners), logger);
+                                    new CareerAssociationCoordinator(game.resolve("sav"), home.resolve("data").resolve(".career-state"), runtime, associationOwners)
+                                            .operational(probe.operational()), logger);
                             else logger.warning("career-association-panel=unavailable reason=configured-owner-capacity; no partial inventory or write authority");
                         }
                         ui.start();

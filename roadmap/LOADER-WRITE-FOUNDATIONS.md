@@ -113,6 +113,9 @@ javap/scanner Java existente,sem baixar/configurar engines.
 8. API publica/documentacao/permissionamento,testes humanos e autoria externa.
 
 Nenhuma etapa dessa lista e declarada concluida por estas fundacoes isoladas.
+OPERATIONAL-CONTEXT.md implementa preparacao interna revisada no gate da sessao,
+com cancelamento de instalacao EDT tardia, e reconciliacao limitada de journals
+inteiramente NO_EFFECT_CONFIRMED. Nao habilita API publica nem resolve APPLIED/UNKNOWN.
 
 Atualizacao posterior: ORIGINAL-IO-INTERLOCK.md conecta admissao antes do writer,
 load e reset originais ao gate privado da sessao opt-in, com cleanup/nested fallback

@@ -1,6 +1,9 @@
 # Inventario dos diarios de um binding explicitamente escolhido
 
 Incremento de revisao/recuperacao, nao descoberta de carreira ou permissao de escrita.
+Incremento OPERATIONAL-CONTEXT.md permite explicar a ancora real antiga e migrar
+explicitamente apenas historico NO_EFFECT_CONFIRMED; mismatch nao e apagado ou
+interpretado como diario vazio e continua bloqueando contexto ate resolucao valida.
 Nao cria mods, efeitos financeiros, carreiras ou saves. Nenhuma instalacao automatica.
 
 ## Lacuna corrigida

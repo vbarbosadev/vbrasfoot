@@ -63,6 +63,9 @@ habilitam pagamentos/transferencias nem a API de escrita. Nao instalada automati
 Para conferir carga pelo ramo real: [roteiro delimitado](roadmap/LOAD-ONLY-VALIDATION.md),
 `prepare-load-validation.ps1` prepara copia sem iniciar jogo e `--inspect-load-validation`
 le os reports encerrados sem autorizar escritas. Fixtures sinteticas nao substituem essa sessao.
+O codigo experimental tambem permite [preparar contexto interno e reconciliar apenas
+diarios sem efeitos confirmados](roadmap/OPERATIONAL-CONTEXT.md), sem conceder
+comandos aos mods ou resolver resultados incertos por suposicao.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

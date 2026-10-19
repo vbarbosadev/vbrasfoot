@@ -75,6 +75,13 @@ public final class FinanceOriginalRuntimeTest {
                     check(negative && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(changed.expected()), "negative credit refused without touching original graph");
                     boolean nonEdt = false; try { adapter.snapshot(human); } catch (IllegalStateException expected) { nonEdt = true; }
                     check(nonEdt, "original finance reads refuse caller outside EDT");
+                    var noEffectKey = new CareerSidecarStore.Key(career, binding, "br.owned.finance-no-effect");
+                    var noEffectJournal = new CareerCommandJournal(new CareerSidecarStore(home.resolve("finance-no-effect-journal")), noEffectKey);
+                    var noEffectOwner = gate.owner(noEffectKey.mod(), Set.of(CareerCommandGate.Operation.FINANCE_CREDIT));
+                    var noEffectDispatcher = new CareerCommandDispatcher(gate, noEffectJournal, adapter::roots, Duration.ofSeconds(5));
+                    var noEffectResult = noEffectDispatcher.execute(noEffectOwner, context, stale.intent("no-effect-only"), CareerSidecarStore.EMPTY, stale);
+                    check(noEffectResult.kind() == Kind.NO_EFFECT && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(changed.expected()),
+                            "original adapter rejects consumed/stale plan with no mutation in separate no-effect journal");
                     var beforeSave = CareerBridge.onEdt(() -> adapter.snapshot(human));
                     var saveFence = gate.beginSave();
                     try { CareerBridge.onEdt(() -> { saveMethod.invoke(null, "finance-output"); return null; }); }
@@ -98,6 +105,14 @@ public final class FinanceOriginalRuntimeTest {
                     try { journal.read(outputObservation.revision()); }
                     catch (CareerSidecarStore.Failure expected) { journalMismatch = expected.reason() == CareerSidecarStore.Reason.SAVE_REVISION_MISMATCH; }
                     check(journalMismatch, "journal not silently reanchored to financially modified output save");
+                    boolean appliedMigrationRefused = false;
+                    try { journal.reanchorNoEffects(revision, outputObservation.revision(), journal.read(revision).token()); }
+                    catch (CareerSidecarStore.Failure expected) { appliedMigrationRefused = expected.reason() == CareerSidecarStore.Reason.RECONCILIATION_REQUIRED; }
+                    check(appliedMigrationRefused, "original APPLIED financial effects remain historical; cannot use no-effect migration");
+                    var preservedNoEffects = noEffectJournal.reanchorNoEffects(revision, outputObservation.revision(), noEffectResult.journal().orElseThrow().token());
+                    check(preservedNoEffects.receipts().equals(noEffectResult.journal().orElseThrow().receipts())
+                            && noEffectJournal.read(outputObservation.revision()).token().equals(preservedNoEffects.token()),
+                            "only verified no-effect receipts reanchor across original save/reload without replay or graph write");
                     var recovery = journal.inspectRecovery(revision, outputObservation.revision());
                     check(recovery.status() == CareerCommandJournal.RecoveryStatus.HISTORICAL_EFFECTS && recovery.revisionChanged(),
                             "original roundtrip still classified as historical effects, not automatic journal reconciliation");

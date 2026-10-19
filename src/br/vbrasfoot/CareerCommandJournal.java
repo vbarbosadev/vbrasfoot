@@ -3,7 +3,7 @@ package br.vbrasfoot;
 import java.io.*;
 import java.util.*;
 
-/** Internal durable intents for a fixed explicitly supplied binding/revision; no game dispatcher. */
+/** Internal durable intents for an explicit binding/recorded revision, never a public mod write service. */
 final class CareerCommandJournal {
     enum State { PREPARED, APPLIED, NO_EFFECT_CONFIRMED, OUTCOME_UNKNOWN }
     record Intent(String key, CareerCommandGate.Operation operation, String payloadDigest) {
@@ -21,6 +21,19 @@ final class CareerCommandJournal {
     record Recovery(Snapshot snapshot, CareerSidecarStore.SaveRevision recordedSave,
                     CareerSidecarStore.SaveRevision observedSave, RecoveryStatus status) {
         boolean revisionChanged() { return !recordedSave.equals(observedSave); }
+    }
+    static final class NoEffectReanchor {
+        private final CareerSidecarStore.Key key;
+        private final CareerSidecarStore.SaveRevision previous, next;
+        private final String token;
+        private final byte[] payload;
+        private NoEffectReanchor(CareerSidecarStore.Key key, CareerSidecarStore.SaveRevision previous,
+                                 CareerSidecarStore.SaveRevision next, String token, byte[] payload) {
+            this.key = key; this.previous = previous; this.next = next; this.token = token; this.payload = payload.clone();
+        }
+        CareerSidecarStore.Key key() { return key; } CareerSidecarStore.SaveRevision previous() { return previous; }
+        CareerSidecarStore.SaveRevision next() { return next; } String token() { return token; }
+        int schema() { return SCHEMA; } byte[] payload() { return payload.clone(); }
     }
     static final class Lease {
         private final UUID journal, operation;
@@ -51,6 +64,27 @@ final class CareerCommandJournal {
                 : snapshot.receipts().stream().anyMatch(r -> r.state() == State.APPLIED) ? RecoveryStatus.HISTORICAL_EFFECTS
                 : RecoveryStatus.NO_EFFECT_ONLY;
         return new Recovery(snapshot, recordedSave, observedSave, status);
+    }
+    /** Diagnostic current committed anchor, not identity discovery or permission to replay/migrate. */
+    Recovery inspectRecordedRecovery(CareerSidecarStore.SaveRevision observedSave) throws IOException {
+        Objects.requireNonNull(observedSave); var view = store.inspectJournalRecord(key);
+        var snapshot = snapshot(view.token(), decode(view));
+        var recorded = view.value().map(CareerSidecarStore.Value::save).orElse(observedSave);
+        RecoveryStatus status = snapshot.receipts().isEmpty() ? RecoveryStatus.EMPTY
+                : snapshot.receipts().stream().anyMatch(r -> r.state() == State.OUTCOME_UNKNOWN) ? RecoveryStatus.UNCERTAIN
+                : snapshot.receipts().stream().anyMatch(r -> r.state() == State.APPLIED) ? RecoveryStatus.HISTORICAL_EFFECTS : RecoveryStatus.NO_EFFECT_ONLY;
+        return new Recovery(snapshot, recorded, observedSave, status);
+    }
+    /** Explicit narrow reconciliation only: preserve all receipts/keys and move anchor iff every result proves NO EFFECT.
+     * APPLIED/PREPARED/UNKNOWN are never resolved by balance comparison or generic human acknowledgment. */
+    Snapshot reanchorNoEffects(CareerSidecarStore.SaveRevision previous, CareerSidecarStore.SaveRevision next, String expectedToken) throws IOException {
+        Objects.requireNonNull(next); var view = store.read(key, previous); requireToken(view, expectedToken); var values = decode(view);
+        if (view.value().isEmpty() || values.isEmpty()) throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "No committed no-effect history to reconcile");
+        if (values.values().stream().anyMatch(receipt -> receipt.state() != State.NO_EFFECT_CONFIRMED))
+            throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Historical applied or uncertain effects cannot be reanchored by this operation");
+        if (previous.equals(next)) return snapshot(view.token(), values);
+        var committed = store.reanchorNoEffectJournal(new NoEffectReanchor(key, previous, next, expectedToken, encode(values)));
+        return snapshot(committed.token(), values);
     }
     /** Monotonic recovery: persist PREPARED as UNKNOWN, preserving all keys/digests/UUIDs and terminal results.
      * May conservatively fence a still-live lease, but can never make an uncertain command executable again. */

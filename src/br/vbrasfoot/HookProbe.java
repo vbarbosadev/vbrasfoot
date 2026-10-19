@@ -100,6 +100,7 @@ public final class HookProbe {
         return state == null ? null : state.ticket();
     }
     public static void rootAssigned() {
+        var attachedIo = ioInterlock.get(); if (attachedIo != null) attachedIo.invalidateContext();
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.ROOT_CHANGED);
         creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
         try {
@@ -331,6 +332,18 @@ public final class HookProbe {
     static DecodedSaveProvenance.Snapshot decodedProvenance() { return decodedProvenance.snapshot(); }
     static boolean currentProvenance(DecodedSaveProvenance.Binding binding, Object primary, Object secondary) {
         return decodedProvenance.current(binding, ticket(), primary, secondary);
+    }
+    static boolean qualifiedOperationalLoad(LoadedSaveVerifier.Verified expected, Object primary, Object secondary, CareerCommandGate gate) {
+        var attachedIo = ioInterlock.get(); var state = lifecycle.get(); var current = decodedProvenance.snapshot().binding();
+        if (attachedIo == null || !attachedIo.owns(gate) || state == null || current.isEmpty()) return false;
+        var io = attachedIo.snapshot(); var snapshot = state.snapshot(); var binding = current.orElseThrow();
+        return !io.closed() && io.depth() == 0 && io.refused() == 0 && io.admitted() > 0 && io.admitted() == io.completed()
+                && snapshot.healthy() && snapshot.inFlight() == 0 && snapshot.inFlightSaves() == 0
+                && snapshot.ioState().phase() == br.vbrasfoot.api.CareerIoEvents.Phase.ACTIVE && binding.initializedPath()
+                && binding.session().equals(expected.session()) && binding.generation() == expected.generation()
+                && binding.revision() == expected.evidenceRevision() && binding.bytes().equals(expected.bytes())
+                && binding.source().equals(expected.source()) && binding.backup() == expected.backup()
+                && currentProvenance(binding, primary, secondary);
     }
     public static void metadataClosed() {
         try { Save frame = saves.get().peek(); if (frame != null) frame.metadata = true; } catch (Throwable ignored) { }

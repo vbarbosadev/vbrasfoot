@@ -9,7 +9,8 @@ import javax.swing.SwingUtilities;
 /** Loader-owned metadata review only. Does not discover identity, install command context or mutate gameplay. */
 final class CareerAssociationCoordinator {
     enum Status { ASSOCIATION_REQUIRED, ASSOCIATION_CONFLICT, REVISION_REVIEW_REQUIRED, READ_ONLY_LINKED }
-    enum Action { CREATE_NEW, FORK_COPY, RENAME_PROVEN, ASSERT_RENAME, ACCEPT_REVISION, RESTORE_PREVIOUS, QUARANTINE_PENDING }
+    enum Action { CREATE_NEW, FORK_COPY, RENAME_PROVEN, ASSERT_RENAME, ACCEPT_REVISION, RESTORE_PREVIOUS, QUARANTINE_PENDING,
+        REANCHOR_NO_EFFECT_JOURNAL, PREPARE_INTERNAL_CONTEXT }
     record JournalReview(String owner, boolean configured, Optional<CareerCommandJournal.Recovery> recovery, Optional<CareerSidecarStore.Reason> failure) { }
     static final class Review {
         private final UUID coordinator;
@@ -42,6 +43,14 @@ final class CareerAssociationCoordinator {
     private final LoadedSaveVerifier verifier;
     private final List<String> owners;
     private final AtomicBoolean mutating = new AtomicBoolean();
+    private volatile CareerOperationalContext operational;
+    synchronized CareerAssociationCoordinator operational(CareerOperationalContext context) {
+        if (operational != null) throw new IllegalStateException("Operational session already assigned");
+        operational = Objects.requireNonNull(context); return this;
+    }
+    CareerOperationalContext.Snapshot operationalSnapshot() {
+        return operational == null ? new CareerOperationalContext.Snapshot(CareerOperationalContext.Status.NOT_BOUND, Optional.empty(), Optional.empty(), 0) : operational.snapshot();
+    }
     CareerAssociationCoordinator(Path saves, Path metadata, LegacyRuntime runtime, Collection<String> owners) {
         this(saves, new CareerSaveAssociations(metadata.resolve("associations")), new CareerSidecarStore(metadata.resolve("journals")),
                 new SaveFileObserver(), new LoadedSaveVerifier(runtime), owners);
@@ -83,7 +92,7 @@ final class CareerAssociationCoordinator {
                     continue; // Existing directory without committed HEAD must never masquerade as clean empty history.
                 }
                 try {
-                    var recovery = journal(known.handle(), owner).inspectRecovery(known.save(), observed.revision());
+                    var recovery = journal(known.handle(), owner).inspectRecordedRecovery(observed.revision());
                     if (!recovery.snapshot().token().equals(expectedToken)) throw conflict("Diario mudou durante inventario; revisar novamente");
                     journals.add(new JournalReview(owner, configured, Optional.of(recovery), Optional.empty()));
                 } catch (CareerSidecarStore.Failure failure) {
@@ -110,8 +119,12 @@ final class CareerAssociationCoordinator {
         offEdt(); Objects.requireNonNull(action); Objects.requireNonNull(journalOwner);
         if (review == null || !instance.equals(review.coordinator)) throw new IllegalArgumentException("Foreign review");
         if (!mutating.compareAndSet(false, true)) throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.BUSY, "Outra confirmacao ainda esta em curso");
+        CareerCommandGate.Preparation preparation = null; boolean bound = false;
         try {
             if (!review.consumed.compareAndSet(false, true)) throw conflict("Revisao ja consumida; verificar novamente antes de confirmar");
+            if (operational != null) {
+                preparation = operational.begin();
+            }
             if (!review.decoded.equals(verifier.verify(review.observed))) throw conflict("Carreira recarregada desde a revisao; confirmar de novo");
             var selected = review.association;
             if (selected.isPresent() && !associations.inspect(selected.orElseThrow().handle()).token().equals(selected.orElseThrow().token()))
@@ -138,12 +151,40 @@ final class CareerAssociationCoordinator {
                     var row = review.journals.stream().filter(value -> value.owner().equals(owner)).findFirst()
                             .orElseThrow(() -> new IllegalArgumentException("Journal owner not present in reviewed binding inventory"));
                     var recovery = row.recovery().orElseThrow(() -> conflict("Diario indisponivel ou ancora divergente; nao ignorar erro"));
-                    journal(handle, owner).quarantinePending(known.save(), recovery.snapshot().token());
+                    journal(handle, owner).quarantinePending(recovery.recordedSave(), recovery.snapshot().token());
                     yield handle;
+                }
+                case REANCHOR_NO_EFFECT_JOURNAL -> {
+                    if (review.status != Status.READ_ONLY_LINKED || !known.save().equals(review.decoded.bytes())) throw conflict("Confirmar associacao atual antes de reconciliar diario");
+                    String owner = journalOwner.orElseThrow(() -> new IllegalArgumentException("Explicit journal owner required"));
+                    var row = review.journals.stream().filter(value -> value.owner().equals(owner)).findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("Journal owner not reviewed"));
+                    var recovery = row.recovery().orElseThrow(() -> conflict("Diario indisponivel; nao ignorar erro"));
+                    journal(handle, owner).reanchorNoEffects(recovery.recordedSave(), review.decoded.bytes(), recovery.snapshot().token());
+                    yield handle;
+                }
+                case PREPARE_INTERNAL_CONTEXT -> {
+                    if (operational == null || preparation == null) throw conflict("Sessao operacional nao conectada");
+                    if (review.status != Status.READ_ONLY_LINKED || !review.decoded.initializationPathObserved() || !known.save().equals(review.decoded.bytes()))
+                        throw conflict("Carga inicializada e associacao atual obrigatorias; snapshot nao e prontidao global");
+                    for (var row : review.journals) {
+                        var recovery = row.recovery().orElseThrow(() -> conflict("Diario incompleto ou corrompido bloqueia contexto"));
+                        if (recovery.revisionChanged() || recovery.status() == CareerCommandJournal.RecoveryStatus.UNCERTAIN
+                                || recovery.status() == CareerCommandJournal.RecoveryStatus.HISTORICAL_EFFECTS)
+                            throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Efeito historico/incerto ou ancora divergente bloqueia contexto");
+                    }
+                    if (!review.decoded.equals(verifier.verify(review.observed))) throw conflict("Origem mudou durante preparacao de contexto");
+                    if (!review.inventory.orElseThrow().equals(journalStore.inventoryBinding(handle.career(), handle.binding()))
+                            || !associations.inspect(handle).token().equals(token)) throw conflict("Metadados ou diarios mudaram antes da instalacao");
+                    var installed = verifier.installReviewedContext(review.decoded, handle, operational.gate(), preparation);
+                    operational.accepted(installed); bound = true; yield handle;
                 }
                 default -> throw new IllegalArgumentException("Unsupported confirmation");
             };
-        } finally { mutating.set(false); }
+        } finally {
+            if (preparation != null && !bound) operational.cancel(preparation);
+            mutating.set(false);
+        }
     }
     private CareerCommandJournal journal(CareerSaveAssociations.Handle handle, String owner) {
         return new CareerCommandJournal(journalStore, new CareerSidecarStore.Key(handle.career(), handle.binding(), owner));

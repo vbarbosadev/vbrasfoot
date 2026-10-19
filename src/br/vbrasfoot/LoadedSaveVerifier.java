@@ -56,4 +56,23 @@ final class LoadedSaveVerifier {
         return new Verified(binding.session(), binding.generation(), binding.revision(), binding.source(), binding.bytes(),
                 binding.backup(), binding.initializedPath());
     }
+    /** Internal limited context only; the caller must independently review association and all journals first.
+     * Cancellation revokes a context even when an EDT task was already running at timeout. */
+    CareerCommandGate.Context installReviewedContext(Verified expected, CareerSaveAssociations.Handle handle,
+                                                     CareerCommandGate gate, CareerCommandGate.Preparation preparation) throws IOException, InterruptedException {
+        if (SwingUtilities.isEventDispatchThread()) throw new Failure(Reason.WRONG_THREAD, "Prepare operational context off EDT");
+        FutureTask<CareerCommandGate.Context> query = new FutureTask<>(() -> {
+            var current = roots.current();
+            if (current == null || !expected.initializationPathObserved() || !HookProbe.qualifiedOperationalLoad(expected, current.primary(), current.secondary(), gate))
+                throw new Failure(Reason.STALE_ROOTS, "Qualified live load and owning session interlock required");
+            return gate.installPrepared(preparation, handle.career(), handle.binding(), expected.generation(), expected.bytes(), current.primary(), current.secondary());
+        });
+        SwingUtilities.invokeLater(query);
+        boolean installed = false;
+        try { var context = query.get(timeoutNanos, TimeUnit.NANOSECONDS); installed = true; return context; }
+        catch (TimeoutException timeout) { query.cancel(false); throw new Failure(Reason.ROOTS_TIMEOUT, "Operational preparation timed out; late context installation revoked"); }
+        catch (ExecutionException failure) { throw new Failure(Reason.STALE_ROOTS, "Operational load/gate changed before installation"); }
+        catch (InterruptedException interrupted) { query.cancel(false); throw interrupted; }
+        finally { if (!installed) gate.cancelPreparation(preparation); }
+    }
 }

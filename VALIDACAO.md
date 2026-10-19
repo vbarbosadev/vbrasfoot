@@ -1,5 +1,55 @@
 # Validacao — 16/10/2026
 
+## Contexto interno revisado e reconciliacao NO_EFFECT — 19/10/2026
+
+Main conecta o coordenador ao MESMO gate privado de ProbeSession/interlock.
+Preparar contexto e acao explicita: requer associacao/arquivo/stream/roots/geracao
+atuais, init observado/lifecycle healthy/ACTIVE sem I/O em voo e todos os journals
+revisados sem efeitos historicos/incertos, erros ou anchors divergentes. Gate
+tambem recusa memoria APPLIED/UNKNOWN, inclusive se inventario persistente vazio.
+Resultado BOUND_NO_PUBLIC_WRITES nao concede owners/permissoes/handlers aos mods,
+nao e consistencia global ou preflight permanente para operacoes futuras.
+
+Preparacao usa token privado one-shot/epoch otimista, sem bloquear I/O durante
+hash/reads. Final EDT recheck valida ownership do interlock e source atual. Cancel
+de timeout/interrupcao revoga instalacao que ja ocorreu ou impede instalacao
+tardia, sem apagar contexto novo de outra preparacao. Mudanca de root/inicio de
+I/O/metadata confirmada invalida o contexto antigo, sem restauracao automatica.
+
+Inspecao administrativa do journal mostra ancora realmente comprometida, mantendo
+read/write ordinarios com guard de revisao. Quarentena na ancora antiga continua
+monotona, sem migrar UNKNOWN. Novo caminho de reconciliacao so reancora historico
+nao vazio integralmente NO_EFFECT_CONFIRMED, via prova interna opaca/CAS/lock e
+previous: preserva keys/UUIDs/digests/resultados e nunca reemite lease. APPLIED,
+PREPARED e UNKNOWN recusados; ausencia de efeito nao e inferida de saldo ou aceite
+generico do usuario. Contratos de mods/outros journals nao sao migrados juntos.
+
+Evidencia:
+-27checks de reconciliacao limitada e40de contexto passaram contra fontes atuais
+ compiladas em saida ISOLADA, sem sobrescrever build concorrente, em
+ `Temp/opencode/operational-context-final-497ddcfd3fe849709a6003192330e4ce`.
+ Contextos/init positivos nesses testes sao SINTETICOS, nao qualificacao original.
+-152checks I/O/schema originais em `build/operational-context-original-io.log`,
+ fixture PRIVADA `Temp/opencode/vbrasfoot-hook-io-61ed2ca5c1664504ba92d2cdbff9577e`.
+ Fixture pula init e agora confirma recusa de preparacao operacional nesse estado.
+-29checks financeiros originais em `build/operational-context-finance-reviewed.log`,
+ fixture privada `Temp/opencode/vbrasfoot-finance-3e40aa460769428abf585f4f926147a8`:
+ journal de recusa real do adaptador sem mutacao reancorado apos writer/reload
+ originais; journal misto com APPLIED recusado. Autoridades da fixture sao ARTIFICIAIS.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos aprovado em
+ `build/operational-context-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-850bce7d4dac498cb7b816103890e121`;
+ archive local dist/sdk-0.9.3-operational-context.zip, sem release/tag/upload.
+
+Execucao conjunta de wrappers excedeu timeout depois do I/O aprovado; financeiro
+foi reexecutado separadamente e passou. Nenhum processo do usuario encerrado.
+Guard refinado de memoria/quiescencia/recusas foi testado depois em saida isolada (40checks),
+além do build completo com36checks anterior. Nao contar timeout como sucesso.
+Nenhuma nova sessao humana foi fabricada, nenhum save pessoal/mod/instalacao
+alterado. Contexto publico, reconciliacao APPLIED/UNKNOWN, pedido financeiro
+persistente/categorias/UI, calendario/mercado e API de escrita continuam pendentes.
+Contrato: `roadmap/OPERATIONAL-CONTEXT.md`.
+
 ## Preparacao de carga humana e inspetor offline — 19/10/2026
 
 `prepare-load-validation.ps1` reutiliza copia completa verificada/profile/hash/

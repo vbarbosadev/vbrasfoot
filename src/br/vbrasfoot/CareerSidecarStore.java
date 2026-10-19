@@ -112,6 +112,14 @@ final class CareerSidecarStore {
     View inspectAssociation(Key key) throws IOException {
         offEdt(); requireAssociation(key); return inspect(key);
     }
+    /** Internal journal administrator only, on a dedicated journal root; ordinary mod read still requires its anchor. */
+    View inspectJournalRecord(Key key) throws IOException { offEdt(); return inspect(Objects.requireNonNull(key)); }
+    /** Opaque proof can only be created after journal decode proves every receipt NO_EFFECT_CONFIRMED. */
+    View reanchorNoEffectJournal(CareerCommandJournal.NoEffectReanchor proof) throws IOException {
+        offEdt(); Objects.requireNonNull(proof);
+        return mutate(proof.key(), proof.next(), proof.token(), new Value(1, proof.schema(), proof.next(), proof.payload()),
+                false, proof.previous(), true);
+    }
     private View inspect(Key key) throws IOException {
         Path directory = directory(key); plain(directory);
         Head head = readHead(directory);

@@ -12,6 +12,13 @@ final class CareerCommandGate implements AutoCloseable {
         WRONG_THREAD, INVALIDATED, NO_EFFECT_CONFIRMED, EXECUTION_UNCERTAIN, SAVE_IN_PROGRESS, ORIGINAL_IO_IN_PROGRESS }
     enum IoKind { LOAD, RESET, SAVE }
     record Context(UUID token, UUID career, UUID binding, long generation, CareerSidecarStore.SaveRevision save) { }
+    static final class Preparation {
+        private final UUID gate;
+        private final long epoch;
+        private boolean active = true;
+        private Context installed;
+        private Preparation(UUID gate, long epoch) { this.gate = gate; this.epoch = epoch; }
+    }
     record Request(UUID context, String key, Operation operation, String payloadDigest) {
         Request {
             Objects.requireNonNull(context); Objects.requireNonNull(operation);
@@ -56,6 +63,7 @@ final class CareerCommandGate implements AutoCloseable {
     private Slot active;
     private SaveFence saveFence;
     private boolean closed;
+    private long authorityEpoch;
     synchronized Owner owner(String id, Set<Operation> operations) {
         if (closed) throw new IllegalStateException("Command gate closed");
         if (id == null || !id.matches("[a-z0-9][a-z0-9._-]{0,99}")) throw new IllegalArgumentException("Invalid owner ID");
@@ -73,11 +81,38 @@ final class CareerCommandGate implements AutoCloseable {
         if (generation < 1) throw new IllegalArgumentException("Invalid generation");
         invalidateActive(Reason.INVALIDATED);
         this.primary = new WeakReference<>(primary); this.secondary = new WeakReference<>(secondary);
+        authorityEpoch++;
         return context = new Context(UUID.randomUUID(), career, binding, generation, save);
     }
     synchronized void invalidate() {
-        invalidateActive(Reason.INVALIDATED); context = null; primary.clear(); secondary.clear();
+        invalidateActive(Reason.INVALIDATED); clearContext();
     }
+    /** Optimistic preparation: does not hold an I/O fence while filesystem checks run. */
+    synchronized Preparation prepareContext() {
+        if (closed || saveFence != null || active != null || !executing.isEmpty() || !dispatching.isEmpty()) {
+            invalidate(); throw new IllegalStateException("Context preparation requires an open quiescent gate");
+        }
+        if (commands.values().stream().anyMatch(slot -> slot.status == Status.APPLIED || slot.status == Status.OUTCOME_UNKNOWN)) {
+            invalidate(); throw new IllegalStateException("Session effects require explicit reconciliation before preparing another context");
+        }
+        invalidate(); return new Preparation(session, authorityEpoch);
+    }
+    synchronized Context installPrepared(Preparation preparation, UUID career, UUID binding, long generation,
+                                        CareerSidecarStore.SaveRevision save, Object primary, Object secondary) {
+        requirePreparation(preparation);
+        if (!preparation.active || preparation.epoch != authorityEpoch) throw new IllegalStateException("Cancelled or superseded context preparation");
+        preparation.installed = installContext(career, binding, generation, save, primary, secondary);
+        preparation.active = false; return preparation.installed;
+    }
+    synchronized void cancelPreparation(Preparation preparation) {
+        requirePreparation(preparation); preparation.active = false;
+        if (preparation.installed != null && context == preparation.installed) invalidate();
+    }
+    private void requirePreparation(Preparation preparation) {
+        if (preparation == null || !session.equals(preparation.gate)) throw new IllegalArgumentException("Foreign context preparation");
+    }
+    synchronized boolean currentContext(Context expected) { return !closed && expected != null && context == expected && primary.get() != null && secondary.get() != null; }
+    synchronized boolean contextInstalled() { return !closed && context != null; }
     /** Trusted coordinator must acquire BEFORE invoking the original writer, never from a post-save event.
      * Refuses queued/running work. No waiting on the EDT, no writer invocation and no save-success claim. */
     synchronized SaveFence beginSave() {
@@ -146,7 +181,7 @@ final class CareerCommandGate implements AutoCloseable {
             slot.status = Status.OUTCOME_UNKNOWN; slot.reason = Reason.INVALIDATED;
         } else { slot.status = status; slot.reason = status == Status.APPLIED ? Reason.NONE : status == Status.REJECTED ? Reason.NO_EFFECT_CONFIRMED : Reason.EXECUTION_UNCERTAIN; }
         if (active == slot) active = null;
-        if (slot.status == Status.OUTCOME_UNKNOWN) { context = null; this.primary.clear(); this.secondary.clear(); }
+        if (slot.status == Status.OUTCOME_UNKNOWN) clearContext();
         return slot.receipt();
     }
     /** Storage failure/timeout after start cannot be described as a rollback or safely replayed. */
@@ -155,7 +190,7 @@ final class CareerCommandGate implements AutoCloseable {
         if (slot.status == Status.RESERVED) { reject(slot, Reason.NO_EFFECT_CONFIRMED); return slot.receipt(); }
         if (slot.status == Status.RUNNING || slot.status == Status.APPLIED) {
             slot.status = Status.OUTCOME_UNKNOWN; slot.reason = Reason.EXECUTION_UNCERTAIN;
-            context = null; primary.clear(); secondary.clear();
+            clearContext();
         }
         return slot.receipt();
     }
@@ -188,12 +223,13 @@ final class CareerCommandGate implements AutoCloseable {
         if (active == null) return;
         active.status = active.status == Status.RUNNING ? Status.OUTCOME_UNKNOWN : Status.REJECTED;
         active.reason = reason;
-        if (active.status == Status.OUTCOME_UNKNOWN) { context = null; primary.clear(); secondary.clear(); }
+        if (active.status == Status.OUTCOME_UNKNOWN) clearContext();
         active = null;
     }
     synchronized List<Receipt> receipts() { return commands.values().stream().map(Slot::receipt).toList(); }
+    private void clearContext() { authorityEpoch++; context = null; primary.clear(); secondary.clear(); }
     @Override public synchronized void close() {
-        if (closed) return; invalidateActive(Reason.CLOSED); context = null; primary.clear(); secondary.clear();
+        if (closed) return; invalidateActive(Reason.CLOSED); clearContext();
         owners.values().forEach(owner -> owner.active = false); closed = true;
     }
 }
