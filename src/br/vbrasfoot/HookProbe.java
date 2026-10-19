@@ -11,6 +11,10 @@ public final class HookProbe {
                               boolean returnedSuccess, boolean fallback, boolean aborted, String thread, long sequence) { }
     private static final AtomicReference<Consumer<Observation>> observer = new AtomicReference<>();
     private static final AtomicReference<CareerLifecycle> lifecycle = new AtomicReference<>();
+    private static final AtomicReference<CareerIoInterlock> ioInterlock = new AtomicReference<>();
+    private record IoFrame(CareerIoInterlock owner, CareerIoInterlock.Entry entry) { }
+    private static final ThreadLocal<ArrayDeque<IoFrame>> originalIo = ThreadLocal.withInitial(ArrayDeque::new);
+    private static int originalIoActive;
     private static final AtomicLong sequence = new AtomicLong();
     private static final CreationContentTracker creationContent = new CreationContentTracker();
     private static final AsyncCreationTracker asyncCreation = new AsyncCreationTracker();
@@ -42,6 +46,40 @@ public final class HookProbe {
         Save(String name) { this.name = name; }
     }
     private HookProbe() { }
+
+    static synchronized AutoCloseable attachIoInterlock(CareerIoInterlock interlock) {
+        java.util.Objects.requireNonNull(interlock);
+        if (interlock.snapshot().closed()) throw new IllegalArgumentException("Cannot attach a closed original I/O interlock");
+        if (originalIoActive != 0) throw new IllegalStateException("Cannot attach while original I/O is in flight");
+        if (!ioInterlock.compareAndSet(null, interlock)) throw new IllegalStateException("Original I/O interlock already attached");
+        return () -> {
+            synchronized (HookProbe.class) {
+                if (ioInterlock.get() != interlock) return;
+                interlock.close();
+                if (originalIoActive == 0) ioInterlock.compareAndSet(interlock, null);
+            }
+        };
+    }
+    /** Unlike diagnostic hooks, admission MUST propagate refusal before original code changes state. */
+    public static synchronized void beforeOriginalIo(String kind) {
+        CareerCommandGate.IoKind operation = CareerCommandGate.IoKind.valueOf(kind);
+        var stack = originalIo.get();
+        if (stack.size() >= CareerIoInterlock.MAX_DEPTH) throw new IllegalStateException("Original I/O bridge depth exceeded");
+        CareerIoInterlock owner = ioInterlock.get();
+        CareerIoInterlock.Entry entry = owner == null ? null : owner.enter(operation);
+        try { stack.push(new IoFrame(owner, entry)); originalIoActive++; }
+        catch (Throwable failure) { if (owner != null) owner.exit(entry); throw failure; }
+    }
+    /** Uses the owner captured at entry, not a possibly replaced/detached session. */
+    public static synchronized void afterOriginalIo() {
+        var stack = originalIo.get();
+        if (stack.isEmpty()) { originalIo.remove(); throw new IllegalStateException("Unmatched original I/O exit"); }
+        IoFrame frame = stack.pop(); if (stack.isEmpty()) originalIo.remove();
+        if (frame.owner() != null) frame.owner().exit(frame.entry());
+        originalIoActive--;
+        CareerIoInterlock attached = ioInterlock.get();
+        if (originalIoActive == 0 && attached != null && attached.snapshot().closed()) ioInterlock.compareAndSet(attached, null);
+    }
 
     static AutoCloseable attach(Consumer<Observation> sink) {
         if (!observer.compareAndSet(null, sink)) throw new IllegalStateException("Uma sonda de carreira ja esta ativa nesta JVM");

@@ -36,9 +36,11 @@ public final class CareerTransformer {
                     return new MethodVisitor(Opcodes.ASM8, method) {
                         final Label start = new Label(), end = new Label(), handler = new Label();
                         boolean started;
-                        private void begin() {
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "enterReset", "()V", false);
-                            super.visitLabel(start); started = true;
+                         private void begin() {
+                             super.visitLdcInsn("RESET");
+                             super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "beforeOriginalIo", "(Ljava/lang/String;)V", false);
+                             super.visitLabel(start); started = true;
+                             super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "enterReset", "()V", false);
                         }
                         @Override public void visitCode() { super.visitCode(); if (setter) begin(); }
                         @Override public void visitMethodInsn(int op, String owner, String called, String desc, boolean iface) {
@@ -53,7 +55,10 @@ public final class CareerTransformer {
                             }
                         }
                         @Override public void visitInsn(int op) {
-                            if (op == Opcodes.RETURN) super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, setter ? "rootSetterFinished" : "rootsReset", "()V", false);
+                             if (op == Opcodes.RETURN) {
+                                 super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, setter ? "rootSetterFinished" : "rootsReset", "()V", false);
+                                 super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "afterOriginalIo", "()V", false);
+                             }
                             super.visitInsn(op);
                         }
                         @Override public void visitMaxs(int stack, int locals) {
@@ -63,7 +68,8 @@ public final class CareerTransformer {
                             super.visitLabel(handler);
                             super.visitFrame(Opcodes.F_NEW, 0, new Object[0], 1, new Object[] {"java/lang/Throwable"});
                             super.visitInsn(Opcodes.DUP);
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "abortReset", "(Ljava/lang/Throwable;)V", false);
+                             super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "abortReset", "(Ljava/lang/Throwable;)V", false);
+                             super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, "afterOriginalIo", "()V", false);
                             super.visitInsn(Opcodes.ATHROW);
                             super.visitMaxs(stack, locals);
                         }
@@ -76,11 +82,12 @@ public final class CareerTransformer {
                     final Label start = new Label(), end = new Label(), handler = new Label();
                     private void call(String name, String desc) { super.visitMethodInsn(Opcodes.INVOKESTATIC, BRIDGE, name, desc, false); }
                     @Override public void visitCode() {
-                        super.visitCode();
-                        super.visitVarInsn(Opcodes.ALOAD, 0);
+                         super.visitCode();
+                         super.visitLdcInsn(load ? "LOAD" : "SAVE"); call("beforeOriginalIo", "(Ljava/lang/String;)V");
+                         super.visitLabel(start);
+                         super.visitVarInsn(Opcodes.ALOAD, 0);
                         if (load) super.visitVarInsn(Opcodes.ILOAD, 1);
                         call(load ? "enterLoad" : "enterSave", load ? "(Ljava/lang/String;Z)V" : "(Ljava/lang/String;)V");
-                        super.visitLabel(start);
                     }
                     @Override public void visitMethodInsn(int op, String owner, String name, String desc, boolean iface) {
                         if (load && owner.equals("java/io/FileInputStream") && name.equals("<init>") && desc.equals("(Ljava/lang/String;)V")) {
@@ -122,8 +129,9 @@ public final class CareerTransformer {
                         }
                     }
                     @Override public void visitInsn(int op) {
-                        if (load && op == Opcodes.IRETURN) { super.visitInsn(Opcodes.DUP); call("exitLoad", "(Z)V"); }
-                        if (save && op == Opcodes.RETURN) call("exitSave", "()V");
+                         if (load && op == Opcodes.IRETURN) { super.visitInsn(Opcodes.DUP); call("exitLoad", "(Z)V"); }
+                         if (save && op == Opcodes.RETURN) call("exitSave", "()V");
+                         if (load && op == Opcodes.IRETURN || save && op == Opcodes.RETURN) call("afterOriginalIo", "()V");
                         super.visitInsn(op);
                     }
                     @Override public void visitMaxs(int stack, int locals) {
@@ -135,7 +143,8 @@ public final class CareerTransformer {
                         // Cleanup uses only the Throwable stack, so require no locals here.
                         super.visitFrame(Opcodes.F_NEW, 0, new Object[0], 1, new Object[] {"java/lang/Throwable"});
                         super.visitInsn(Opcodes.DUP);
-                        call(load ? "abortLoad" : "abortSave", "(Ljava/lang/Throwable;)V");
+                         call(load ? "abortLoad" : "abortSave", "(Ljava/lang/Throwable;)V");
+                         call("afterOriginalIo", "()V");
                         super.visitInsn(Opcodes.ATHROW);
                         super.visitMaxs(stack, locals);
                     }

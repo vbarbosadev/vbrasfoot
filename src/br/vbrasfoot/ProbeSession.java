@@ -15,6 +15,9 @@ final class ProbeSession implements AutoCloseable {
     private final CareerObservationHub observations = new CareerObservationHub(subscriberBudget);
     private final CareerIoEventHub ioEvents = new CareerIoEventHub(subscriberBudget);
     private final CareerLifecycle lifecycle = new CareerLifecycle(observations, ioEvents);
+    private final CareerCommandGate commandGate = new CareerCommandGate();
+    private final CareerIoInterlock interlock = new CareerIoInterlock(commandGate);
+    private final AutoCloseable interlockSubscription;
     private final Thread shutdown;
     private final Logger logger;
     private final Path report;
@@ -26,13 +29,19 @@ final class ProbeSession implements AutoCloseable {
         this.logger = logger; this.report = report;
         dispatcher = new ProbeDispatcher(128, Duration.ofMillis(500), observation -> logger.info("career-hook-probe=" + observation));
         AutoCloseable attached;
-        AutoCloseable lifecycleAttached;
-        try {
+         AutoCloseable lifecycleAttached;
+         AutoCloseable ioAttached = null;
+         try {
+             ioAttached = HookProbe.attachIoInterlock(interlock);
             lifecycleAttached = HookProbe.attachLifecycle(lifecycle);
             try { attached = HookProbe.attach(dispatcher::offer); }
             catch (RuntimeException failure) { lifecycleAttached.close(); throw failure; }
         }
-        catch (Exception failure) { dispatcher.close(); throw new IllegalStateException("Falha ao instalar guard da sonda", failure); }
+         catch (Exception failure) {
+             if (ioAttached != null) try { ioAttached.close(); } catch (Exception cleanup) { failure.addSuppressed(cleanup); }
+             interlock.close(); commandGate.close(); dispatcher.close(); throw new IllegalStateException("Falha ao instalar guard da sonda", failure);
+         }
+         interlockSubscription = ioAttached;
         subscription = attached;
         lifecycleSubscription = lifecycleAttached;
         shutdown = new Thread(this::finish, "vbrasfoot-probe-shutdown");
@@ -46,7 +55,20 @@ final class ProbeSession implements AutoCloseable {
     private synchronized void finish() {
         if (closed) return;
         closed = true;
-        var provenance = HookProbe.decodedProvenance();
+         var provenance = HookProbe.decodedProvenance();
+         var ioBeforeClose = interlock.snapshot();
+         try { interlockSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach original I/O interlock"); }
+         commandGate.close();
+         Properties ioProtection = new Properties();
+         ioProtection.setProperty("format", "1");
+         ioProtection.setProperty("coverage", "Cooperative original load/reset/save admission only; not career readiness, cross-process locking or save durability");
+         ioProtection.setProperty("depth.beforeClose", Integer.toString(ioBeforeClose.depth()));
+         ioProtection.setProperty("admitted", Long.toString(ioBeforeClose.admitted()));
+         ioProtection.setProperty("refused", Long.toString(ioBeforeClose.refused()));
+         ioProtection.setProperty("completed", Long.toString(ioBeforeClose.completed()));
+         ioProtection.setProperty("writeAuthority", "false");
+         try (var writer = Files.newBufferedWriter(report.resolveSibling("original-io-interlock.properties"))) { ioProtection.store(writer, "Original I/O admission before probe disposal"); }
+         catch (Exception failure) { System.err.println("Falha ao registrar interlock de I/O: " + failure); }
         try { subscription.close(); } catch (Exception failure) { logger.warning("Could not detach probe subscription"); }
         try { lifecycleSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach lifecycle guard"); }
         Properties decoded = new Properties();
