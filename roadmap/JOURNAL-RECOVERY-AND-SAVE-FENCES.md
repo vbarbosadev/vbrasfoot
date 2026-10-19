@@ -1,6 +1,9 @@
 # Recuperacao conservadora do diario e exclusao durante saves
 
 Implementacao inicial interna, sem ModContext ou hooks do writer no jogo instalado.
+OPERATIONAL-CONTEXT.md acrescenta inspecao administrativa da ancora comprometida,
+contexto interno revisado e reancoragem somente de historico integralmente
+NO_EFFECT_CONFIRMED. APPLIED/UNKNOWN continuam sem reconciliacao generica.
 Incremento ORIGINAL-IO-INTERLOCK.md conecta exclusao as entradas originais no codigo
 opt-in, ainda sem instalar nova versao no jogo ou autorizar contextos de escrita.
 Incremento DECODED-SAVE-COORDINATOR.md liga leitura/quarentena de diarios a painel

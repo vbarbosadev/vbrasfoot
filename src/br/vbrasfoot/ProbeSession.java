@@ -16,6 +16,7 @@ final class ProbeSession implements AutoCloseable {
     private final CareerIoEventHub ioEvents = new CareerIoEventHub(subscriberBudget);
     private final CareerLifecycle lifecycle = new CareerLifecycle(observations, ioEvents);
     private final CareerCommandGate commandGate = new CareerCommandGate();
+    private final CareerOperationalContext operational = new CareerOperationalContext(commandGate);
     private final CareerIoInterlock interlock = new CareerIoInterlock(commandGate);
     private final AutoCloseable interlockSubscription;
     private final Thread shutdown;
@@ -24,6 +25,7 @@ final class ProbeSession implements AutoCloseable {
     private boolean closed;
     br.vbrasfoot.api.CareerObservations observations() { return observations; }
     br.vbrasfoot.api.CareerIoEvents ioEvents() { return ioEvents; }
+    CareerOperationalContext operational() { return operational; }
 
     ProbeSession(Logger logger, Path report) {
         this.logger = logger; this.report = report;

@@ -154,7 +154,9 @@ public final class CareerHookRuntimeTest {
                 var sourceObservation = new SaveFileObserver().observe(saves, "input.s22");
                 var verified = new LoadedSaveVerifier(runtime).verify(sourceObservation);
                 check(verified.generation() == lifecycle.ticket().generation() && !verified.initializationPathObserved(), "original decoder/file/roots verified without inventing initialized UI path");
-                var coordinator = new CareerAssociationCoordinator(saves, home.resolve("association-review-fixture"), runtime, List.of("br.owned.original-link"));
+                var operational = new CareerOperationalContext(commandGate);
+                var coordinator = new CareerAssociationCoordinator(saves, home.resolve("association-review-fixture"), runtime, List.of("br.owned.original-link"))
+                        .operational(operational);
                 var originalReview = coordinator.review(Optional.empty());
                 check(originalReview.status() == CareerAssociationCoordinator.Status.ASSOCIATION_REQUIRED
                         && originalReview.decoded().bytes().sha256().equals(before), "original decoder provenance reaches coordinator without automatic identity");
@@ -162,6 +164,10 @@ public final class CareerHookRuntimeTest {
                 var fixtureReview = coordinator.review(Optional.of(fixtureHandle));
                 check(fixtureReview.status() == CareerAssociationCoordinator.Status.READ_ONLY_LINKED && !fixtureReview.decoded().initializationPathObserved(),
                         "explicit private-fixture metadata association remains read-only and unqualified for gameplay");
+                boolean unqualifiedContextRefused = false;
+                try { coordinator.confirm(fixtureReview, CareerAssociationCoordinator.Action.PREPARE_INTERNAL_CONTEXT, Optional.empty()); }
+                catch (CareerSidecarStore.Failure expected) { unqualifiedContextRefused = expected.reason() == CareerSidecarStore.Reason.CONFLICT; }
+                check(unqualifiedContextRefused && !commandGate.contextInstalled(), "original decoded roots without full init cannot prepare an operational context");
                 check(fixtureReview.journals().get(0).recovery().orElseThrow().status() == CareerCommandJournal.RecoveryStatus.EMPTY
                         && !Files.exists(home.resolve("association-review-fixture/journals")), "configured original-fixture journal inspection creates no empty journal or command");
                 var disabledStore = new CareerSidecarStore(home.resolve("association-review-fixture/journals"));

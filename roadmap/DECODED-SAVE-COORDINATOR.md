@@ -1,6 +1,9 @@
 # Origem decodificada, coordenador e revisao explicita
 
 Codigo experimental opt-in, ainda sem API publica de escrita ou instalacao nova.
+Incremento posterior: OPERATIONAL-CONTEXT.md conecta preparacao EXPLICITA de
+contexto interno no mesmo gate e reancoragem limitada de NO_EFFECT_CONFIRMED.
+Nao concede owners/permissoes/handlers a mods ou prontidao global.
 Complementa EXPLICIT-SAVE-ASSOCIATIONS.md e JOURNAL-RECOVERY-AND-SAVE-FENCES.md.
 Nao cria mods, carreiras, partidas, pagamentos ou negociacoes automaticamente.
 

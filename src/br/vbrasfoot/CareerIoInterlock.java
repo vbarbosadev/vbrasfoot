@@ -18,6 +18,8 @@ final class CareerIoInterlock implements AutoCloseable {
     private boolean closed;
     private long admitted, refused, completed;
     CareerIoInterlock(CareerCommandGate gate) { this.gate = Objects.requireNonNull(gate); }
+    boolean owns(CareerCommandGate candidate) { return gate == candidate; }
+    void invalidateContext() { gate.invalidate(); }
     synchronized Entry enter(CareerCommandGate.IoKind kind) {
         Objects.requireNonNull(kind);
         if (closed || stack.size() >= MAX_DEPTH || !stack.isEmpty() && (stack.peek().thread != Thread.currentThread()

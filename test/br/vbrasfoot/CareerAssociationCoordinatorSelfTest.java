@@ -99,11 +99,12 @@ public final class CareerAssociationCoordinatorSelfTest {
                     "explicit reviewed quarantine supports disabled journal without executing or loading its mod");
             Files.write(source, new byte[] {4, 5}); load(source, primary, secondary);
             var revised = coordinator.review(Optional.of(handle));
-            check(revised.status() == Status.REVISION_REVIEW_REQUIRED && revised.journals().stream().allMatch(row -> row.recovery().orElseThrow().revisionChanged()), "changed source keeps registered old anchor separate from actual decoder bytes");
+            check(revised.status() == Status.REVISION_REVIEW_REQUIRED && revised.journals().stream().anyMatch(row -> row.recovery().orElseThrow().revisionChanged()), "changed source keeps committed old anchors separate from actual decoder bytes");
             coordinator.confirm(revised, Action.ACCEPT_REVISION, Optional.empty());
             var afterRevision = coordinator.review(Optional.of(handle));
-            check(afterRevision.journals().stream().anyMatch(row -> row.failure().orElse(null) == Reason.SAVE_REVISION_MISMATCH), "association change cannot silently migrate old journal");
-            rejects(Reason.CONFLICT, () -> coordinator.confirm(afterRevision, Action.QUARANTINE_PENDING, Optional.of(owners.get(0))));
+            check(afterRevision.journals().stream().anyMatch(row -> row.recovery().orElseThrow().revisionChanged()), "administrative review exposes actual committed old anchor without migrating journal");
+            coordinator.confirm(afterRevision, Action.QUARANTINE_PENDING, Optional.of(owners.get(0)));
+            check(journal.read(known.save()).token().equals(recovered.token()), "quarantine across anchor mismatch preserves existing unknown and does not reanchor");
             Files.write(source, first); load(source, primary, secondary);
             coordinator.confirm(coordinator.review(Optional.of(handle)), Action.RESTORE_PREVIOUS, Optional.empty());
             check(associations.inspect(handle).save().equals(known.save()) && journal.read(known.save()).token().equals(recovered.token()), "explicit metadata restore never rolls back unknown command receipts");

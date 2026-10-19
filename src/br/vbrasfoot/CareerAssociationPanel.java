@@ -31,8 +31,12 @@ final class CareerAssociationPanel {
         text.append("\nDiarios: owners configurados + namespaces existentes no binding explicitamente escolhido.\nInclui mods desabilitados/ausentes nesse binding. Nao e inventario global de outras carreiras ou roots.\nSem snapshot atomico; mudancas exigem nova revisao.\n");
         for (var journal : review.journals()) {
             text.append(journal.owner()).append(journal.configured() ? " [configurado]: " : " [existente, nao selecionado]: ");
-            journal.recovery().ifPresentOrElse(recovery -> text.append(recovery.status()).append(" / mudanca de revisao: ").append(recovery.revisionChanged())
-                    .append(" / receipts: ").append(recovery.snapshot().receipts().size()), () -> text.append("RECUSADO ").append(journal.failure().orElseThrow()));
+            journal.recovery().ifPresentOrElse(recovery -> {
+                text.append(recovery.status()).append(" / mudanca de revisao: ").append(recovery.revisionChanged())
+                        .append(" / receipts: ").append(recovery.snapshot().receipts().size());
+                if (recovery.revisionChanged()) text.append("\n  Ancora registrada SHA256: ").append(recovery.recordedSave().sha256())
+                        .append(" / bytes: ").append(recovery.recordedSave().size());
+            }, () -> text.append("RECUSADO ").append(journal.failure().orElseThrow()));
             text.append('\n');
         }
         text.append("\nAPPLIED e historico, nao prova de inclusao no save. UNKNOWN bloqueia, nao permite tentar novamente.\n");
@@ -62,9 +66,11 @@ final class CareerAssociationPanel {
                 new Choice("Eu afirmo a renomeacao SEM prova de identidade nativa", CareerAssociationCoordinator.Action.ASSERT_RENAME),
                 new Choice("Aceitar revisao alterada (sem migrar dados/diarios)", CareerAssociationCoordinator.Action.ACCEPT_REVISION),
                 new Choice("Registrar restore do previous conhecido (sem rollback de mods)", CareerAssociationCoordinator.Action.RESTORE_PREVIOUS),
-                new Choice("Quarentena de pendentes (SEM resolver ou repetir efeitos)", CareerAssociationCoordinator.Action.QUARANTINE_PENDING)
+                new Choice("Quarentena de pendentes (SEM resolver ou repetir efeitos)", CareerAssociationCoordinator.Action.QUARANTINE_PENDING),
+                new Choice("Reancorar diario SOMENTE com ausencia de efeitos confirmada", CareerAssociationCoordinator.Action.REANCHOR_NO_EFFECT_JOURNAL),
+                new Choice("Preparar contexto INTERNO (nenhuma escrita publica liberada)", CareerAssociationCoordinator.Action.PREPARE_INTERNAL_CONTEXT)
         });
-        JComboBox<String> owner = new JComboBox<>(); owner.setToolTipText("Owner explicito para quarentena de um diario revisado");
+        JComboBox<String> owner = new JComboBox<>(); owner.setToolTipText("Owner explicito para quarentena/reancoragem de um diario revisado");
         JButton refresh = new JButton("Verificar (somente leitura)"), confirm = new JButton("Revisar e confirmar acao"); confirm.setEnabled(false);
         JLabel status = new JLabel("Sem comandos de gameplay.");
         JPanel commands = new JPanel(new GridLayout(0, 1, 4, 4)); commands.add(action); commands.add(owner);
@@ -102,7 +108,8 @@ final class CareerAssociationPanel {
                             var review = get();
                             if (!dialog.isDisplayable()) return;
                             if (committed != null) { career.setText(committed.career().toString()); binding.setText(committed.binding().toString()); }
-                            latest[0] = review; details.setText(report(review)); details.setCaretPosition(0); owner.removeAllItems();
+                            latest[0] = review; details.setText(report(review) + "\nContexto interno: " + coordinator.operationalSnapshot().status()
+                                    + "\nNenhuma permissao de comando ou handler concedida a mods.\n"); details.setCaretPosition(0); owner.removeAllItems();
                             for (var row : review.journals()) owner.addItem(row.owner());
                             confirm.setEnabled(true); status.setText("Snapshot de revisao. Nenhuma escrita no jogo habilitada.");
                         } catch (Exception failure) {
@@ -129,7 +136,7 @@ final class CareerAssociationPanel {
             Optional<String> selectedOwner = Optional.ofNullable((String) owner.getSelectedItem());
             String message = choice.label() + "?\nArquivo decodificado: " + review.decoded().source().getFileName()
                     + "\nGeracao: " + review.decoded().generation() + " / SHA256: " + review.decoded().bytes().sha256()
-                    + "\nOwner (somente quarentena): " + selectedOwner.orElse("nenhum")
+                    + "\nOwner (quarentena/reancoragem de diario): " + selectedOwner.orElse("nenhum")
                     + "\nSomente metadados externos. Nao cria carreira/mod, nao altera save e nao resolve efeitos incertos.";
             int answer = JOptionPane.showOptionDialog(dialog, message, "Confirmacao explicita", JOptionPane.DEFAULT_OPTION,
                     JOptionPane.WARNING_MESSAGE, null, new String[] {"Cancelar", "Confirmar esta acao"}, "Cancelar");
