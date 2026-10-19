@@ -86,3 +86,9 @@ CareerIoInterlock/gate privado da ProbeSession. Recusa conflitos antes de mutaca
 preserva fallback recursivo e libera fence somente na saida externa. Testes
 sinteticos/originais privados em ORIGINAL-IO-INTERLOCK.md. Contexto de comandos
 para mods, qualificacao real e reconciliacao de efeitos continuam pendentes.
+
+Incremento de inventario:coordenador agora une owners configurados com namespaces
+existentes no binding explicitamente escolhido, incluindo mods desabilitados sem
+carrega-los. Revalida nomes/HEADtokens e recusa orphan como historico vazio,
+corrupcao, entradas desconhecidas e overflow em vez de resultado parcial. Veja
+BINDING-JOURNAL-INVENTORY.md. Nao infere identidade ou resolve UNKNOWN/APPLIED.

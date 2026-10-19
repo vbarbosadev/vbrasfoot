@@ -1,5 +1,53 @@
 # Validacao — 16/10/2026
 
+## Inventario read-only dos journals do binding escolhido — 19/10/2026
+
+`CareerSidecarStore.inventoryBinding` le somente careerUUID/bindingUUID fornecidos
+no root selecionado. Une namespaces existentes com owners configurados no
+coordenador, sem inferir identidade, varrer outras carreiras ou carregar mods.
+Nomes/tipos/ancestors/reparse/conteudo conhecido/quotas/HEAD checksums validados;
+nao cria locks/pastas, apaga desconhecidos ou promove orphan. Namespace existente
+sem HEAD e pendencia RECONCILIATION_REQUIRED, nunca diario limpo/ausente.
+
+Limites:64namespaces,128arquivos/16MiB por namespace e budget cooperativo5s (nao
+interrompe syscall bloqueada). A UNIAO com owners configurados tambem tem limite64.
+Exceder limite, entrada desconhecida, HEAD corrupto ou erro I/O recusa revisao,
+sem resultado parcial apresentado como completo. Ordem deterministica na UI;
+owner configurado e existente nao selecionado sao distinguidos.
+
+Review compara inventario/HEADtokens antes/depois da leitura dos journals e
+novamente em confirm. Mudancas exigem review nova. Quarentena explicita de um
+owner nao selecionado usa somente receipt/ancora/token revisados; nunca executa
+mod ou handler. Sem resolver UNKNOWN/APPLIED, migrar diario ou instalar contexto.
+Nao e snapshot atomico, catalogo global, garantia contra alteracao hostil ou lock
+multi-namespace. Metadata pode ficar divergente de journal apos revisao de save;
+guard continua recusando isso em vez de reassociar silenciosamente.
+
+Evidencia aprovada em `build/binding-inventory-original.log`:
+-18checks novos de inventario em fixture propria
+ `Temp/opencode/binding-journal-inventory-9889667303312064670`;
+-43checks de coordenador, incluindo disabled/orphan e union overflow, fixture
+ `Temp/opencode/career-association-coordinator-14489925187261979430`;
+-151checks I/O/schema originais em COPIA privada
+ `Temp/opencode/vbrasfoot-hook-io-0215f95ab0d44665a9554fb70763d215`: journal
+ SINTETICO nao selecionado descoberto/quarentinado numa associacao ARTIFICIAL da
+ fixture ligada ao decoder original. Nenhum handler financeiro ou mod executado
+ para produzir/quarantinar esse journal; init UI original continua nao qualificado.
+-26checks financeiros originais aprovados em `build/binding-inventory-finance.log`,
+ fixture privada `Temp/opencode/vbrasfoot-finance-39c7741242e94dea88d48f4880f29f38`.
+-SDK-only hashes/allowlist/cinco projetos/negativos aprovado em
+ `build/binding-inventory-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-a874b114ba684da7ae6b617f249439b1`;
+ archive local dist/sdk-0.9.3-binding-inventory.zip, sem release/tag/upload.
+
+Primeiro build local ultrapassou timeout do harness apos testes principais; nao
+contado como build completo aprovado. Wrapper original foi reexecutado com limite
+maior e build completo/regressoes passaram conforme logs acima. Nenhum processo
+do usuario foi encerrado. Wrappers conferiram EXE/save originais por hash;
+loader instalado0.9.3 e mods/saves intactos. Contrato e limites:
+`roadmap/BINDING-JOURNAL-INVENTORY.md`. Qualificacao real, reconciliacao por efeito,
+calendario, mercado e API publica de escrita continuam pendentes.
+
 ## Admissao nas entradas originais de I/O — 18/10/2026
 
 `CareerIoInterlock` conecta o gate cooperativo a carga/reset/save originais no

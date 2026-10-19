@@ -56,7 +56,7 @@ public final class CareerAssociationCoordinatorSelfTest {
             check(!fresh.decoded().initializationPathObserved(), "synthetic unqualified initialization preserved in report");
             check(!Files.exists(metadata) && !Files.exists(journals), "read-only review leaves storage absent");
             String text = CareerAssociationPanel.report(fresh);
-            check(text.contains("SEM AUTORIDADE DE ESCRITA") && text.contains("Nao e inventario global") && text.contains("false"), "UI report discloses no write authority, partial registry and unqualified initialization");
+            check(text.contains("SEM AUTORIDADE DE ESCRITA") && text.contains("Nao e inventario global") && text.contains("false"), "UI report discloses no write authority, binding-only inventory and unqualified initialization");
             invalid(() -> foreign.confirm(fresh, Action.CREATE_NEW, Optional.empty()));
             var handle = coordinator.confirm(fresh, Action.CREATE_NEW, Optional.empty());
             check(heads(metadata) == 1 && !Files.exists(journals) && Arrays.equals(Files.readAllBytes(source), first), "explicit metadata confirmation creates one handle, never journal/game save");
@@ -83,6 +83,20 @@ public final class CareerAssociationCoordinatorSelfTest {
             var wrongOwnerReview = coordinator.review(Optional.of(handle));
             invalid(() -> coordinator.confirm(wrongOwnerReview, Action.QUARANTINE_PENDING, Optional.of("not.registered")));
             check(journal.read(known.save()).token().equals(recovered.token()), "unknown owner cannot alter a journal");
+            var beforeDisabled = coordinator.review(Optional.of(handle));
+            var disabledKey = new Key(handle.career(), handle.binding(), "br.owned.disabled");
+            var disabledJournal = new CareerCommandJournal(journalStore, disabledKey);
+            var disabledPending = disabledJournal.prepare(known.save(), EMPTY, new CareerCommandJournal.Intent("old-mod", CareerCommandGate.Operation.FINANCE_CREDIT, "e".repeat(64)));
+            rejects(Reason.CONFLICT, () -> coordinator.confirm(beforeDisabled, Action.QUARANTINE_PENDING, Optional.of(owners.get(0))));
+            var disabledReview = coordinator.review(Optional.of(handle));
+            var disabledRow = disabledReview.journals().stream().filter(row -> row.owner().equals(disabledKey.mod())).findFirst().orElseThrow();
+            check(!disabledRow.configured() && disabledRow.recovery().orElseThrow().status() == CareerCommandJournal.RecoveryStatus.UNCERTAIN,
+                    "existing unselected journal included in explicit binding review with uncertainty intact");
+            check(CareerAssociationPanel.report(disabledReview).contains("[existente, nao selecionado]"), "UI distinguishes existing disabled owner from configured selection");
+            coordinator.confirm(disabledReview, Action.QUARANTINE_PENDING, Optional.of(disabledKey.mod()));
+            var disabledDone = disabledJournal.read(known.save());
+            check(!disabledDone.token().equals(disabledPending.snapshot().token()) && disabledDone.receipts().equals(disabledPending.snapshot().receipts()),
+                    "explicit reviewed quarantine supports disabled journal without executing or loading its mod");
             Files.write(source, new byte[] {4, 5}); load(source, primary, secondary);
             var revised = coordinator.review(Optional.of(handle));
             check(revised.status() == Status.REVISION_REVIEW_REQUIRED && revised.journals().stream().allMatch(row -> row.recovery().orElseThrow().revisionChanged()), "changed source keeps registered old anchor separate from actual decoder bytes");
@@ -129,6 +143,16 @@ public final class CareerAssociationCoordinatorSelfTest {
             var schemaKey = new Key(fork.career(), fork.binding(), owners.get(1));
             journalStore.write(schemaKey, associations.inspect(fork).save(), 2, EMPTY, new byte[0]);
             check(coordinator.review(Optional.of(fork)).journals().stream().anyMatch(row -> row.failure().orElse(null) == Reason.CORRUPT), "corrupt/unknown-schema configured journal exposed, never treated as empty");
+            Path orphanDirectory = Files.createDirectories(journals.resolve(fork.career().toString()).resolve(fork.binding().toString()).resolve("br.owned.orphan"));
+            Files.writeString(orphanDirectory.resolve("r-" + UUID.randomUUID() + ".bin"), "owned uncommitted record");
+            var orphanReview = coordinator.review(Optional.of(fork));
+            var orphanRow = orphanReview.journals().stream().filter(row -> row.owner().equals("br.owned.orphan")).findFirst().orElseThrow();
+            check(orphanRow.failure().orElseThrow() == Reason.RECONCILIATION_REQUIRED && orphanRow.recovery().isEmpty(), "existing uncommitted journal cannot masquerade as absent clean history");
+            rejects(Reason.CONFLICT, () -> coordinator.confirm(orphanReview, Action.QUARANTINE_PENDING, Optional.of("br.owned.orphan")));
+            var atCapacity = new ArrayList<String>();
+            for (int i = 0; i < MAX_BINDING_NAMESPACES; i++) atCapacity.add("br.owned.configured" + i);
+            var unionOverflow = new CareerAssociationCoordinator(saves, associations, journalStore, observer, verifier, atCapacity);
+            rejects(Reason.QUOTA, () -> unionOverflow.review(Optional.of(fork)));
             check(Arrays.equals(Files.readAllBytes(source), first) && Arrays.equals(Files.readAllBytes(renamed), first), "all coordinated actions preserve owned save bytes");
         } finally { state.close(); }
         System.out.println("PASS: " + checks + " association coordinator checks; owned fixture " + root + "; no command context installed or original initialized UI qualified.");

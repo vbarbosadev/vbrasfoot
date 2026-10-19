@@ -27,6 +27,9 @@ possui allowWrite, nao emite lease, nao modifica associacao e nao instala contex
 Ancora registrada desconhecida continua erro; nao existe lookup automatico por hash.
 Cada diario e avaliado isoladamente: nao ha inventario completo de todos os mods,
 nem conclusao global de prontidao baseada apenas numa lista parcial.
+Entrega BINDING-JOURNAL-INVENTORY.md acrescenta inventario limitado dos namespaces
+existentes no binding explicito, incluindo nao selecionados, com recusa de orphan
+sem HEAD. Nao conclui prontidao nem oferece discovery de outros bindings.
 
 ## Quarentena duravel monotona
 

@@ -51,6 +51,9 @@ READ_ONLY_LINKED NAO significa pronto para escrita. FileKey indisponivel e exibi
 como tal, nao fabricado a partir de hash; mudanca de timestamps continua conflito.
 Owners antigos/desabilitados/desconhecidos nao estao nesse registro: nao e auditoria
 global de todos os diarios existentes. IOException/corrupcao/mismatch nao e EMPTY.
+Incremento BINDING-JOURNAL-INVENTORY.md fecha a lacuna de owners nao selecionados
+existentes no binding escolhido: une configurados+namespaces fisicos e revalida
+nomes/HEADtokens antes de confirmar. Ainda nao e inventario de outras carreiras.
 
 Uma Review e privada, vinculada a instancia e consumida uma unica vez. confirm
 exige acao explicita, revalida stream/arquivo/geracao e token de metadata antes de
