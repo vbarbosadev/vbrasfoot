@@ -1,5 +1,61 @@
 # Validacao — 16/10/2026
 
+## Stream real do save e avaliacao por operacao — 20/10/2026
+
+CareerTransformer fingerprintado agora confere e instrumenta exatamente dois
+FileOutputStream(String), um Output(OutputStream) e dois writes de roots do writer
+original. Captura destino real, referencias fracas dos objetos serializados e
+hash/size dos bytes entregues com sucesso ao stream subjacente. Nao troca bytes,
+objetos/schema/destino, adiciona flush/close ou retenta falhas originais.
+
+SaveOutputTrace recusa evidencia em falhas de write/flush/close, acesso de outro
+thread, uso apos close/finalize, stream vazio/nao fechado ou excesso de tamanho.
+WrittenSaveProvenance exige ticket ativo inalterado, exatamente duas roots com
+retorno e sequencia metadata/primary/underlying-close/backup/return completa.
+Load/reset/root assignment/novo save/detach invalidam evidencia corrente;
+completion antigo nao a restaura. WrittenSaveVerifier cruza path REAL exato,
+hash/size do arquivo observado e roots/ticket atuais na EDT com timeout. Hashing
+fica fora da EDT; backup/copia byte-identicos nao selecionam outro path.
+
+Report written-save-provenance.properties captura snapshot ANTES do detach, sem
+paths/objetos/nomes de clubes; operationInclusionProven=false e writeAuthority=false.
+Nao e testemunho duravel de comando, commit atomico save+sidecars ou garantia de
+power-loss. Reload invalida binding corrente, nao restaura authority antiga.
+
+FinanceSaveAssessment separa por key/UUID real do receipt a correlacao dos bytes
+escritos/recarregados e a inclusao do efeito. Mesmo output/decoder identicos,
+APPLIED/UNKNOWN permanecem UNPROVEN. NO_EFFECT de outro payload e CONFLICT; pedido
+sem receipt nao ganha UUID. Nenhum estado INCLUDED existe neste avaliador e
+nenhum journal/contrato/metadata e migrado, completado ou liberado para replay.
+
+Evidencia:
+-32checks de stream/provenance/verificador e18de avaliacao por operacao passaram
+ em compilacao isolada atual em
+ `Temp/opencode/save-assessment-final-e8cc4929971842a9bdaeda8f91b9d8dd`.
+ Positivos de hooks/roots nesses testes sao SINTETICOS.
+-159checks I/O/schema ORIGINAIS em `build/written-save-original-validation.log`,
+ em fixture privada: hash/size/path/roots do output primario reais, backup nao
+ selecionado implicitamente, reload dos mesmos bytes sem autoridade antiga e
+ falhas originais engolidas de metadata/primary/backup sem evidencia falsa.
+ Fixture continua pulando init completo: NAO e qualificacao global de gameplay.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos passou em
+ `build/written-save-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-6ce72bf97fd74a3cad8063f36559a889`.
+
+Javap read-only do EXE conhecido esta em
+ `Temp/opencode/vbrasfoot-save-writer-20261020.javap.txt`; offsets48/140/149/160/169/174
+ confirmam destinos .info/.s22, Output ctor, duas roots e close. REA nao anunciou
+ferramenta JVM na busca direcionada; sem instalacao/configuracao para forcar isso.
+Erros iniciais de compilacao do report e de fixture sem root-assignment/novo load
+foram corrigidos; nao contam como positivos nem motivaram relaxar verificacao.
+
+O save original nao guarda IDs dos comandos. Cobertura causal das mutacoes
+financeiras e testemunho persistente por operacao ainda faltam para resolver
+APPLIED/UNKNOWN/inclusao no save. Categorias/UI/standalone, calendario/mercado e
+API publica tambem nao estao aprovados. Sem novo mod, instalacao pessoal/save/EXE
+alterado, release/tag ou nova sessao humana. Detalhes e limites:
+ `roadmap/WRITTEN-SAVE-EVIDENCE.md`.
+
 ## Inventario de contratos no contexto operacional — 19/10/2026
 
 Coordenador de Main agora seleciona root dedicado finance-requests alem de
