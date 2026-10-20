@@ -11,6 +11,9 @@ final class FinanceRequestStore {
     record Snapshot(String token, List<FinanceRequest> requests) {
         Snapshot { requests = List.copyOf(requests); }
     }
+    record Recovery(Snapshot snapshot, SaveRevision recordedSave, SaveRevision observedSave) {
+        boolean revisionChanged() { return !recordedSave.equals(observedSave); }
+    }
     private final CareerSidecarStore store;
     private final Key key;
     FinanceRequestStore(CareerSidecarStore store, Key key) { this.store = Objects.requireNonNull(store); this.key = Objects.requireNonNull(key); }
@@ -22,6 +25,14 @@ final class FinanceRequestStore {
         if (view.value().isEmpty() && store.inventoryBinding(key.career(), key.binding()).tokens().containsKey(key.mod()))
             throw new Failure(Reason.RECONCILIATION_REQUIRED, "Existing uncommitted request namespace cannot be treated as empty");
         return new Snapshot(view.token(), decode(view, save));
+    }
+    /** Diagnostic anchor read only; no identity discovery, migration or dispatch permission. */
+    Recovery inspectRecordedRecovery(SaveRevision observedSave) throws IOException {
+        Objects.requireNonNull(observedSave); var view = store.inspectFinanceRequests(key);
+        if (view.value().isEmpty() && store.inventoryBinding(key.career(), key.binding()).tokens().containsKey(key.mod()))
+            throw new Failure(Reason.RECONCILIATION_REQUIRED, "Existing uncommitted request namespace requires review");
+        var recorded = view.value().map(Value::save).orElse(observedSave);
+        return new Recovery(new Snapshot(view.token(), decode(view, recorded)), recorded, observedSave);
     }
     Snapshot persist(FinanceRequest request, String expectedToken) throws IOException {
         Objects.requireNonNull(request);

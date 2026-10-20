@@ -38,13 +38,14 @@ public final class CareerAssociationCoordinatorSelfTest {
         Path saves = Files.createDirectory(root.resolve("sav")), metadata = root.resolve("metadata"), journals = root.resolve("journals");
         byte[] first = {1, 2, 3}; Path source = Files.write(saves.resolve("owned.s22"), first);
         var observer = new SaveFileObserver(); var associations = new CareerSaveAssociations(metadata); var journalStore = new CareerSidecarStore(journals);
+        var requestStore = new CareerSidecarStore(root.resolve("finance-requests"));
         Object primary = new Object(), secondary = new Object();
         var verifier = new LoadedSaveVerifier(observer, () -> new CareerCommandDispatcher.Roots(primary, secondary), Duration.ofSeconds(2));
         var owners = List.of("br.owned.second", "br.owned.first");
-        var coordinator = new CareerAssociationCoordinator(saves, associations, journalStore, observer, verifier, owners);
-        var foreign = new CareerAssociationCoordinator(saves, associations, journalStore, observer, verifier, owners);
-        check(!Files.exists(metadata) && !Files.exists(journals), "constructing coordinator does not create a career registry or journal");
-        invalid(() -> new CareerAssociationCoordinator(saves, associations, journalStore, observer, verifier, List.of("a", "a")));
+        var coordinator = new CareerAssociationCoordinator(saves, associations, journalStore, requestStore, observer, verifier, owners);
+        var foreign = new CareerAssociationCoordinator(saves, associations, journalStore, requestStore, observer, verifier, owners);
+        check(!Files.exists(metadata) && !Files.exists(journals) && !Files.exists(root.resolve("finance-requests")), "constructing coordinator does not create registry, journal or request store");
+        invalid(() -> new CareerAssociationCoordinator(saves, associations, journalStore, requestStore, observer, verifier, List.of("a", "a")));
         var state = new CareerLifecycle();
         try (var guard = HookProbe.attachLifecycle(state)) {
             boolean missing = false;
@@ -52,7 +53,7 @@ public final class CareerAssociationCoordinatorSelfTest {
             check(missing && !Files.exists(metadata), "startup without decoder proof cannot create/select identity");
             load(source, primary, secondary);
             var fresh = coordinator.review(Optional.empty());
-            check(fresh.status() == Status.ASSOCIATION_REQUIRED && fresh.association().isEmpty() && fresh.journals().isEmpty(), "no handle means no identity inference or invented empty journal inventory");
+            check(fresh.status() == Status.ASSOCIATION_REQUIRED && fresh.association().isEmpty() && fresh.journals().isEmpty() && fresh.requests().isEmpty(), "no handle means no identity inference or invented journal/contract inventory");
             check(!fresh.decoded().initializationPathObserved(), "synthetic unqualified initialization preserved in report");
             check(!Files.exists(metadata) && !Files.exists(journals), "read-only review leaves storage absent");
             String text = CareerAssociationPanel.report(fresh);
@@ -152,7 +153,7 @@ public final class CareerAssociationCoordinatorSelfTest {
             rejects(Reason.CONFLICT, () -> coordinator.confirm(orphanReview, Action.QUARANTINE_PENDING, Optional.of("br.owned.orphan")));
             var atCapacity = new ArrayList<String>();
             for (int i = 0; i < MAX_BINDING_NAMESPACES; i++) atCapacity.add("br.owned.configured" + i);
-            var unionOverflow = new CareerAssociationCoordinator(saves, associations, journalStore, observer, verifier, atCapacity);
+            var unionOverflow = new CareerAssociationCoordinator(saves, associations, journalStore, requestStore, observer, verifier, atCapacity);
             rejects(Reason.QUOTA, () -> unionOverflow.review(Optional.of(fork)));
             check(Arrays.equals(Files.readAllBytes(source), first) && Arrays.equals(Files.readAllBytes(renamed), first), "all coordinated actions preserve owned save bytes");
         } finally { state.close(); }

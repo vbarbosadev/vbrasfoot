@@ -1,5 +1,9 @@
 # Contratos financeiros gravados antes do diario e do efeito
 
+Incremento posterior: FINANCE-CONTRACT-INVENTORY.md conecta inventario/read-only
+dos contratos ao coordenador de Main e a preparacao explicita do contexto interno.
+Nao cria handlers/owners/API publica nem migra contratos entre revisoes.
+
 Incremento interno experimental de PERSISTENT-FINANCE-REQUEST.md. Nao instala,
 nao cria mods e nao concede owners/permissoes/API de escrita. Nao resolve efeitos
 APPLIED/UNKNOWN ou inclusao no save. Categorias continuam raw6/7.
@@ -68,10 +72,10 @@ de diretorios. Path checks nao fazem sandbox contra Java/FS hostis/hardlinks/rac
 
 ## Escopo instalado e revisoes
 
-Componente e pipeline estao implementados e cobertos por fixtures; Main ainda NAO
-cria request-store, owners ou handlers de escrita para mods. Root de producao e
-revisao/inventario de contratos no contexto operacional ainda precisam de politica
-e integracao. Nao chamar a camada de escrita de pronta por causa deste componente.
+Componente e pipeline estao implementados e cobertos por fixtures; incremento
+FINANCE-CONTRACT-INVENTORY.md conecta Main ao root dedicado para inventario/read
+no coordenador. Main ainda NAO persiste pedidos ou cria owners/handlers de escrita
+para mods. Nao chamar a camada de escrita de pronta por causa desses componentes.
 
 Store fica ancorado na revisao original. Nao pode receber pedidos de outra
 revisao, mesmo apos metadata ou diario NO_EFFECT terem sido reancorados. Essa
@@ -91,6 +95,6 @@ payloads completos e nao permite bypass; writer/reload original e restore do inp
 da fixture nao habilitam pagamento duplicado. Autoridades sao ARTIFICIAIS, nao
 qualificacao de Main, UI financeira ou reabertura standalone original.
 
-Ainda faltam: revisao/inventario/lifecycle de contratos no contexto operacional,
-protocolo entre revisoes e reconciliacao APPLIED/UNKNOWN por evidencia especifica,
+Ainda faltam: lifecycle/migracoes entre revisoes, retencao/compactacao e
+reconciliacao APPLIED/UNKNOWN por evidencia especifica,
 categorias/UI/standalone, calendario/mercado e contratos/permissoes publicos.
