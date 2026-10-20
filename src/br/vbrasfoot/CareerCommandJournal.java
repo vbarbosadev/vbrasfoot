@@ -66,6 +66,10 @@ final class CareerCommandJournal {
                     && context.save().equals(save) && key.mod().equals(owner);
         }
         UUID operationId() { return operation; } Intent intent() { return intent; }
+        boolean matches(FinanceRequest request) {
+            return request != null && key.career().equals(request.career()) && key.binding().equals(request.binding())
+                    && key.mod().equals(request.owner()) && save.equals(request.save()) && intent.equals(request.intent());
+        }
     }
     private static final int MAGIC = 0x5642434a, FORMAT = 2, SCHEMA = 2, MAX_INTENTS = 32;
     private static final class Entries extends LinkedHashMap<String, Receipt> {

@@ -21,7 +21,8 @@ public final class FinanceOriginalRuntimeTest {
         boolean probeWriter = args.length == 3 && args[2].equals("--probe-writer");
         var writerLifecycle = new CareerLifecycle();
         try (LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home.resolve("runtime"), probeWriter);
-             AutoCloseable writerGuard = probeWriter ? HookProbe.attachLifecycle(writerLifecycle) : () -> { }) {
+             AutoCloseable writerGuard = probeWriter ? HookProbe.attachLifecycle(writerLifecycle) : () -> { };
+             AutoCloseable serializationGuard = probeWriter ? HookProbe.attachFinancialSerialization(new FinanceSerializationTracker()) : () -> { }) {
             current.setContextClassLoader(runtime);
             Class.forName("best.M", true, runtime).getConstructor(boolean.class).newInstance(true);
             Class<?> state = Class.forName("c.a", false, runtime);
@@ -157,6 +158,12 @@ public final class FinanceOriginalRuntimeTest {
                     var noEffectResult = noEffectDispatcher.execute(noEffectOwner, context, stale.intent("no-effect-only"), CareerSidecarStore.EMPTY, stale);
                     check(noEffectResult.kind() == Kind.NO_EFFECT && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(changed.expected()),
                             "original adapter rejects consumed/stale plan with no mutation in separate no-effect journal");
+                    var finalSerializerRequest = CareerBridge.onEdt(() -> adapter.request(context, key.mod(), "owned-serializer-final", human, FinanceDelta.Direction.CREDIT_RAW_6, 1));
+                    var finalSerializerPlan = CareerBridge.onEdt(() -> adapter.prepare(finalSerializerRequest));
+                    var finalSerializerResult = dispatcher.executeWitnessedFinance(owner, context, finalSerializerRequest, journal.read(revision).token(), requestStore,
+                            requestStore.read(revision).token(), witnessStore, witnessStore.read(revision).token(), finalSerializerPlan);
+                    check(finalSerializerResult.dispatch().kind() == Kind.EXECUTED, "last original witnessed operation prepares an exact live serializer target in private fixture");
+                    var beforeRecovery = CareerBridge.onEdt(() -> adapter.snapshot(human));
                     var recoveryWrites = new java.util.concurrent.atomic.AtomicInteger();
                     var interruptedJournal = new CareerCommandJournal(new CareerSidecarStore(home.resolve("no-effect-recovery-journals"), stage -> {
                         if (stage == CareerSidecarStore.Stage.RECORD_WRITTEN) recoveryWrites.incrementAndGet();
@@ -169,7 +176,7 @@ public final class FinanceOriginalRuntimeTest {
                             .executeWitnessedFinance(recoveryOwner, context, recoveryRequest, CareerSidecarStore.EMPTY, recoveryRequests, CareerSidecarStore.EMPTY,
                                     recoveryWitnesses, CareerSidecarStore.EMPTY, recoveryPlan);
                     check(interruptedResult.dispatch().kind() == Kind.UNCERTAIN && interruptedResult.dispatch().detail() == Detail.JOURNAL_FAILURE
-                                    && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(changed.expected()),
+                                    && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(beforeRecovery),
                             "original stale persistent plan proves no effect, but injected terminal journal failure remains UNKNOWN");
                     var recoveryHistory = new CareerCommandJournal(new CareerSidecarStore(home.resolve("no-effect-recovery-journals")), recoveryKey);
                     var pendingRecovery = recoveryHistory.read(revision); var noEffectEvidence = recoveryWitnesses.read(revision);
@@ -202,6 +209,24 @@ public final class FinanceOriginalRuntimeTest {
                                 && mutationAssessment.serializerWindow() == FinanceMutationAssessment.Status.NO_OBSERVED_DIRECT_WRITE,
                                 "original financial effect and serializer checkpoints can be compared without treating sampled ledger equality as causal proof");
                         check(preWriterMutations != null && preWriterMutations.healthy(), "original pre-writer mutation checkpoint remains diagnostic, not a save grant");
+                        var operationCapture = bindingWritten.operationCapture();
+                        check(operationCapture.validWindow() && !operationCapture.capacityExceeded() && operationCapture.operations().size() == 3,
+                                "original root serializer captures bounded operation UUIDs only for three witnessed applied plans, not stale/rejected or legacy commands");
+                        var creditOperation = applied.journal().orElseThrow().receipts().get(0).operationId();
+                        var debitOperation = debited.journal().orElseThrow().receipts().get(1).operationId();
+                        var finalOperation = finalSerializerResult.dispatch().journal().orElseThrow().receipts().stream()
+                                .filter(value -> value.intent().equals(finalSerializerRequest.intent())).findFirst().orElseThrow().operationId();
+                        check(operationCapture.operations().stream().map(FinanceSerializationTracker.Operation::operationId).collect(java.util.stream.Collectors.toSet())
+                                        .equals(Set.of(creditOperation, debitOperation, finalOperation)), "captured original-root observations retain exact journal UUIDs and no invented identity");
+                        check(operationCapture.operations().stream().filter(value -> !value.operationId().equals(finalOperation)).allMatch(value -> value.before() == FinanceSerializationTracker.Sample.STATE_MISMATCH
+                                        && value.after() == FinanceSerializationTracker.Sample.STATE_MISMATCH),
+                                "later original financial operations prevent earlier expected snapshots being presented as unchanged at serialization");
+                        check(operationCapture.operations().stream().filter(value -> !value.operationId().equals(finalOperation)).allMatch(value -> value.executionToSerializer() == FinanceSerializationTracker.Continuity.OBSERVED_INTERFERENCE),
+                                "witnessed operations report direct-write interference before serializer even if output writes are stable");
+                        var lastCapture = operationCapture.operations().stream().filter(value -> value.operationId().equals(finalOperation)).findFirst().orElseThrow();
+                        check(lastCapture.before() == FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE && lastCapture.after() == FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE,
+                                "exact final original club/ledger expected snapshot is sampled around root serialization without asserting individual field emission");
+                        java.lang.ref.Reference.reachabilityFence(credit); java.lang.ref.Reference.reachabilityFence(debit); java.lang.ref.Reference.reachabilityFence(finalSerializerPlan);
                     }
                     check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "finance-output", false)), "original loader reloads private financially modified save");
                     var restoredRoots = CareerBridge.onEdt(adapter::roots);

@@ -22,6 +22,8 @@ final class CareerCommandDispatcher {
         default boolean acceptsContext(CareerCommandGate.Context context, String owner) { return true; }
         default Optional<FinanceRequest> persistentRequest() { return Optional.empty(); }
         default boolean supportsExecutionWitness() { return false; }
+        /** Internal diagnostic only; never grants authority, changes receipt status or declares save inclusion. */
+        default void observeSerialization(CareerCommandJournal.ExecutionPermit prepared) { }
     }
     private final CareerCommandGate gate;
     private final CareerCommandJournal journal;
@@ -105,16 +107,17 @@ final class CareerCommandDispatcher {
                 return new Result(Kind.RECORDED_ONLY, Detail.NONE, receipt, Optional.of(prepared.snapshot()));
             }
             FinanceExecutionWitnessStore.Armed armed = null;
+            CareerCommandJournal.ExecutionPermit executionProof = null;
             if (witness != null) {
                 try {
-                    var proof = journal.executionPermit(prepared.lease().orElseThrow(), prepared.snapshot().token());
-                    armed = witness.store().arm(context, proof, witness.token());
+                    executionProof = journal.executionPermit(prepared.lease().orElseThrow(), prepared.snapshot().token());
+                    armed = witness.store().arm(context, executionProof, witness.token());
                 } catch (IOException | RuntimeException failure) {
                     var receipt = gate.cancel(permit); gate.invalidate();
                     return new Result(Kind.UNCERTAIN, Detail.WITNESS_FAILURE, receipt, Optional.of(prepared.snapshot()));
                 }
             }
-            var dispatch = new Dispatch(permit, handler); SwingUtilities.invokeLater(dispatch);
+            var dispatch = new Dispatch(permit, handler, executionProof); SwingUtilities.invokeLater(dispatch);
             Execution executed;
             try { executed = await(dispatch.completion); }
             catch (TimeoutException timeout) { executed = dispatch.timeout(); }
@@ -174,9 +177,12 @@ final class CareerCommandDispatcher {
     private final class Dispatch implements Runnable {
         private final CareerCommandGate.Permit permit;
         private final Handler handler;
+        private final CareerCommandJournal.ExecutionPermit executionProof;
         private final CompletableFuture<Execution> completion = new CompletableFuture<>();
         private boolean entered, cancelled;
-        Dispatch(CareerCommandGate.Permit permit, Handler handler) { this.permit = permit; this.handler = handler; }
+        Dispatch(CareerCommandGate.Permit permit, Handler handler, CareerCommandJournal.ExecutionPermit executionProof) {
+            this.permit = permit; this.handler = handler; this.executionProof = executionProof;
+        }
         @Override public void run() {
             synchronized (this) { if (cancelled) return; entered = true; }
             Roots current = null; boolean invocation = false;
@@ -190,7 +196,11 @@ final class CareerCommandDispatcher {
                 Roots after = roots.current();
                 var observed = current != null && after != null && current.primary() == after.primary() && current.secondary() == after.secondary()
                         ? outcome : CareerCommandGate.Status.OUTCOME_UNKNOWN;
-                completion.complete(new Execution(gate.finish(permit, outcome, after.primary(), after.secondary()), Detail.NONE, observed));
+                var receipt = gate.finish(permit, outcome, after.primary(), after.secondary());
+                if (executionProof != null && observed == CareerCommandGate.Status.APPLIED && receipt.status() == CareerCommandGate.Status.APPLIED) {
+                    try { handler.observeSerialization(executionProof); } catch (Throwable diagnosticFailure) { /* No change to effect/receipt. */ }
+                }
+                completion.complete(new Execution(receipt, Detail.NONE, observed));
             } catch (Throwable failure) {
                 var receipt = invocation ? gate.finish(permit, CareerCommandGate.Status.OUTCOME_UNKNOWN,
                         current == null ? null : current.primary(), current == null ? null : current.secondary()) : gate.cancel(permit);

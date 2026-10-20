@@ -83,7 +83,7 @@ final class LegacyFinanceAdapter {
                 || !Boolean.TRUE.equals(CareerBridge.call(club, "jZ"))) throw new IllegalStateException("Exact current human club required");
     }
     private static void requireEdt() { if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Original financial access requires EDT"); }
-    final class Plan implements CareerCommandDispatcher.Handler {
+    final class Plan implements CareerCommandDispatcher.Handler, FinanceSerializationTracker.Target {
         private final WeakReference<Object> club, ledger, primary, secondary;
         private final FinanceDelta.Snapshot before, after;
         private final FinanceDelta.Direction direction;
@@ -120,6 +120,26 @@ final class LegacyFinanceAdapter {
         @Override public boolean supportsExecutionWitness() { return request != null; }
         FinanceDelta.Snapshot expected() { return after; }
         Optional<FinanceMutationTracker.Snapshot> executionMutationEnd() { return Optional.ofNullable(executionMutationEnd); }
+        @Override public void observeSerialization(CareerCommandJournal.ExecutionPermit prepared) {
+            requireEdt();
+            if (!prepared.matches(request) || executionMutationEnd == null || !used.get()) return;
+            HookProbe.observeFinancialSerialization(prepared.operationId(), prepared.intent(), this, executionMutationEnd);
+        }
+        @Override public FinanceSerializationTracker.Sample sample(Object serializedPrimary) throws Exception {
+            requireEdt(); Object target = club.get(), originalLedger = ledger.get(); var current = roots();
+            if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null) return FinanceSerializationTracker.Sample.TARGET_UNAVAILABLE;
+            if (serializedPrimary != primary.get() || current.primary() != primary.get() || current.secondary() != secondary.get()) return FinanceSerializationTracker.Sample.ROOT_MISMATCH;
+            if (CareerBridge.call(target, "kL") != originalLedger) return FinanceSerializationTracker.Sample.LEDGER_MISMATCH;
+            var clubs = (List<?>) CareerBridge.call(current.primary(), "P");
+            var humans = (List<?>) CareerBridge.call(current.primary(), "aN");
+            if (clubs == null || humans == null || clubs.size() > 100000 || humans.size() > 64
+                    || request == null || request.club().index() >= clubs.size() || clubs.get(request.club().index()) != target
+                    || clubs.stream().filter(value -> value == target).count() != 1 || humans.stream().filter(value -> value == target).count() != 1
+                    || !Objects.equals(request.club().name(), CareerBridge.call(target, "getNome")) || !Boolean.TRUE.equals(CareerBridge.call(target, "jZ")))
+                return FinanceSerializationTracker.Sample.ROOT_MISMATCH;
+            // Original writer may reassign numeric club IDs: never fabricate a persistent new locator from it.
+            return snapshot(target).equals(after) ? FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE : FinanceSerializationTracker.Sample.STATE_MISMATCH;
+        }
         private boolean current(Object target, Object originalLedger, CareerCommandDispatcher.Roots roots) throws Exception {
             if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null
                     || roots.primary() != primary.get() || roots.secondary() != secondary.get() || CareerBridge.call(target, "kL") != originalLedger) return false;

@@ -115,16 +115,23 @@ public final class WrittenSaveProvenanceSelfTest {
         check(HookProbe.writtenSaveProvenance().binding().isEmpty(), "detachment invalidates writer evidence");
         Path report = Files.createDirectory(root.resolve("reports")).resolve("probe-delivery.properties");
         var logger = java.util.logging.Logger.getLogger("owned-written-save-report"); logger.setUseParentHandlers(false);
+        UUID reportOperation = UUID.randomUUID();
+        FinanceSerializationTracker.Target reportTarget = serialized -> serialized == primary ? FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE : FinanceSerializationTracker.Sample.ROOT_MISMATCH;
         try (var probe = new ProbeSession(logger, report)) {
             HookProbe.enterLoad("owned", false); HookProbe.rootAssigned(); HookProbe.rootAssigned(); HookProbe.decodedLoad(primary, secondary); HookProbe.exitLoad(true);
-            save(file, primary, secondary, true, true, false, 2);
+            HookProbe.observeFinancialSerialization(reportOperation, new CareerCommandJournal.Intent("private-request-key", CareerCommandGate.Operation.FINANCE_CREDIT, "a".repeat(64)), reportTarget, null);
+            CareerBridge.onEdt(() -> { save(file, primary, secondary, true, true, false, 2); return null; });
         }
+        java.lang.ref.Reference.reachabilityFence(reportTarget);
         var properties = new Properties();
         try (var in = Files.newInputStream(report.resolveSibling("written-save-provenance.properties"))) { properties.load(in); }
         check(properties.getProperty("status").equals("STREAM_BOUND"), "report captures writer evidence before detach invalidates it");
         check(properties.getProperty("operationInclusionProven").equals("false") && properties.getProperty("writeAuthority").equals("false"), "report never invents effect inclusion or write permission");
         check(!properties.containsKey("destination") && !Files.readString(report.resolveSibling("written-save-provenance.properties")).contains(root.toString()), "diagnostic report does not export save paths or root objects");
         check(HookProbe.writtenSaveProvenance().binding().isEmpty(), "probe disposal never restores reported evidence as live authority");
+        check(properties.getProperty("finance.operations.count").equals("1") && properties.getProperty("finance.operation.0.uuid").equals(reportOperation.toString()), "report preserves exact operation UUID captured at serializer boundaries");
+        check(properties.getProperty("finance.operation.0.before").equals("MATCHED_EXPECTED_STATE") && properties.getProperty("finance.operation.0.after").equals("MATCHED_EXPECTED_STATE"), "report retains bounded target samples, not invented inclusion status");
+        check(!Files.readString(report.resolveSibling("written-save-provenance.properties")).contains("private-request-key"), "exported report does not disclose private operation key/payload or target values");
         System.out.println("PASS: " + checks + " written-save stream checks; owned fixture " + root + "; no financial operation inclusion inferred.");
     }
 }

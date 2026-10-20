@@ -23,6 +23,7 @@ public final class HookProbe {
     private static final DecodedSaveProvenance decodedProvenance = new DecodedSaveProvenance();
     private static final WrittenSaveProvenance writtenProvenance = new WrittenSaveProvenance();
     private static final FinanceMutationTracker financeMutations = new FinanceMutationTracker();
+    private static final AtomicReference<FinanceSerializationTracker> financeSerialization = new AtomicReference<>();
     private static final ThreadLocal<ArrayDeque<Load>> loads = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Save>> saves = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Reset>> resets = ThreadLocal.withInitial(ArrayDeque::new);
@@ -53,11 +54,24 @@ public final class HookProbe {
         int rootsStarted, rootsFinished, destinations;
         boolean sourceRejected;
         FinanceMutationTracker.Snapshot financeBefore, financeAfter;
+        FinanceSerializationTracker serializationTracker;
+        FinanceSerializationTracker.Window serializationWindow;
+        FinanceSerializationTracker.Capture operationCapture = FinanceSerializationTracker.Capture.unavailable();
         Save(String name) { this.name = name; }
     }
     private HookProbe() { }
     static void financeInstrumented(Class<?> type) { financeMutations.instrumented(type.getName(), type.getClassLoader()); }
     static FinanceMutationTracker.Snapshot financeMutationSnapshot(ClassLoader runtime) { return financeMutations.snapshot(runtime); }
+    static AutoCloseable attachFinancialSerialization(FinanceSerializationTracker tracker) {
+        java.util.Objects.requireNonNull(tracker);
+        if (!financeSerialization.compareAndSet(null, tracker)) throw new IllegalStateException("Financial serialization tracker already attached");
+        return () -> { if (financeSerialization.compareAndSet(tracker, null)) tracker.close(); };
+    }
+    static void observeFinancialSerialization(java.util.UUID operation, CareerCommandJournal.Intent intent, FinanceSerializationTracker.Target target,
+                                              FinanceMutationTracker.Snapshot checkpoint) {
+        var tracker = financeSerialization.get(); if (tracker != null) tracker.observe(operation, intent, target, checkpoint);
+    }
+    private static void invalidateFinancialSerialization() { var tracker = financeSerialization.get(); if (tracker != null) tracker.invalidate(); }
     public static void financeMutationStarting() {
         try { financeMutations.begin(); } catch (Throwable ignored) { try { financeMutations.failed(); } catch (Throwable alsoIgnored) { } }
     }
@@ -113,13 +127,15 @@ public final class HookProbe {
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED);
         writtenProvenance.invalidate();
         financeMutations.invalidate();
-        return () -> { if (lifecycle.compareAndSet(state, null)) { decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED); writtenProvenance.invalidate(); financeMutations.invalidate(); } };
+        invalidateFinancialSerialization();
+        return () -> { if (lifecycle.compareAndSet(state, null)) { decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED); writtenProvenance.invalidate(); financeMutations.invalidate(); invalidateFinancialSerialization(); } };
     }
     private static CareerLifecycle.Ticket ticket() {
         CareerLifecycle state = lifecycle.get();
         return state == null ? null : state.ticket();
     }
     public static void rootAssigned() {
+        invalidateFinancialSerialization();
         financeMutations.invalidate();
         writtenProvenance.invalidate();
         var attachedIo = ioInterlock.get(); if (attachedIo != null) attachedIo.invalidateContext();
@@ -184,6 +200,7 @@ public final class HookProbe {
         try { emit("creation-candidate-failed", label, false, false, false, false, true); } catch (Throwable ignored) { }
     }
     public static void enterLoad(String name, boolean backup) {
+        invalidateFinancialSerialization();
         financeMutations.invalidate();
         writtenProvenance.invalidate();
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.LOAD_STARTED);
@@ -248,6 +265,7 @@ public final class HookProbe {
     static long creationProgressOutside() { return asyncCreation.progressOutside(); }
     static AsyncCreationTracker.Snapshot asyncCreationSnapshot() { return asyncCreation.capture(); }
     public static void enterReset() {
+        invalidateFinancialSerialization();
         financeMutations.invalidate();
         writtenProvenance.invalidate();
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.RESET_STARTED);
@@ -385,6 +403,8 @@ public final class HookProbe {
             if (frame.rootsStarted++ == 0) {
                 frame.serializedPrimary = new java.lang.ref.WeakReference<>(root);
                 frame.financeBefore = financeMutations.snapshot(root == null ? null : root.getClass().getClassLoader());
+                frame.serializationTracker = financeSerialization.get();
+                if (frame.serializationTracker != null) frame.serializationWindow = frame.serializationTracker.begin(root, frame.financeBefore);
             }
             else if (frame.rootsStarted == 2) frame.serializedSecondary = new java.lang.ref.WeakReference<>(root);
             else frame.sourceRejected = true;
@@ -396,7 +416,10 @@ public final class HookProbe {
             if (frame != null) {
                 frame.rootsFinished++;
                 Object primary = frame.serializedPrimary == null ? null : frame.serializedPrimary.get();
-                if (frame.rootsFinished == 2) frame.financeAfter = financeMutations.snapshot(primary == null ? null : primary.getClass().getClassLoader());
+                if (frame.rootsFinished == 2) {
+                    if (frame.serializationTracker != null) frame.operationCapture = frame.serializationTracker.finish(frame.serializationWindow, primary);
+                    frame.financeAfter = financeMutations.snapshot(primary == null ? null : primary.getClass().getClassLoader());
+                }
             } else saves.remove();
         } catch (Throwable ignored) { }
     }
@@ -457,7 +480,7 @@ public final class HookProbe {
                     frame.trace == null ? null : frame.trace.finish(), outcome != null && outcome.completeSequence() && !frame.sourceRejected
                             && frame.rootsStarted == 2 && frame.rootsFinished == 2,
                     frame.serializedPrimary == null ? null : frame.serializedPrimary.get(), frame.serializedSecondary == null ? null : frame.serializedSecondary.get(),
-                    frame.financeBefore, frame.financeAfter);
+                    frame.financeBefore, frame.financeAfter, frame.operationCapture);
             emit("save", frame.name, frame.closed && !aborted && !frame.streamCloseFailed, frame.backup, !aborted, false, aborted);
         } catch (Throwable ignored) { }
     }
