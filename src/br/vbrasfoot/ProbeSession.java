@@ -98,7 +98,11 @@ final class ProbeSession implements AutoCloseable {
          written.binding().ifPresent(value -> {
              output.setProperty("generation", Long.toString(value.generation()));
              output.setProperty("bytes.sha256", value.bytes().sha256()); output.setProperty("bytes.size", Long.toString(value.bytes().size()));
+             output.setProperty("finance.noObservedDirectWriteDuringSerialization", Boolean.toString(value.noObservedFinanceWriteDuringSerialization()));
+             value.financeBefore().ifPresent(snapshot -> output.setProperty("finance.before.revision", Long.toString(snapshot.revision())));
+             value.financeAfter().ifPresent(snapshot -> output.setProperty("finance.after.revision", Long.toString(snapshot.revision())));
          });
+         output.setProperty("finance.coverage", "Selected direct writes in defining classes only; excludes reflection, Unsafe, decoder and arbitrary Java writes; not operation inclusion");
          output.setProperty("operationInclusionProven", "false"); output.setProperty("writeAuthority", "false");
          try (var writer = Files.newBufferedWriter(report.resolveSibling("written-save-provenance.properties"))) { output.store(writer, "Writer provenance before detachment; no paths or root objects exported"); }
          catch (Exception failure) { System.err.println("Falha ao registrar provenance do writer: " + failure); }

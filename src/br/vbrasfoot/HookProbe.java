@@ -22,6 +22,7 @@ public final class HookProbe {
     private static final CreationEntryTracker creationEntries = new CreationEntryTracker();
     private static final DecodedSaveProvenance decodedProvenance = new DecodedSaveProvenance();
     private static final WrittenSaveProvenance writtenProvenance = new WrittenSaveProvenance();
+    private static final FinanceMutationTracker financeMutations = new FinanceMutationTracker();
     private static final ThreadLocal<ArrayDeque<Load>> loads = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Save>> saves = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Reset>> resets = ThreadLocal.withInitial(ArrayDeque::new);
@@ -51,9 +52,18 @@ public final class HookProbe {
         java.lang.ref.WeakReference<Object> serializedPrimary, serializedSecondary;
         int rootsStarted, rootsFinished, destinations;
         boolean sourceRejected;
+        FinanceMutationTracker.Snapshot financeBefore, financeAfter;
         Save(String name) { this.name = name; }
     }
     private HookProbe() { }
+    static void financeInstrumented(Class<?> type) { financeMutations.instrumented(type.getName(), type.getClassLoader()); }
+    static FinanceMutationTracker.Snapshot financeMutationSnapshot(ClassLoader runtime) { return financeMutations.snapshot(runtime); }
+    public static void financeMutationStarting() {
+        try { financeMutations.begin(); } catch (Throwable ignored) { try { financeMutations.failed(); } catch (Throwable alsoIgnored) { } }
+    }
+    public static void financeMutationFinished() {
+        try { financeMutations.end(); } catch (Throwable ignored) { try { financeMutations.failed(); } catch (Throwable alsoIgnored) { } }
+    }
 
     static synchronized AutoCloseable attachIoInterlock(CareerIoInterlock interlock) {
         java.util.Objects.requireNonNull(interlock);
@@ -102,13 +112,15 @@ public final class HookProbe {
         if (!lifecycle.compareAndSet(null, state)) throw new IllegalStateException("Lifecycle guard ja ativo");
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED);
         writtenProvenance.invalidate();
-        return () -> { if (lifecycle.compareAndSet(state, null)) { decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED); writtenProvenance.invalidate(); } };
+        financeMutations.invalidate();
+        return () -> { if (lifecycle.compareAndSet(state, null)) { decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED); writtenProvenance.invalidate(); financeMutations.invalidate(); } };
     }
     private static CareerLifecycle.Ticket ticket() {
         CareerLifecycle state = lifecycle.get();
         return state == null ? null : state.ticket();
     }
     public static void rootAssigned() {
+        financeMutations.invalidate();
         writtenProvenance.invalidate();
         var attachedIo = ioInterlock.get(); if (attachedIo != null) attachedIo.invalidateContext();
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.ROOT_CHANGED);
@@ -172,6 +184,7 @@ public final class HookProbe {
         try { emit("creation-candidate-failed", label, false, false, false, false, true); } catch (Throwable ignored) { }
     }
     public static void enterLoad(String name, boolean backup) {
+        financeMutations.invalidate();
         writtenProvenance.invalidate();
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.LOAD_STARTED);
         creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
@@ -235,6 +248,7 @@ public final class HookProbe {
     static long creationProgressOutside() { return asyncCreation.progressOutside(); }
     static AsyncCreationTracker.Snapshot asyncCreationSnapshot() { return asyncCreation.capture(); }
     public static void enterReset() {
+        financeMutations.invalidate();
         writtenProvenance.invalidate();
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.RESET_STARTED);
         creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
@@ -368,13 +382,23 @@ public final class HookProbe {
         try {
             Save frame = saves.get().peek(); if (frame == null) { saves.remove(); return; }
             if (frame.rootsStarted != frame.rootsFinished || root == null) frame.sourceRejected = true;
-            if (frame.rootsStarted++ == 0) frame.serializedPrimary = new java.lang.ref.WeakReference<>(root);
+            if (frame.rootsStarted++ == 0) {
+                frame.serializedPrimary = new java.lang.ref.WeakReference<>(root);
+                frame.financeBefore = financeMutations.snapshot(root == null ? null : root.getClass().getClassLoader());
+            }
             else if (frame.rootsStarted == 2) frame.serializedSecondary = new java.lang.ref.WeakReference<>(root);
             else frame.sourceRejected = true;
         } catch (Throwable ignored) { }
     }
     public static void saveRootSerialized() {
-        try { Save frame = saves.get().peek(); if (frame != null) frame.rootsFinished++; else saves.remove(); } catch (Throwable ignored) { }
+        try {
+            Save frame = saves.get().peek();
+            if (frame != null) {
+                frame.rootsFinished++;
+                Object primary = frame.serializedPrimary == null ? null : frame.serializedPrimary.get();
+                if (frame.rootsFinished == 2) frame.financeAfter = financeMutations.snapshot(primary == null ? null : primary.getClass().getClassLoader());
+            } else saves.remove();
+        } catch (Throwable ignored) { }
     }
     static boolean currentProvenance(DecodedSaveProvenance.Binding binding, Object primary, Object secondary) {
         return decodedProvenance.current(binding, ticket(), primary, secondary);
@@ -432,7 +456,8 @@ public final class HookProbe {
             writtenProvenance.complete(frame.evidenceRevision, frame.ticket, ticket(), frame.destination,
                     frame.trace == null ? null : frame.trace.finish(), outcome != null && outcome.completeSequence() && !frame.sourceRejected
                             && frame.rootsStarted == 2 && frame.rootsFinished == 2,
-                    frame.serializedPrimary == null ? null : frame.serializedPrimary.get(), frame.serializedSecondary == null ? null : frame.serializedSecondary.get());
+                    frame.serializedPrimary == null ? null : frame.serializedPrimary.get(), frame.serializedSecondary == null ? null : frame.serializedSecondary.get(),
+                    frame.financeBefore, frame.financeAfter);
             emit("save", frame.name, frame.closed && !aborted && !frame.streamCloseFailed, frame.backup, !aborted, false, aborted);
         } catch (Throwable ignored) { }
     }

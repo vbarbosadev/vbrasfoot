@@ -77,7 +77,7 @@ final class LegacyRuntime extends URLClassLoader {
 
     @Override protected Class<?> findClass(String name) throws ClassNotFoundException {
         if (!probe || (!name.equals("c.a") && !name.equals("best.f") && !name.equals("best.S") && !name.equals("a.hU") && !name.equals("a.bV") && !name.equals("a.cR") && !name.equals("a.cS") && !name.equals("a.hk") && !name.equals("a.ho")
-                && !name.equals("com.esotericsoftware.kryo.io.Output"))) return super.findClass(name);
+                && !name.equals("best.ah") && !name.equals("best.C") && !name.equals("com.esotericsoftware.kryo.io.Output"))) return super.findClass(name);
         URL resource = findResource(name.replace('.', '/') + ".class");
         if (resource == null) throw new ClassNotFoundException(name);
         try (var input = resource.openStream()) {
@@ -85,6 +85,8 @@ final class LegacyRuntime extends URLClassLoader {
             if (original.length > 1024 * 1024) throw new IOException("Classe de hook grande demais");
             byte[] transformed = name.equals("c.a")
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.CareerTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
+                    : name.equals("best.ah") || name.equals("best.C")
+                    ? (byte[]) Class.forName("br.vbrasfoot.hooks.FinanceMutationTransformer").getMethod("transform", String.class, byte[].class).invoke(null, name, original)
                     : name.equals("best.f")
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.CreationProgressTransformer").getMethod("transform", byte[].class).invoke(null, (Object) original)
                     : name.equals("a.bV")
@@ -97,8 +99,10 @@ final class LegacyRuntime extends URLClassLoader {
                     ? (byte[]) Class.forName("br.vbrasfoot.hooks.AsyncCreationTransformer").getMethod("transform", String.class, byte[].class).invoke(null, name, original)
                     : (byte[]) Class.forName("br.vbrasfoot.hooks.CreationPathTransformer").getMethod("transform", String.class, byte[].class).invoke(null, name, original);
             URL source = resource.openConnection() instanceof java.net.JarURLConnection jar ? jar.getJarFileURL() : getURLs()[0];
-            return defineClass(name, transformed, 0, transformed.length,
+            Class<?> defined = defineClass(name, transformed, 0, transformed.length,
                     new java.security.CodeSource(source, (java.security.cert.Certificate[]) null));
+            if (name.equals("best.ah") || name.equals("best.C")) HookProbe.financeInstrumented(defined);
+            return defined;
         } catch (Exception | LinkageError failure) {
             // Do not fall back to an uninstrumented class after an explicitly requested probe fails.
             throw new IllegalStateException("Sonda recusada antes de definir " + name, failure);

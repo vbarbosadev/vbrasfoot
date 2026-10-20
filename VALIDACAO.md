@@ -1,5 +1,57 @@
 # Validacao — 16/10/2026
 
+## Observacao de mutacoes financeiras e intervalos do serializer — 20/10/2026
+
+FinanceMutationTransformer e opt-in no runtime instrumentado, body-only e
+fingerprintado para best.ah/best.C. Brackets sem argumentos cercam42PUTFIELD
+escolhidos:10nb/4nx em ah e28sites numericos em C. Nao muda receptor/valor/schema,
+retorno/Throwable ou arquivo original; callback nao faz I/O/wait/handler de mod.
+Falha no PUTFIELD nao completa bracket: outstanding permanece e recusa estabilidade.
+
+Inventario independente do EXE conhecido e quatro JARs internos confirmou
+1317classes/406713instrucoes/0erros e0sites externos para os16campos private
+escolhidos. dK tem0PUTFIELD, nao prova imutabilidade. Evidencia PRIVADA:
+ `Temp/opencode/finance-putfield-static-f99d90e0a7ee49cf86aef301766dd61c/FINDINGS.md`.
+Fonte scanner/TSVs/identidades/javap preservados la. Analise nao executou jogo.
+
+Tracker bounded/global compara identidade/revision monotona, contadores ativos
+por thread/health e ambas classes definidas no MESMO runtime. Mudanca de root/
+load/reset/detach invalida checkpoint; equal-value write tambem muda revision.
+Global e conservador: write em outro clube tambem invalida. Active0 nao prova
+quiescencia de toda operacao composta ou bloqueia concorrencia do gameplay.
+
+Plano do adapter captura checkpoint APPLIED e HookProbe captura antes da primeira
+root e depois da segunda root do writer. WrittenSaveProvenance conserva esses
+checkpoints em memoria sem alterar criterio de byte provenance. Avaliacao separa
+executionToSerializer e serializerWindow em UNAVAILABLE/OBSERVED_INTERFERENCE/
+NO_OBSERVED_DIRECT_WRITE. Report exporta contadores/revisions sem paths/objetos;
+operationInclusionProven=false e writeAuthority=false permanecem explicitos.
+
+Evidencia sintetica final em
+ `Temp/opencode/financial-mutation-final-fc53b31894af4fad912f09eaa125732e`:
+-22checks de tracker/checkpoints/avaliacao e8de transformer: int/long/reference,
+ schema preservado, write nao financeiro intocado, NPE original sem completion,
+ cobertura/runtime/identidade, equal-value/nested/foreign/unmatched, invalidacao,
+ checkpoints ausentes e interferencia no serializer.
+-36checks de writer/stream/provenance/report anteriores passaram.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos passou em
+ `build/financial-mutation-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-d2cb7d2a4f1040c682cbcec3a95356dc`.
+
+Primeira tentativa do wrapper parou na compilacao: teste usou CareerBridge.call
+com argumento embora esse helper so aceite getter sem argumentos. Corrigido para
+invocacao original por reflexao na fixture; tentativa falha nao conta como aceite.
+
+LIMITE CRITICO:42sites diretos nao cobrem reflexao/Unsafe/Kryo/decoder/native/
+codigo gerado/injetado/inicializacao VM. Ausencia de evento observado NAO e prova
+de ausencia universal de mutacao ou inclusao de uma operacao no save. Checkpoints
+NAO sao persistidos no witness e nao resolvem crash/reinicio ou UNKNOWN antigo.
+Ainda faltam cobertura causal pertinente/captura especifica de club/ledger no
+serializer, prova duravel de inclusao/revisoes/restore/save-as e aceite UI/
+standalone/calendario/mercado/API publica. Sem grant/retry/migracao novo, mod,
+instalacao/save/EXE pessoal alterado, release/tag ou nova sessao humana.
+Detalhes: `roadmap/FINANCIAL-MUTATION-OBSERVATION.md`.
+
 ## Inventario de execucao no contexto operacional — 20/10/2026
 
 Coordenador de Main inclui agora root dedicado finance-execution-witnesses na

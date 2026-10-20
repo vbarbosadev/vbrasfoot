@@ -83,6 +83,9 @@ continua separada de inclusao no save e nao permite repetir uma operacao.
 O [inventario dos registros de execucao](roadmap/EXECUTION-WITNESS-INVENTORY.md)
 tambem participa dos bloqueios do contexto, inclusive para mods desativados e
 registros sem diario correspondente.
+Uma [sonda de mutacoes financeiras](roadmap/FINANCIAL-MUTATION-OBSERVATION.md)
+detecta escritas diretas observadas entre efeito e serializacao. Nao cobre
+reflexao/Unsafe nem transforma estabilidade observada em prova de inclusao no save.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 
