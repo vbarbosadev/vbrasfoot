@@ -2,6 +2,8 @@
 
 Incremento posterior: PERSISTENT-FINANCE-REQUEST.md define payload financeiro
 interno reproduzivel sem nonce, sem libera-lo a mods ou resolver APPLIED/UNKNOWN.
+FINANCE-CONTRACT-INVENTORY.md acrescenta revisao de contratos completos e
+correspondencia com journals no mesmo binding, inclusive owners nao selecionados.
 
 Entrega de codigo experimental, sem API publica de escrita, permissao nova para
 mods ou instalacao pessoal atualizada. Nao cria mods de patrocinio/negociacao.

@@ -1,5 +1,53 @@
 # Validacao — 16/10/2026
 
+## Inventario de contratos no contexto operacional — 19/10/2026
+
+Coordenador de Main agora seleciona root dedicado finance-requests alem de
+associations/journals e revisa uniao de owners configurados + namespaces de
+journals + contratos existentes no binding explicitamente escolhido. Inclui
+mods desativados/nao selecionados e request-only owners. Uniao acima de64recusa
+resultado parcial. Nenhuma pasta de contratos e criada por construir/revisar.
+
+Inspecao administrativa mostra ancora REAL do envelope dos contratos separada
+da revisao observada, preservando guard estrito no read/persist ordinario. Para
+cada key compara intent completo (operacao+digest): pedido sem receipt, receipt
+historico/incerto sem contrato, conflito, pareado APPLIED ou pareado UNKNOWN
+bloqueiam contexto. Pareado NO_EFFECT nao acrescenta incerteza. Recusas legadas
+NO_EFFECT sem contrato sao identificadas LEGACY_NO_EFFECT_WITHOUT_REQUEST e
+preservam somente compatibilidade da preparacao limitada, sem fabricar payload,
+receber lease antiga ou contornar armazenamento no novo dispatcher.
+
+Review conserva ambos inventarios e revalida HEADtokens/owners antes de confirmar
+qualquer acao e novamente antes de instalar contexto. Ancora divergente, contrato
+incompleto/corrompido ou link bloqueante recusam PREPARE_INTERNAL_CONTEXT no MESMO
+gate da sessao. Journal-only NO_EFFECT reanchor NAO migra contrato: ancora antiga
+fica visivel e contexto continua bloqueado. Sem snapshot atomico ou autorizacao
+duradoura; operacoes futuras ainda precisam de preflight renovado.
+
+Evidencia sintetica em saida isolada
+ `Temp/opencode/contract-inventory-final-374a8eac7b1945d7bfe5d0d818d9811d`:
+-68checks de contexto:28novos cobrem pareamentos, request-only/mod desativado,
+ conflito sob NO_EFFECT, orphan/corrupt HEAD, limite da uniao, alteracao de HEAD
+ ou namespace apos review, legado sem contrato e ancora antiga apos reanchor do
+ journal. Positivos usam roots/markers init PROPRIOS, nao qualificacao original.
+-43checks do coordenador e46de armazenamento preservados.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos passou em
+ `build/contract-inventory-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-ef3c8391d9564adea4c93f88cf2e2b24`.
+
+Primeira tentativa de teste de HEAD corrompido supunha row de erro; inventario
+recusou tudo como CORRUPT ANTES de row parcial. Teste foi corrigido para exigir
+essa recusa mais conservadora, sem enfraquecer o codigo e sem contar a tentativa
+falha como positiva.
+
+Painel exibe contagem/ancora/links/falhas, sem novo botao de apagar/migrar/pagar.
+Main ainda NAO persiste contratos nem cria owners/handlers de escrita para mods.
+Faltam lifecycle/protocolo entre revisoes/restore/save-as, reconciliacao
+APPLIED/UNKNOWN/inclusao no save por operacao, quotas/catalogo globais/retencao/
+compactacao, categorias/UI/standalone e API/calendario/mercado. Sem novo mod,
+instalacao/save pessoal alterado, release/tag ou nova sessao humana. Contrato:
+ `roadmap/FINANCE-CONTRACT-INVENTORY.md`.
+
 ## Contrato financeiro gravado antes do diario/efeito — 19/10/2026
 
 FinanceRequestStore implementa agregado interno append-only de ate32pedidos

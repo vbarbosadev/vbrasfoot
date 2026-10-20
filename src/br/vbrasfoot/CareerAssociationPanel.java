@@ -40,6 +40,19 @@ final class CareerAssociationPanel {
             text.append('\n');
         }
         text.append("\nAPPLIED e historico, nao prova de inclusao no save. UNKNOWN bloqueia, nao permite tentar novamente.\n");
+        text.append("\nContratos financeiros: owners configurados + diarios + contratos existentes no binding escolhido.\n");
+        for (var contracts : review.requests()) {
+            text.append(contracts.owner()).append(contracts.configured() ? " [configurado]: " : " [existente, nao selecionado]: ");
+            contracts.recovery().ifPresentOrElse(recovery -> {
+                text.append("contratos: ").append(recovery.snapshot().requests().size()).append(" / mudanca de revisao: ").append(recovery.revisionChanged());
+                if (recovery.revisionChanged()) text.append("\n  Ancora dos contratos SHA256: ").append(recovery.recordedSave().sha256())
+                        .append(" / bytes: ").append(recovery.recordedSave().size());
+                for (var link : contracts.links()) text.append("\n  ").append(link.key()).append(": ").append(link.status());
+            }, () -> text.append("RECUSADO ").append(contracts.failure().orElseThrow()));
+            text.append('\n');
+        }
+        text.append("Contrato sem receipt exige reconciliacao; nao e seguro repetir nem descartar.\n");
+        text.append("LEGACY_NO_EFFECT_WITHOUT_REQUEST preserva apenas recusa antiga sem efeito; nao inventa contrato ou permite replay.\n");
         text.append("Quarentena conserva todos os comprovantes e converte PREPARED em UNKNOWN; nao resolve efeitos.\n");
         return text.toString();
     }

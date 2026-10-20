@@ -29,7 +29,7 @@ public final class CareerOperationalContextSelfTest {
         final SaveFileObserver observer = new SaveFileObserver();
         final LoadedSaveVerifier verifier;
         final CareerSaveAssociations associations;
-        final CareerSidecarStore journals;
+        final CareerSidecarStore journals, requests;
         final CareerAssociationCoordinator coordinator;
         final String owner = "br.owned.operational";
         CareerSaveAssociations.Handle handle;
@@ -38,7 +38,8 @@ public final class CareerOperationalContextSelfTest {
             source = Files.write(saves.resolve("owned.s22"), new byte[] {1, 2, 3});
             verifier = new LoadedSaveVerifier(observer, () -> new CareerCommandDispatcher.Roots(primary, secondary), Duration.ofSeconds(2));
             associations = new CareerSaveAssociations(root.resolve("associations")); journals = new CareerSidecarStore(root.resolve("journals"));
-            coordinator = new CareerAssociationCoordinator(saves, associations, journals, observer, verifier, List.of(owner)).operational(operational);
+            requests = new CareerSidecarStore(root.resolve("finance-requests"));
+            coordinator = new CareerAssociationCoordinator(saves, associations, journals, requests, observer, verifier, List.of(owner)).operational(operational);
             guarded = HookProbe.attachLifecycle(lifecycle); attached = HookProbe.attachIoInterlock(io);
         }
         void load(boolean initialized) throws Exception {
@@ -54,6 +55,12 @@ public final class CareerOperationalContextSelfTest {
         void bind() throws Exception { coordinator.confirm(coordinator.review(Optional.of(handle)), Action.PREPARE_INTERNAL_CONTEXT, Optional.empty()); }
         CareerCommandJournal journal() { return new CareerCommandJournal(journals, new Key(handle.career(), handle.binding(), owner)); }
         CareerCommandJournal.Intent intent(String key) { return new CareerCommandJournal.Intent(key, CareerCommandGate.Operation.FINANCE_CREDIT, "c".repeat(64)); }
+        FinanceRequest request(String owner, String operation) throws Exception {
+            var ledger = new HashMap<String, Long>(); for (String field : FinanceDelta.FIELDS) ledger.put(field, 0L);
+            return new FinanceRequest(handle.career(), handle.binding(), observer.observe(saves, "owned.s22").revision(), owner, operation,
+                    new FinanceRequest.Club(0, 1, "Synthetic club"), FinanceDelta.Direction.CREDIT_RAW_6, 1, new FinanceDelta.Snapshot(100, ledger));
+        }
+        FinanceRequestStore requestStore(String owner) { return new FinanceRequestStore(requests, new Key(handle.career(), handle.binding(), owner)); }
         @Override public void close() throws Exception { attached.close(); guarded.close(); io.close(); gate.close(); lifecycle.close(); }
     }
     public static void main(String[] args) throws Exception {
@@ -85,6 +92,8 @@ public final class CareerOperationalContextSelfTest {
                 if (terminal != CareerCommandJournal.State.PREPARED) journal.complete(pending.lease().orElseThrow(), terminal, pending.snapshot().token());
                 if (terminal == CareerCommandJournal.State.NO_EFFECT_CONFIRMED) {
                     h.bind(); check(h.gate.contextInstalled(), "reviewed same-anchor no-effect history does not invent an unresolved effect");
+                    check(h.coordinator.review(Optional.of(h.handle)).requests().get(0).links().get(0).status()
+                            == FinanceContractReview.Status.LEGACY_NO_EFFECT_WITHOUT_REQUEST, "legacy no-effect receipt is explicit and never manufactures a missing contract");
                 } else {
                     rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
                     check(!h.gate.contextInstalled(), "historical/uncertain command blocks activation " + terminal);
@@ -99,6 +108,98 @@ public final class CareerOperationalContextSelfTest {
             disabled.complete(pending.lease().orElseThrow(), CareerCommandJournal.State.APPLIED, pending.snapshot().token());
             rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
             check(!h.gate.contextInstalled(), "unselected owner's historical effect blocks whole binding context preparation");
+        }
+        for (var terminal : CareerCommandJournal.State.values()) {
+            try (var h = new Harness(parent)) {
+                h.load(true); h.associate(); var request = h.request(h.owner, "paired");
+                h.requestStore(h.owner).persist(request, EMPTY);
+                var journal = h.journal(); var prepared = journal.prepare(request.save(), EMPTY, request.intent());
+                if (terminal != CareerCommandJournal.State.PREPARED) journal.complete(prepared.lease().orElseThrow(), terminal, prepared.snapshot().token());
+                var review = h.coordinator.review(Optional.of(h.handle)); var row = review.requests().get(0);
+                var expected = terminal == CareerCommandJournal.State.NO_EFFECT_CONFIRMED ? FinanceContractReview.Status.MATCHED_NO_EFFECT
+                        : terminal == CareerCommandJournal.State.APPLIED ? FinanceContractReview.Status.MATCHED_HISTORICAL_EFFECT : FinanceContractReview.Status.MATCHED_UNCERTAIN;
+                check(row.links().size() == 1 && row.links().get(0).status() == expected, "contract/receipt comparison preserves state " + terminal);
+                if (terminal == CareerCommandJournal.State.NO_EFFECT_CONFIRMED) {
+                    h.bind(); check(h.gate.contextInstalled(), "matching same-anchor contract with proven no effect permits only internal context");
+                } else rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+            }
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); h.bind();
+            String disabled = "br.owned.disabled-contract"; var request = h.request(disabled, "payload-only");
+            h.requestStore(disabled).persist(request, EMPTY);
+            var review = h.coordinator.review(Optional.of(h.handle));
+            check(review.requests().stream().anyMatch(row -> row.owner().equals(disabled) && !row.configured()
+                    && row.links().get(0).status() == FinanceContractReview.Status.REQUEST_WITHOUT_RECEIPT), "unselected request-only owner is included even without journal namespace");
+            check(review.journals().stream().anyMatch(row -> row.owner().equals(disabled) && row.recovery().orElseThrow().snapshot().receipts().isEmpty()), "union includes missing journal counterpart without inventing a receipt");
+            check(CareerAssociationPanel.report(review).contains("REQUEST_WITHOUT_RECEIPT"), "panel discloses request-only uncertainty rather than proposing replay/deletion");
+            rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+            check(!h.gate.contextInstalled(), "request without receipt blocks fresh preparation and invalidates old context");
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); var request = h.request(h.owner, "conflicting");
+            h.requestStore(h.owner).persist(request, EMPTY);
+            var journal = h.journal(); var pending = journal.prepare(request.save(), EMPTY, h.intent(request.key()));
+            journal.complete(pending.lease().orElseThrow(), CareerCommandJournal.State.NO_EFFECT_CONFIRMED, pending.snapshot().token());
+            var review = h.coordinator.review(Optional.of(h.handle));
+            check(review.requests().get(0).links().get(0).status() == FinanceContractReview.Status.PAYLOAD_CONFLICT, "same-key no-effect receipt with another digest does not validate contract");
+            rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); var request = h.request(h.owner, "existing-no-effect");
+            var committed = h.requestStore(h.owner).persist(request, EMPTY);
+            var journal = h.journal(); var pending = journal.prepare(request.save(), EMPTY, request.intent());
+            journal.complete(pending.lease().orElseThrow(), CareerCommandJournal.State.NO_EFFECT_CONFIRMED, pending.snapshot().token());
+            h.bind(); var stale = h.coordinator.review(Optional.of(h.handle));
+            h.requestStore(h.owner).persist(h.request(h.owner, "changed-after-review"), committed.token());
+            rejects(Reason.CONFLICT, () -> h.coordinator.confirm(stale, Action.PREPARE_INTERNAL_CONTEXT, Optional.empty()));
+            check(!h.gate.contextInstalled(), "contract inventory change invalidates stale review before context installation");
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); h.bind(); var stale = h.coordinator.review(Optional.of(h.handle));
+            h.requestStore("br.owned.new-contract-owner").persist(h.request("br.owned.new-contract-owner", "new-owner"), EMPTY);
+            rejects(Reason.CONFLICT, () -> h.coordinator.confirm(stale, Action.PREPARE_INTERNAL_CONTEXT, Optional.empty()));
+            check(!h.gate.contextInstalled(), "new contract namespace after review also invalidates optimistic context installation");
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate();
+            h.requestStore("br.owned.unselected").persist(h.request("br.owned.unselected", "extra-owner"), EMPTY);
+            var capacity = new ArrayList<String>(); for (int i = 0; i < 64; i++) capacity.add("br.owned.limit" + i);
+            var limited = new CareerAssociationCoordinator(h.saves, h.associations, h.journals, h.requests, h.observer, h.verifier, capacity);
+            rejects(Reason.QUOTA, () -> limited.review(Optional.of(h.handle)));
+        }
+        for (boolean orphan : List.of(false, true)) {
+            try (var h = new Harness(parent)) {
+                h.load(true); h.associate(); var request = h.request(h.owner, "incomplete");
+                if (orphan) {
+                    var faults = new FinanceRequestStore(new CareerSidecarStore(h.root.resolve("finance-requests"), stage -> { if (stage == Stage.RECORD_WRITTEN) throw new IOException("Owned interruption"); }),
+                            new Key(h.handle.career(), h.handle.binding(), h.owner));
+                    try { faults.persist(request, EMPTY); } catch (IOException expected) { }
+                } else {
+                    h.requestStore(h.owner).persist(request, EMPTY);
+                    Files.write(h.root.resolve("finance-requests").resolve(h.handle.career().toString()).resolve(h.handle.binding().toString()).resolve(h.owner).resolve("HEAD"), new byte[] {1});
+                }
+                if (orphan) {
+                    var review = h.coordinator.review(Optional.of(h.handle));
+                    check(review.requests().get(0).failure().orElseThrow() == Reason.RECONCILIATION_REQUIRED, "request orphan is not clean empty history");
+                    rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+                } else rejects(Reason.CORRUPT, h::bind); // Inventory refuses an unreadable HEAD before producing partial rows.
+            }
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); var request = h.request(h.owner, "old-revision");
+            h.requestStore(h.owner).persist(request, EMPTY);
+            var journal = h.journal(); var prepared = journal.prepare(request.save(), EMPTY, request.intent());
+            journal.complete(prepared.lease().orElseThrow(), CareerCommandJournal.State.NO_EFFECT_CONFIRMED, prepared.snapshot().token());
+            Files.write(h.source, new byte[] {6, 7}); h.load(true);
+            h.coordinator.confirm(h.coordinator.review(Optional.of(h.handle)), Action.ACCEPT_REVISION, Optional.empty());
+            h.coordinator.confirm(h.coordinator.review(Optional.of(h.handle)), Action.REANCHOR_NO_EFFECT_JOURNAL, Optional.of(h.owner));
+            var review = h.coordinator.review(Optional.of(h.handle));
+            check(review.requests().get(0).recovery().orElseThrow().revisionChanged()
+                    && review.requests().get(0).recovery().orElseThrow().recordedSave().equals(request.save()), "administrative review exposes actual old contract anchor after journal-only reanchor");
+            check(CareerAssociationPanel.report(review).contains(request.save().sha256()), "panel shows exact old contract anchor without silently migrating payload");
+            rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+            rejects(Reason.SAVE_REVISION_MISMATCH, () -> h.requestStore(h.owner).read(h.observer.observe(h.saves, "owned.s22").revision()));
         }
         try (var h = new Harness(parent)) {
             h.load(true); h.associate(); var before = h.observer.observe(h.saves, "owned.s22").revision(); var journal = h.journal();
@@ -121,7 +222,7 @@ public final class CareerOperationalContextSelfTest {
         }
         try (var h = new Harness(parent); var foreignGate = new CareerCommandGate()) {
             h.load(true); h.associate();
-            var foreign = new CareerAssociationCoordinator(h.saves, h.associations, h.journals, h.observer, h.verifier, List.of(h.owner))
+            var foreign = new CareerAssociationCoordinator(h.saves, h.associations, h.journals, h.requests, h.observer, h.verifier, List.of(h.owner))
                     .operational(new CareerOperationalContext(foreignGate));
             boolean refused = false;
             try { foreign.confirm(foreign.review(Optional.of(h.handle)), Action.PREPARE_INTERNAL_CONTEXT, Optional.empty()); }

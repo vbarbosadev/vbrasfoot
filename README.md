@@ -72,6 +72,9 @@ de sessao no novo caminho; nao e API publica nem prova de inclusao no save.
 O [armazenamento interno dos pedidos](roadmap/FINANCE-REQUEST-STORE.md) grava o
 contrato antes do diario e do efeito, sem liberar comandos aos mods ou resolver
 incerteza de efeitos/revisoes automaticamente.
+O [inventario de contratos e diarios](roadmap/FINANCE-CONTRACT-INVENTORY.md)
+inclui mods desativados e bloqueia contexto interno diante de contratos incompletos,
+divergentes ou ancorados em outra revisao. Nao concede escrita publica.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 
