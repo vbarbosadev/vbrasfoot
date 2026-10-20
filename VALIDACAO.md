@@ -58,6 +58,24 @@ API publica tambem nao estao aprovados. Sem novo mod, instalacao pessoal/save/EX
 alterado, release/tag ou nova sessao humana. Detalhes e limites:
  `roadmap/WRITTEN-SAVE-EVIDENCE.md`.
 
+### Rotulos e refresh financeiro — evidencia ESTATICA adicional
+
+Scan read-only de1032classes nao-org do EXE original estabeleceu:
+ credito6->dO/eH->rotulo `Patrocinio/Sócio torcedor:` e
+ debito7->dQ/eI->rotulo `Estádio:` na construcao de linhas a.cW.pp.
+Nao chamar7de salario. Rotulo visual nao valida todos os produtores de caixa,
+contratos recorrentes ou efeitos de mod. Fontes/offsets/fingerprints em
+ `Temp/opencode/finance-ui-static-cb1e3beb21294da5a2e20d7547ae8dc7/FINDINGS.md`.
+
+a.eg.qx atualiza somente saldo principal; a.cW.po atualiza resumos, nao linhas.
+Rechamar pp duplica linhas; pq sozinho nao rele ledger. Original qT cria novo
+dialogo/modal e re chama qx ao retornar. a.eg.re nao e refresh puro (chama
+best.S.w); nao usar como callback inocuo. Nenhuma UI foi aberta/adapter de refresh
+aprovado por essa analise.6classes org nao foram disassembladas; reflexao/runtime
+nao observados. Nao contar busca inicial .NET sem candidatos como ausencia real.
+Mapa e limites: `roadmap/FINANCE-UI-EVIDENCE.md`. Sem mudanca de categoria no SDK,
+execucao de jogo, nova sessao humana ou aceite financeiro/visual standalone.
+
 ## Inventario de contratos no contexto operacional — 19/10/2026
 
 Coordenador de Main agora seleciona root dedicado finance-requests alem de

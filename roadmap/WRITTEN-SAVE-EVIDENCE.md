@@ -87,8 +87,11 @@ compatibilidade. Nao declarar commit atomico save+sidecars ou exactly-once.
 
 ## Outros gates do pedido amplo
 
-Evidencia existente so estabelece raw6->dO e raw7->dQ, nao nomes de negocio;
-best.ah.v/w nao fazem refresh da UI financeira. Calendario az/V e predicados de
+FINANCE-UI-EVIDENCE.md agora estabelece os rotulos originais de raw6/dO
+(`Patrocinio/Sócio torcedor:`) e raw7/dQ (`Estádio:`), nao a semantica de todos os
+produtores ou aceite de operacoes. best.ah.v/w nao fazem refresh da UI financeira.
+qx atualiza saldo; pp duplicaria linhas se chamado como refresh de tabela.
+Calendario az/V e predicados de
 mercado sao candidatos compartilhados, nao eventos exclusivos nem commit de oferta.
 Faltam analise/qualificacao desses caminhos antes de calendario, interceptacao,
 contraproposta, commit e permissioes publicas. Aceite financeiro/UI/standalone
