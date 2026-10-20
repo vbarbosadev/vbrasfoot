@@ -131,6 +131,8 @@ public final class WrittenSaveProvenanceSelfTest {
         check(HookProbe.writtenSaveProvenance().binding().isEmpty(), "probe disposal never restores reported evidence as live authority");
         check(properties.getProperty("finance.operations.count").equals("1") && properties.getProperty("finance.operation.0.uuid").equals(reportOperation.toString()), "report preserves exact operation UUID captured at serializer boundaries");
         check(properties.getProperty("finance.operation.0.before").equals("MATCHED_EXPECTED_STATE") && properties.getProperty("finance.operation.0.after").equals("MATCHED_EXPECTED_STATE"), "report retains bounded target samples, not invented inclusion status");
+        check(properties.getProperty("finance.operation.0.numericEmission").equals("MISSING")
+                && properties.getProperty("finance.operation.0.numericFieldsObserved").equals("0"), "report never promotes root-only matched sample to observed numeric arguments");
         check(!Files.readString(report.resolveSibling("written-save-provenance.properties")).contains("private-request-key"), "exported report does not disclose private operation key/payload or target values");
         System.out.println("PASS: " + checks + " written-save stream checks; owned fixture " + root + "; no financial operation inclusion inferred.");
     }

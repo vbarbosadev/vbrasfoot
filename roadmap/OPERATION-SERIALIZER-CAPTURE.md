@@ -73,6 +73,11 @@ writeAuthority=false continuam obrigatorios mesmo se tudo estiver MATCHED.
 
 ## Limite critico: fronteira de root nao e emissao de campo
 
+Incremento posterior: [argumentos numericos do Kryo](FINANCIAL-NUMERIC-EMISSION.md)
+observa argumentos de15campos apos Output.writeInt/writeLong retornar. O limite
+abaixo continua valido para as AMOSTRAS de root; a nova observacao ainda nao
+comprova a aresta clube/ledger, cobertura causal completa ou inclusao duravel.
+
 MATCHED antes/depois nao prova quais campos o Kryo escreveu, qual serializer foi
 selecionado, se um campo e transient/custom ou se uma escrita nao instrumentada
 ocorreu no meio. Cobertura42PUTFIELD nao abrange Unsafe/reflexao/decoder. Nao ha

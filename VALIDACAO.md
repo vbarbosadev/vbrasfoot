@@ -1,5 +1,46 @@
 # Validacao — 16/10/2026
 
+## Emissao numerica efetiva do serializer — 20/10/2026
+
+FinanceFieldTransformer fingerprinta as seis variantes int/long CachedField
+Unsafe/ASM/Object do Kryo4.0.2 do EXE fornecido. Somente probe opt-in Java17/21,
+body-only em write, inventario exato de uma chamada Output fixa e uma varint,
+sem read/copy/schema/fallback. Callback apos retorno recebe o argumento EXATO,
+sem reler saldo/ledger; preserva flag/Output/retorno/falha originais.
+
+HookProbe exige root em andamento, mesmo classloader e mesmo SaveOutputTrace via
+Output.getOutputStream. Plano compara Field/receiver por classe e IDENTIDADE com
+weak club/ledger originais; compara argumento a expected por UUID fresco do
+journal. Tracker bounded nao retém argumentos/Field/Output/alvos fortes: guarda
+status/count/nomes de campo/rotas. Missing/partial/mismatch/duplicata/falha nao viram
+completude. Captura/exportacao nao mudam gate/interlock, receipts/witnesses,
+contratos/revisoes ou writeAuthority=false/operationInclusionProven=false.
+
+Evidencia final isolada em
+`Temp/opencode/finance-numeric-original-2cb87a76bd674d4b846e657a5b320046`:
+-12checks sinteticos numeric emission com classes geradas PROPRIAS;
+-24checks root capture e40writer/report, incluindo MATCHED-only sem emissao;
+-104checks financeiros ORIGINAIS em `final-runtime-test.log`:6recusas de
+ fingerprint adulterado e24casos das6variantes com bytes fixos/varint exatos e
+ falha de overflow preservada;15argumentos esperados na ultima operacao, e
+ VALUE_MISMATCH nas duas anteriores. Rota REAL observada: UnsafeIntField e
+ UnsafeLongField. Save/reload originais e bloqueio de historico mantidos.
+Fixture final copiada de OUTRA copia privada, input/hash/EXE conferidos, sem
+escrever em instalacao/save pessoal ou executar progresso/criacao de carreira.
+O wrapper completo anterior passou74checks originais com primeira versao do
+incremento; nao confundir com104da fixture final ampliada.69witness/29dispatcher
+tambem passaram em compilacao isolada deste incremento.
+
+Limites: argumento aceito em Output pode estar somente em buffer. Nao captura
+ranges/bytes individuais nem codificacao da aresta clube.nx/ledger. Observar a
+leitura Unsafe NAO cobre suas escritas/reflexao/decoder/copy/Java arbitrario nem
+prova causalidade da operacao. Captura e em memoria, sem commit crash-safe por
+UUID. APPLIED/UNKNOWN sem prova continuam bloqueados; nenhuma lease/reanchor/
+permissao publica nova. Persistencia/recovery/restore/save-as/UI/standalone/
+calendario/negociacao seguem pendentes. Sem mod novo, instalacao, release/tag ou
+novo teste humano. `roadmap/STATUS.md` inalterado.
+Contrato/limites: `roadmap/FINANCIAL-NUMERIC-EMISSION.md`.
+
 ## Alvos financeiros por operacao nas fronteiras do serializer — 20/10/2026
 
 No caminho executeWitnessedFinance, dispatcher entrega ExecutionPermit fresco ao
