@@ -43,6 +43,21 @@ final class CareerCommandJournal {
             this.journal = journal; this.operation = operation; this.intent = intent; this.save = save;
         }
     }
+    /** Opaque fresh-PREPARED proof; cannot be constructed from a historical receipt or after reopening. */
+    static final class ExecutionPermit {
+        private final CareerSidecarStore.Key key;
+        private final CareerSidecarStore.SaveRevision save;
+        private final UUID operation;
+        private final Intent intent;
+        private ExecutionPermit(CareerSidecarStore.Key key, CareerSidecarStore.SaveRevision save, UUID operation, Intent intent) {
+            this.key = key; this.save = save; this.operation = operation; this.intent = intent;
+        }
+        boolean matches(CareerCommandGate.Context context, String owner) {
+            return context != null && context.career().equals(key.career()) && context.binding().equals(key.binding())
+                    && context.save().equals(save) && key.mod().equals(owner);
+        }
+        UUID operationId() { return operation; } Intent intent() { return intent; }
+    }
     private static final int MAGIC = 0x5642434a, FORMAT = 1, SCHEMA = 1, MAX_INTENTS = 32;
     private final UUID instance = UUID.randomUUID();
     private final CareerSidecarStore store;
@@ -140,6 +155,13 @@ final class CareerCommandJournal {
         values.put(lease.intent.key(), new Receipt(lease.operation, lease.intent, terminal));
         var committed = store.write(key, lease.save, SCHEMA, expectedToken, encode(values));
         return snapshot(committed.token(), values);
+    }
+    ExecutionPermit executionPermit(Lease lease, String expectedToken) throws IOException {
+        if (lease == null || !instance.equals(lease.journal)) throw new IllegalArgumentException("Fresh current-process command lease required");
+        var view = store.read(key, lease.save); requireToken(view, expectedToken); var receipt = decode(view).get(lease.intent.key());
+        if (receipt == null || receipt.state() != State.PREPARED || !receipt.operationId().equals(lease.operation) || !receipt.intent().equals(lease.intent))
+            throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Only the original still-PREPARED lease may arm an execution witness");
+        return new ExecutionPermit(key, lease.save, lease.operation, lease.intent);
     }
     private static void requireToken(CareerSidecarStore.View view, String expected) throws CareerSidecarStore.Failure {
         if (!view.token().equals(expected)) throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.CONFLICT, "Command journal changed; reread before deciding");

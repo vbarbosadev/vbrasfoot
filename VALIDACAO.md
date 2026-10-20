@@ -1,5 +1,50 @@
 # Validacao — 16/10/2026
 
+## Evidencia duravel de execucao financeira — 20/10/2026
+
+Novo caminho interno executeWitnessedFinance liga contrato persistido, journal
+PREPARED fresco, ExecutionPermit opaco e ARMED duravel antes de enfileirar efeito
+na EDT. Depois grava MEMORY_APPLIED/NO_EFFECT_CONFIRMED/OUTCOME_UNKNOWN antes do
+receipt final, mantendo retention do MESMO gate. ExecutionPermit so e emitido com
+lease da instancia corrente e token/UUID/intent/estado PREPARED bruto revalidados;
+snapshot/receipt historico ou lease reaberta nao bastam. Root de evidencias e
+DEDICADO, com CAS/lock/checksums/previous/quotas, limite32 e nenhum eviction/reanchor.
+
+Falha de ARMED nao enfileira efeito. Falha de evidencia terminal deixa journal
+incerto e gate invalido. Se MEMORY_APPLIED foi comprometido mas receipt final
+falhou, FinanceExecutionRecovery distingue MEMORY_APPLIED_SAVE_UNPROVEN do caso
+sem resultado confiavel, conservando receipt UNKNOWN e key sem nova lease.
+Timeout em execucao permanece UNKNOWN mesmo apos retorno tardio APPLIED. Roots
+trocadas/falha no handler nao geram testemunho positivo de execucao. Nenhum desses
+registros significa INCLUDED no save, migracao de revisao ou retry autorizado.
+
+Evidencia final sintetica:
+-69checks de evidencia duravel em
+ `Temp/opencode/execution-witness-final-b6c5c299bb61483793e25ede5c7c79f4`:
+ fases antes/depois de commit ARMED/terminal, journal final interrompido nos tres
+ estagios, ordem causal payload->PREPARED->ARMED->efeito->evidencia, UUIDs exatos,
+ journal UNKNOWN com observacao independente, timeout/retorno tardio/save fence,
+ lease antiga/prova de outro career, schema/payload/EDT e conflitos de recovery.
+ Nao e power-loss nem aceite de gameplay; efeitos/roots sao PROPRIOS.
+-29checks do dispatcher existente passaram na mesma compilacao isolada.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos passou em
+ `build/execution-witness-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-9dde6548b60e4011b87ddae3ffe3518b`.
+
+Main ainda nao cria witnesses/owners/handlers de escrita para mods. Integracao de
+inventario/review dessas evidencias, captura causal na serializacao e cobertura
+das mutacoes financeiras pertinentes continuam pendentes antes de reconciliar
+APPLIED/UNKNOWN quanto ao SAVE. Historicos sem prova nao recebem evidencia
+retroativa. Nao editar schema original ou comparar apenas saldo/ledger para
+fingir esse elo. Sem transacao multi-root, exactly-once ou seguranca contra Java/
+FS hostis. Categorias/UI/standalone, calendario/mercado e API publica sem aceite.
+
+Procedimento manual financeiro futuro foi delimitado em
+ `roadmap/FINANCE-EXECUTION-WITNESS.md`; NAO e instrucao para executar pagamento
+agora. Nenhum passo financeiro humano solicitado antes dos gates de UI/inclusao.
+Sem novo mod, instalacao/EXE/save pessoal alterado, processo pessoal encerrado,
+release/tag ou nova sessao humana. Autorizacao de teste restrita a copias isoladas.
+
 ## Stream real do save e avaliacao por operacao — 20/10/2026
 
 CareerTransformer fingerprintado agora confere e instrumenta exatamente dois
