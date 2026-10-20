@@ -14,7 +14,7 @@ public final class FinanceOriginalRuntimeTest {
         Path game = Path.of(args[0]).toRealPath(), home = Path.of(args[1]).toAbsolutePath();
         if (!Files.isRegularFile(game.resolve(".finance-test-fixture")) || !Path.of("").toAbsolutePath().toRealPath().equals(game)
                 || Files.exists(game.resolve("sav/finance-output.s22")) || Files.exists(home.resolve("finance-journal"))
-                || Files.exists(home.resolve("finance-requests")))
+                || Files.exists(home.resolve("finance-requests")) || Files.exists(home.resolve("finance-execution-witnesses")))
             throw new IllegalArgumentException("Fresh private fixture/cwd required; no user saves may be targeted");
         String inputHash = Profile.digest(game.resolve("sav/input.s22"));
         Thread current = Thread.currentThread(); ClassLoader previous = current.getContextClassLoader();
@@ -50,6 +50,7 @@ public final class FinanceOriginalRuntimeTest {
                     var context = gate.installContext(career, binding, 1, revision, roots.primary(), roots.secondary());
                     var dispatcher = new CareerCommandDispatcher(gate, journal, adapter::roots, Duration.ofSeconds(5));
                     var requestStore = new FinanceRequestStore(new CareerSidecarStore(home.resolve("finance-requests")), key);
+                    var witnessStore = new FinanceExecutionWitnessStore(new CareerSidecarStore(home.resolve("finance-execution-witnesses")), key);
                     var creditRequest = CareerBridge.onEdt(() -> adapter.request(context, key.mod(), "owned-credit", human, FinanceDelta.Direction.CREDIT_RAW_6, 123));
                     boolean duplicateRefused = CareerBridge.onEdt(() -> {
                         @SuppressWarnings("unchecked") var clubs = (List<Object>) CareerBridge.call(roots.primary(), "P");
@@ -93,11 +94,15 @@ public final class FinanceOriginalRuntimeTest {
                     check(wrongTarget && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(before), "exact original locator mismatch refuses plan without financial mutation");
                     check(dispatcher.execute(owner, context, creditRequest.intent(), CareerSidecarStore.EMPTY, credit).detail() == Detail.REQUEST_REQUIRED
                                     && journal.read(revision).receipts().isEmpty(), "persistent financial plan cannot bypass payload storage");
-                    var storedCredit = dispatcher.executeStoredFinance(owner, context, creditRequest, CareerSidecarStore.EMPTY,
-                            requestStore, CareerSidecarStore.EMPTY, credit);
+                    var storedCredit = dispatcher.executeWitnessedFinance(owner, context, creditRequest, CareerSidecarStore.EMPTY,
+                            requestStore, CareerSidecarStore.EMPTY, witnessStore, CareerSidecarStore.EMPTY, credit);
                     var applied = storedCredit.dispatch();
                     check(requestStore.read(revision).requests().equals(List.of(creditRequest)), "complete credit payload committed before original effect");
                     check(applied.kind() == Kind.EXECUTED, "journaled original v(int,int) invoked on EDT");
+                    var creditWitness = witnessStore.read(revision);
+                    check(creditWitness.witnesses().get(0).operationId().equals(applied.journal().orElseThrow().receipts().get(0).operationId())
+                                    && creditWitness.witnesses().get(0).state() == FinanceExecutionWitnessStore.State.MEMORY_APPLIED,
+                            "original applied credit has independent durable causal execution evidence with exact operation UUID");
                     check(CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(credit.expected()), "original balance and all14numeric ledger fields match exact predicted credit");
                     check(credit.expected().balance() == before.balance() + 123 && credit.expected().ledger().get("dO") == before.ledger().get("dO") + 123, "original raw category6 changes correct accumulator");
                     boolean staleRequest = false;
@@ -109,11 +114,13 @@ public final class FinanceOriginalRuntimeTest {
                     var debitRequest = CareerBridge.onEdt(() -> adapter.request(context, key.mod(), "owned-debit", human, FinanceDelta.Direction.DEBIT_RAW_7, 23));
                     var debit = CareerBridge.onEdt(() -> adapter.prepare(FinanceRequest.decode(debitRequest.encode())));
                     check(debit.intent("owned-debit").equals(debitRequest.intent()), "raw debit also uses canonical durable request identity");
-                    var storedDebit = dispatcher.executeStoredFinance(owner, context, debitRequest, applied.journal().orElseThrow().token(),
-                            requestStore, storedCredit.requests().token(), debit);
+                    var storedDebit = dispatcher.executeWitnessedFinance(owner, context, debitRequest, applied.journal().orElseThrow().token(),
+                            requestStore, storedCredit.requests().token(), witnessStore, creditWitness.token(), debit);
                     var debited = storedDebit.dispatch();
                     check(requestStore.read(revision).requests().equals(List.of(creditRequest, debitRequest)), "stored immutable credit and debit payloads retain order and exact scope");
                     check(debited.kind() == Kind.EXECUTED, "journaled original w(int,int) invoked");
+                    check(witnessStore.read(revision).witnesses().size() == 2 && witnessStore.read(revision).witnesses().stream()
+                                    .allMatch(value -> value.state() == FinanceExecutionWitnessStore.State.MEMORY_APPLIED), "credit and debit execution facts persist without declaring save inclusion");
                     check(CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(debit.expected()) && debit.expected().balance() == before.balance() + 100,
                             "original debit preserves exact ledger and net100balance");
                     var stale = CareerBridge.onEdt(() -> adapter.prepare(human, FinanceDelta.Direction.CREDIT_RAW_6, 11));
@@ -151,6 +158,11 @@ public final class FinanceOriginalRuntimeTest {
                     check(CareerBridge.onEdt(() -> adapter.snapshot(restoredHuman)).equals(beforeSave), "exact balance and all ledger fields survive original write/reload");
                     check(new CareerBridge(runtime).snapshot().clubs().size() == clubCount, "club count retained after original finance roundtrip");
                     var outputObservation = observer.observe(game.resolve("sav"), "finance-output.s22");
+                    var reopenedWitnesses = new FinanceExecutionWitnessStore(new CareerSidecarStore(home.resolve("finance-execution-witnesses")), key);
+                    check(reopenedWitnesses.read(revision).equals(witnessStore.read(revision)), "execution evidence reopens unchanged after original writer/reload");
+                    boolean witnessRevisionRefused = false;
+                    try { reopenedWitnesses.read(outputObservation.revision()); } catch (CareerSidecarStore.Failure expected) { witnessRevisionRefused = expected.reason() == CareerSidecarStore.Reason.SAVE_REVISION_MISMATCH; }
+                    check(witnessRevisionRefused, "memory applied evidence never migrates to output save revision by balance/hash comparison");
                     check(!outputObservation.revision().equals(sourceObservation.revision())
                             && associations.assess(associated, outputObservation) != CareerSaveAssociations.Match.EXACT_OBSERVATION,
                             "newly written original save is not silently the old file/revision association");
@@ -200,8 +212,8 @@ public final class FinanceOriginalRuntimeTest {
                         var restartJournal = new CareerCommandJournal(new CareerSidecarStore(home.resolve("finance-journal")), key);
                         var reopenedRequests = new FinanceRequestStore(new CareerSidecarStore(home.resolve("finance-requests")), key);
                         var retry = new CareerCommandDispatcher(restartGate, restartJournal, adapter::roots, Duration.ofSeconds(5))
-                                .executeStoredFinance(restartOwner, restartContext, decodedRequest, restartJournal.read(revision).token(),
-                                        reopenedRequests, reopenedRequests.read(revision).token(), restartPlan).dispatch();
+                                .executeWitnessedFinance(restartOwner, restartContext, decodedRequest, restartJournal.read(revision).token(),
+                                        reopenedRequests, reopenedRequests.read(revision).token(), reopenedWitnesses, reopenedWitnesses.read(revision).token(), restartPlan).dispatch();
                         check(retry.kind() == Kind.RECORDED_ONLY && CareerBridge.onEdt(() -> adapter.snapshot(inputHuman)).equals(before),
                                 "reopened journal and fresh gate never replay historical APPLIED request on restored input graph");
                     }

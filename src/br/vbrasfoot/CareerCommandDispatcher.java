@@ -9,7 +9,7 @@ import javax.swing.SwingUtilities;
 /** Internal journal-before-effect pipeline. No public ModContext exposure or automatic career qualification. */
 final class CareerCommandDispatcher {
     enum Kind { EXECUTED, NO_EFFECT, RECORDED_ONLY, DENIED, UNCERTAIN }
-    enum Detail { NONE, BINDING_MISMATCH, HANDLER_MISMATCH, REQUEST_REQUIRED, GATE_REFUSED, QUEUE_TIMEOUT, EXECUTION_TIMEOUT, HANDLER_FAILURE, JOURNAL_FAILURE }
+    enum Detail { NONE, BINDING_MISMATCH, HANDLER_MISMATCH, REQUEST_REQUIRED, GATE_REFUSED, QUEUE_TIMEOUT, EXECUTION_TIMEOUT, HANDLER_FAILURE, JOURNAL_FAILURE, WITNESS_FAILURE }
     record Roots(Object primary, Object secondary) { }
     record Result(Kind kind, Detail detail, CareerCommandGate.Receipt receipt, Optional<CareerCommandJournal.Snapshot> journal) { }
     record StoredResult(Result dispatch, FinanceRequestStore.Snapshot requests) { }
@@ -21,6 +21,7 @@ final class CareerCommandDispatcher {
         /** Payload-level scope check in addition to gate/journal checks; legacy handlers remain compatible. */
         default boolean acceptsContext(CareerCommandGate.Context context, String owner) { return true; }
         default Optional<FinanceRequest> persistentRequest() { return Optional.empty(); }
+        default boolean supportsExecutionWitness() { return false; }
     }
     private final CareerCommandGate gate;
     private final CareerCommandJournal journal;
@@ -40,6 +41,18 @@ final class CareerCommandDispatcher {
      * No atomicity with journal: a committed request alone is not permission to retry an operation. */
     StoredResult executeStoredFinance(CareerCommandGate.Owner owner, CareerCommandGate.Context context, FinanceRequest request,
                                      String expectedJournalToken, FinanceRequestStore requests, String expectedRequestToken, Handler handler) throws Exception {
+        return executeFinance(owner, context, request, expectedJournalToken, requests, expectedRequestToken, handler, null);
+    }
+    StoredResult executeWitnessedFinance(CareerCommandGate.Owner owner, CareerCommandGate.Context context, FinanceRequest request,
+                                        String expectedJournalToken, FinanceRequestStore requests, String expectedRequestToken,
+                                        FinanceExecutionWitnessStore witnesses, String expectedWitnessToken, Handler handler) throws Exception {
+        if (!Objects.requireNonNull(handler).supportsExecutionWitness() || !Objects.requireNonNull(witnesses).matches(context, gate.ownerId(owner)))
+            throw new IllegalArgumentException("Trusted witnessed financial handler/scope required");
+        return executeFinance(owner, context, request, expectedJournalToken, requests, expectedRequestToken, handler, new WitnessTarget(witnesses, expectedWitnessToken));
+    }
+    private record WitnessTarget(FinanceExecutionWitnessStore store, String token) { }
+    private StoredResult executeFinance(CareerCommandGate.Owner owner, CareerCommandGate.Context context, FinanceRequest request,
+                                       String expectedJournalToken, FinanceRequestStore requests, String expectedRequestToken, Handler handler, WitnessTarget witness) throws Exception {
         if (SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Persist requests off EDT");
         Objects.requireNonNull(request); Objects.requireNonNull(requests); Objects.requireNonNull(handler);
         String ownerId = gate.ownerId(owner);
@@ -49,10 +62,14 @@ final class CareerCommandDispatcher {
         journal.reviewStoredRequest(context.save(), expectedJournalToken, request.intent());
         var committed = requests.persist(request, expectedRequestToken);
         journal.reviewStoredRequest(context.save(), expectedJournalToken, request.intent());
-        return new StoredResult(executeInternal(owner, context, request.intent(), expectedJournalToken, handler, request), committed);
+        return new StoredResult(executeInternal(owner, context, request.intent(), expectedJournalToken, handler, request, witness), committed);
     }
     private Result executeInternal(CareerCommandGate.Owner owner, CareerCommandGate.Context context, CareerCommandJournal.Intent intent,
                                    String expectedJournalToken, Handler handler, FinanceRequest stored) throws Exception {
+        return executeInternal(owner, context, intent, expectedJournalToken, handler, stored, null);
+    }
+    private Result executeInternal(CareerCommandGate.Owner owner, CareerCommandGate.Context context, CareerCommandJournal.Intent intent,
+                                   String expectedJournalToken, Handler handler, FinanceRequest stored, WitnessTarget witness) throws Exception {
         if (SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Journal dispatch must start off EDT");
         Objects.requireNonNull(context); Objects.requireNonNull(intent); Objects.requireNonNull(handler);
         if (!journal.matches(context, gate.ownerId(owner)))
@@ -87,10 +104,32 @@ final class CareerCommandDispatcher {
                 var receipt = gate.cancel(permit); gate.invalidate(); // Historical result is not proof of application to current decoded roots.
                 return new Result(Kind.RECORDED_ONLY, Detail.NONE, receipt, Optional.of(prepared.snapshot()));
             }
+            FinanceExecutionWitnessStore.Armed armed = null;
+            if (witness != null) {
+                try {
+                    var proof = journal.executionPermit(prepared.lease().orElseThrow(), prepared.snapshot().token());
+                    armed = witness.store().arm(context, proof, witness.token());
+                } catch (IOException | RuntimeException failure) {
+                    var receipt = gate.cancel(permit); gate.invalidate();
+                    return new Result(Kind.UNCERTAIN, Detail.WITNESS_FAILURE, receipt, Optional.of(prepared.snapshot()));
+                }
+            }
             var dispatch = new Dispatch(permit, handler); SwingUtilities.invokeLater(dispatch);
             Execution executed;
             try { executed = await(dispatch.completion); }
             catch (TimeoutException timeout) { executed = dispatch.timeout(); }
+            if (armed != null) {
+                var state = switch (executed.observedOutcome()) {
+                    case APPLIED -> FinanceExecutionWitnessStore.State.MEMORY_APPLIED;
+                    case REJECTED -> FinanceExecutionWitnessStore.State.NO_EFFECT_CONFIRMED;
+                    default -> FinanceExecutionWitnessStore.State.OUTCOME_UNKNOWN;
+                };
+                try { rememberInterruption(); witness.store().complete(armed.lease(), state, armed.snapshot().token()); }
+                catch (IOException | RuntimeException failure) {
+                    var receipt = gate.uncertain(permit); gate.invalidate();
+                    return new Result(Kind.UNCERTAIN, Detail.WITNESS_FAILURE, receipt, Optional.of(prepared.snapshot()));
+                }
+            }
             CareerCommandJournal.State terminal = switch (executed.receipt().status()) {
                 case APPLIED -> CareerCommandJournal.State.APPLIED;
                 case REJECTED -> CareerCommandJournal.State.NO_EFFECT_CONFIRMED;
@@ -131,7 +170,7 @@ final class CareerCommandDispatcher {
             }
         }
     }
-    private record Execution(CareerCommandGate.Receipt receipt, Detail detail) { }
+    private record Execution(CareerCommandGate.Receipt receipt, Detail detail, CareerCommandGate.Status observedOutcome) { }
     private final class Dispatch implements Runnable {
         private final CareerCommandGate.Permit permit;
         private final Handler handler;
@@ -143,23 +182,25 @@ final class CareerCommandDispatcher {
             Roots current = null; boolean invocation = false;
             try {
                 current = roots.current(); var start = gate.begin(permit, current.primary(), current.secondary());
-                if (!start.invocationGranted()) { completion.complete(new Execution(start.receipt(), Detail.GATE_REFUSED)); return; }
+                if (!start.invocationGranted()) { completion.complete(new Execution(start.receipt(), Detail.GATE_REFUSED, CareerCommandGate.Status.REJECTED)); return; }
                 invocation = true;
                 var outcome = handler.apply();
                 if (outcome != CareerCommandGate.Status.APPLIED && outcome != CareerCommandGate.Status.REJECTED && outcome != CareerCommandGate.Status.OUTCOME_UNKNOWN)
                     throw new IllegalStateException("Handler returned nonterminal result");
                 Roots after = roots.current();
-                completion.complete(new Execution(gate.finish(permit, outcome, after.primary(), after.secondary()), Detail.NONE));
+                var observed = current != null && after != null && current.primary() == after.primary() && current.secondary() == after.secondary()
+                        ? outcome : CareerCommandGate.Status.OUTCOME_UNKNOWN;
+                completion.complete(new Execution(gate.finish(permit, outcome, after.primary(), after.secondary()), Detail.NONE, observed));
             } catch (Throwable failure) {
                 var receipt = invocation ? gate.finish(permit, CareerCommandGate.Status.OUTCOME_UNKNOWN,
                         current == null ? null : current.primary(), current == null ? null : current.secondary()) : gate.cancel(permit);
-                completion.complete(new Execution(receipt, Detail.HANDLER_FAILURE));
+                completion.complete(new Execution(receipt, Detail.HANDLER_FAILURE, invocation ? CareerCommandGate.Status.OUTCOME_UNKNOWN : CareerCommandGate.Status.REJECTED));
             }
         }
         synchronized Execution timeout() {
             if (completion.isDone()) return completion.join();
-            if (!entered) { cancelled = true; return new Execution(gate.cancel(permit), Detail.QUEUE_TIMEOUT); }
-            return new Execution(gate.uncertain(permit), Detail.EXECUTION_TIMEOUT);
+            if (!entered) { cancelled = true; return new Execution(gate.cancel(permit), Detail.QUEUE_TIMEOUT, CareerCommandGate.Status.REJECTED); }
+            return new Execution(gate.uncertain(permit), Detail.EXECUTION_TIMEOUT, CareerCommandGate.Status.OUTCOME_UNKNOWN);
         }
     }
 }
