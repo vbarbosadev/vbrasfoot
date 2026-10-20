@@ -16,7 +16,7 @@ final class FinanceContractReview {
         var payloads = new TreeMap<String, FinanceRequest>();
         for (var request : requests.requests()) payloads.put(request.key(), request);
         var receipts = new TreeMap<String, CareerCommandJournal.Receipt>();
-        for (var receipt : journal.receipts()) receipts.put(receipt.intent().key(), receipt);
+        for (var receipt : journal.effectiveReceipts()) receipts.put(receipt.intent().key(), receipt);
         var keys = new TreeSet<>(payloads.keySet()); keys.addAll(receipts.keySet());
         var result = new ArrayList<Link>();
         for (String key : keys) {

@@ -63,6 +63,9 @@ public final class FinanceOriginalRuntimeTest {
                     Path requestFile = Files.write(home.resolve("owned-credit.request"), creditRequest.encode());
                     var decodedRequest = FinanceRequest.decode(Files.readAllBytes(requestFile));
                     var credit = CareerBridge.onEdt(() -> adapter.prepare(decodedRequest));
+                    var recoveryKey = new CareerSidecarStore.Key(career, binding, "br.owned.no-effect-recovery");
+                    var recoveryRequest = CareerBridge.onEdt(() -> adapter.request(context, recoveryKey.mod(), "rejected-before-effect", human, FinanceDelta.Direction.CREDIT_RAW_6, 11));
+                    var recoveryPlan = CareerBridge.onEdt(() -> adapter.prepare(recoveryRequest));
                     var reconstructed = CareerBridge.onEdt(() -> adapter.prepare(FinanceRequest.decode(Files.readAllBytes(requestFile))));
                     check(credit.intent("owned-credit").equals(reconstructed.intent("owned-credit")), "separate weak plans reconstruct same versioned durable intent from stored request");
                     check(!credit.acceptsContext(new CareerCommandGate.Context(UUID.randomUUID(), career, UUID.randomUUID(), 1, revision), key.mod())
@@ -154,6 +157,32 @@ public final class FinanceOriginalRuntimeTest {
                     var noEffectResult = noEffectDispatcher.execute(noEffectOwner, context, stale.intent("no-effect-only"), CareerSidecarStore.EMPTY, stale);
                     check(noEffectResult.kind() == Kind.NO_EFFECT && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(changed.expected()),
                             "original adapter rejects consumed/stale plan with no mutation in separate no-effect journal");
+                    var recoveryWrites = new java.util.concurrent.atomic.AtomicInteger();
+                    var interruptedJournal = new CareerCommandJournal(new CareerSidecarStore(home.resolve("no-effect-recovery-journals"), stage -> {
+                        if (stage == CareerSidecarStore.Stage.RECORD_WRITTEN) recoveryWrites.incrementAndGet();
+                        if (recoveryWrites.get() == 2 && stage == CareerSidecarStore.Stage.HEAD_STAGED) throw new java.io.IOException("Owned no-effect terminal receipt interruption");
+                    }), recoveryKey);
+                    var recoveryWitnesses = new FinanceExecutionWitnessStore(new CareerSidecarStore(home.resolve("no-effect-recovery-witnesses")), recoveryKey);
+                    var recoveryRequests = new FinanceRequestStore(new CareerSidecarStore(home.resolve("no-effect-recovery-contracts")), recoveryKey);
+                    var recoveryOwner = gate.owner(recoveryKey.mod(), Set.of(CareerCommandGate.Operation.FINANCE_CREDIT));
+                    var interruptedResult = new CareerCommandDispatcher(gate, interruptedJournal, adapter::roots, Duration.ofSeconds(5))
+                            .executeWitnessedFinance(recoveryOwner, context, recoveryRequest, CareerSidecarStore.EMPTY, recoveryRequests, CareerSidecarStore.EMPTY,
+                                    recoveryWitnesses, CareerSidecarStore.EMPTY, recoveryPlan);
+                    check(interruptedResult.dispatch().kind() == Kind.UNCERTAIN && interruptedResult.dispatch().detail() == Detail.JOURNAL_FAILURE
+                                    && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(changed.expected()),
+                            "original stale persistent plan proves no effect, but injected terminal journal failure remains UNKNOWN");
+                    var recoveryHistory = new CareerCommandJournal(new CareerSidecarStore(home.resolve("no-effect-recovery-journals")), recoveryKey);
+                    var pendingRecovery = recoveryHistory.read(revision); var noEffectEvidence = recoveryWitnesses.read(revision);
+                    check(pendingRecovery.receipts().get(0).state() == CareerCommandJournal.State.OUTCOME_UNKNOWN
+                                    && noEffectEvidence.witnesses().get(0).state() == FinanceExecutionWitnessStore.State.NO_EFFECT_CONFIRMED,
+                            "separate committed no-effect witness survives original handler refusal and missing terminal receipt");
+                    var proofNoEffect = recoveryWitnesses.proveNoEffect(revision, noEffectEvidence.token(), pendingRecovery.receipts().get(0).operationId(), recoveryRequest.intent());
+                    var adjudicated = recoveryHistory.reconcileNoEffect(proofNoEffect, pendingRecovery.token());
+                    check(adjudicated.receipts().equals(pendingRecovery.receipts()) && adjudicated.noEffectResolutions().size() == 1
+                                    && adjudicated.effectiveReceipts().get(0).state() == CareerCommandJournal.State.NO_EFFECT_CONFIRMED,
+                            "proven original no-effect can be adjudicated without changing raw UNKNOWN/UUID/payload");
+                    check(recoveryHistory.prepare(revision, adjudicated.token(), recoveryRequest.intent()).lease().isEmpty(),
+                            "original rejected operation never becomes replayable after adjudication");
                     var beforeSave = CareerBridge.onEdt(() -> adapter.snapshot(human));
                     var preWriterMutations = probeWriter ? HookProbe.financeMutationSnapshot(runtime) : null;
                     var saveFence = gate.beginSave();

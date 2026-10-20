@@ -68,6 +68,12 @@ final class CareerAssociationPanel {
         text.append("MEMORY_APPLIED_SAVE_UNPROVEN confirma execucao observada, NAO inclusao no save nem permissao de repetir.\n");
         text.append("UNKNOWN/ARMED, conflitos, registros sem diario ou ancoras antigas continuam bloqueados.\n");
         text.append("Quarentena conserva todos os comprovantes e converte PREPARED em UNKNOWN; nao resolve efeitos.\n");
+        text.append("Reconciliacao NO_EFFECT exige prova duravel exata; conserva recibo bruto UNKNOWN e acrescenta auditoria, sem repetir a chave.\n");
+        for (var row : review.journals()) row.recovery().ifPresent(value -> {
+            for (var resolution : value.snapshot().noEffectResolutions()) text.append("Resolucao NO_EFFECT: ").append(row.owner()).append(" / ")
+                    .append(resolution.intent().key()).append(" / UUID: ").append(resolution.operationId()).append(" / original: ").append(resolution.originalState())
+                    .append(" / witness HEAD: ").append(resolution.witnessToken()).append('\n');
+        });
         return text.toString();
     }
     private record Choice(String label, CareerAssociationCoordinator.Action action) {
@@ -95,9 +101,10 @@ final class CareerAssociationPanel {
                 new Choice("Registrar restore do previous conhecido (sem rollback de mods)", CareerAssociationCoordinator.Action.RESTORE_PREVIOUS),
                 new Choice("Quarentena de pendentes (SEM resolver ou repetir efeitos)", CareerAssociationCoordinator.Action.QUARANTINE_PENDING),
                 new Choice("Reancorar diario SOMENTE com ausencia de efeitos confirmada", CareerAssociationCoordinator.Action.REANCHOR_NO_EFFECT_JOURNAL),
+                new Choice("Reconciliar UNKNOWN SOMENTE com prova duravel NO_EFFECT (preserva historico)", CareerAssociationCoordinator.Action.RECONCILE_PROVEN_NO_EFFECT),
                 new Choice("Preparar contexto INTERNO (nenhuma escrita publica liberada)", CareerAssociationCoordinator.Action.PREPARE_INTERNAL_CONTEXT)
         });
-        JComboBox<String> owner = new JComboBox<>(); owner.setToolTipText("Owner explicito para quarentena/reancoragem de um diario revisado");
+        JComboBox<String> owner = new JComboBox<>(); owner.setToolTipText("Owner explicito para quarentena, reancoragem ou reconciliacao provada do diario revisado");
         JButton refresh = new JButton("Verificar (somente leitura)"), confirm = new JButton("Revisar e confirmar acao"); confirm.setEnabled(false);
         JLabel status = new JLabel("Sem comandos de gameplay.");
         JPanel commands = new JPanel(new GridLayout(0, 1, 4, 4)); commands.add(action); commands.add(owner);
@@ -163,7 +170,7 @@ final class CareerAssociationPanel {
             Optional<String> selectedOwner = Optional.ofNullable((String) owner.getSelectedItem());
             String message = choice.label() + "?\nArquivo decodificado: " + review.decoded().source().getFileName()
                     + "\nGeracao: " + review.decoded().generation() + " / SHA256: " + review.decoded().bytes().sha256()
-                    + "\nOwner (quarentena/reancoragem de diario): " + selectedOwner.orElse("nenhum")
+                    + "\nOwner (quarentena/reancoragem/reconciliacao de diario): " + selectedOwner.orElse("nenhum")
                     + "\nSomente metadados externos. Nao cria carreira/mod, nao altera save e nao resolve efeitos incertos.";
             int answer = JOptionPane.showOptionDialog(dialog, message, "Confirmacao explicita", JOptionPane.DEFAULT_OPTION,
                     JOptionPane.WARNING_MESSAGE, null, new String[] {"Cancelar", "Confirmar esta acao"}, "Cancelar");

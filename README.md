@@ -86,6 +86,9 @@ registros sem diario correspondente.
 Uma [sonda de mutacoes financeiras](roadmap/FINANCIAL-MUTATION-OBSERVATION.md)
 detecta escritas diretas observadas entre efeito e serializacao. Nao cobre
 reflexao/Unsafe nem transforma estabilidade observada em prova de inclusao no save.
+Um [UNKNOWN com prova duravel de ausencia de efeito](roadmap/PROVEN-NO-EFFECT-RECONCILIATION.md)
+pode receber resolucao auditada, preservando o recibo bruto e bloqueando replay.
+APPLIED e UNKNOWN sem essa prova nao sao resolvidos por esse caminho.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 
