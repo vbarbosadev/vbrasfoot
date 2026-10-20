@@ -132,6 +132,13 @@ public final class CareerOperationalContextSelfTest {
             rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
             check(journal.read(request.save()).receipts().get(0).state() == CareerCommandJournal.State.OUTCOME_UNKNOWN,
                     "review does not silently rewrite journal uncertainty based on independent execution evidence");
+            h.coordinator.confirm(h.coordinator.review(Optional.of(h.handle)), Action.RECONCILE_PROVEN_NO_EFFECT, Optional.of(h.owner));
+            var resolved = journal.read(request.save());
+            check(resolved.receipts().get(0).state() == CareerCommandJournal.State.OUTCOME_UNKNOWN && resolved.noEffectResolutions().size() == 1,
+                    "explicit proven-no-effect action appends audit without overwriting original UNKNOWN");
+            check(CareerAssociationPanel.report(h.coordinator.review(Optional.of(h.handle))).contains("Resolucao NO_EFFECT:"), "panel discloses audited resolution and original receipt");
+            h.bind(); check(h.gate.contextInstalled(), "fresh review of exact proven-no-effect audit permits only internal no-public-write context");
+            check(journal.prepare(request.save(), resolved.token(), request.intent()).lease().isEmpty(), "metadata reconciliation does not permit retry of original key");
         }
         for (int schema : List.of(1, 2)) {
             try (var h = new Harness(parent)) {

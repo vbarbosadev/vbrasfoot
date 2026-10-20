@@ -10,7 +10,7 @@ import javax.swing.SwingUtilities;
 final class CareerAssociationCoordinator {
     enum Status { ASSOCIATION_REQUIRED, ASSOCIATION_CONFLICT, REVISION_REVIEW_REQUIRED, READ_ONLY_LINKED }
     enum Action { CREATE_NEW, FORK_COPY, RENAME_PROVEN, ASSERT_RENAME, ACCEPT_REVISION, RESTORE_PREVIOUS, QUARANTINE_PENDING,
-        REANCHOR_NO_EFFECT_JOURNAL, PREPARE_INTERNAL_CONTEXT }
+        REANCHOR_NO_EFFECT_JOURNAL, RECONCILE_PROVEN_NO_EFFECT, PREPARE_INTERNAL_CONTEXT }
     record JournalReview(String owner, boolean configured, Optional<CareerCommandJournal.Recovery> recovery, Optional<CareerSidecarStore.Reason> failure) { }
     record RequestReview(String owner, boolean configured, Optional<FinanceRequestStore.Recovery> recovery,
                          Optional<CareerSidecarStore.Reason> failure, List<FinanceContractReview.Link> links) {
@@ -219,6 +219,26 @@ final class CareerAssociationCoordinator {
                     var recovery = row.recovery().orElseThrow(() -> conflict("Diario indisponivel; nao ignorar erro"));
                     journal(handle, owner).reanchorNoEffects(recovery.recordedSave(), review.decoded.bytes(), recovery.snapshot().token());
                     yield handle;
+                }
+                case RECONCILE_PROVEN_NO_EFFECT -> {
+                    if (review.status != Status.READ_ONLY_LINKED || !known.save().equals(review.decoded.bytes())) throw conflict("Associacao e revisao atuais obrigatorias para reconciliar ausencia de efeito");
+                    String owner = journalOwner.orElseThrow(() -> new IllegalArgumentException("Explicit journal owner required"));
+                    var history = review.journals.stream().filter(row -> row.owner().equals(owner)).findFirst().orElseThrow().recovery()
+                            .orElseThrow(() -> conflict("Diario indisponivel"));
+                    var evidence = review.executions.stream().filter(row -> row.owner().equals(owner)).findFirst().orElseThrow().recovery()
+                            .orElseThrow(() -> conflict("Evidencia indisponivel"));
+                    if (history.revisionChanged() || evidence.revisionChanged()) throw conflict("Nao reconciliar provas de outra revisao");
+                    var proofs = new ArrayList<FinanceExecutionWitnessStore.NoEffectProof>();
+                    var witnessStore = executions(handle, owner);
+                    for (var receipt : history.snapshot().receipts()) {
+                        boolean alreadyResolved = history.snapshot().noEffectResolutions().stream().anyMatch(value -> value.operationId().equals(receipt.operationId()));
+                        boolean proven = evidence.snapshot().witnesses().stream().anyMatch(value -> value.operationId().equals(receipt.operationId()) && value.intent().equals(receipt.intent())
+                                && value.state() == FinanceExecutionWitnessStore.State.NO_EFFECT_CONFIRMED);
+                        if (!alreadyResolved && receipt.state() == CareerCommandJournal.State.OUTCOME_UNKNOWN && proven)
+                            proofs.add(witnessStore.proveNoEffect(review.decoded.bytes(), evidence.snapshot().token(), receipt.operationId(), receipt.intent()));
+                    }
+                    if (proofs.isEmpty()) throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Nenhuma operacao incerta possui prova duravel NO_EFFECT exata");
+                    journal(handle, owner).reconcileNoEffects(proofs, history.snapshot().token()); yield handle;
                 }
                 case PREPARE_INTERNAL_CONTEXT -> {
                     if (operational == null || preparation == null) throw conflict("Sessao operacional nao conectada");

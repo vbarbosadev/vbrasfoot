@@ -1,5 +1,47 @@
 # Validacao — 16/10/2026
 
+## Reconciliacao provada de UNKNOWN sem efeito — 20/10/2026
+
+Prova opaca emitida somente de witness comprometido NO_EFFECT para UUID/intent/
+escopo/revisao exatos permite acrescentar NoEffectResolution ao journal. Raw
+receipt PREPARED/UNKNOWN e conservado; effectiveReceipts e visao derivada explicita.
+Auditoria guarda estado original, UUID/payload e HEADtoken/context/generation da
+prova. APPLIED/ARMED/UNKNOWN/MEMORY_APPLIED nao servem como prova de ausencia.
+Nunca nova lease para key antiga; lease original resolvida nao pode executar/
+completar. Inspecao conserva historico, nao inventa rollback/inclusao no save.
+
+Schema/format2 do journal do LOADER le1e2; inspecao v1 nao grava/migra. Escrita
+subsequente usa2com receipts/auditoria conservados. Loader antigo deve recusar
+schema novo; nao ha downgrade implicito. Schema do jogo original inalterado.
+Coordenador/painel oferecem confirmacao explicita por owner, com os tres inventarios
+e origem revalidados. Outros efeitos/incertezas/conflitos/ancoras continuam
+bloqueados; memoria UNKNOWN do gate real nao e apagada por auditoria no disco.
+
+Evidencia final isolada:
+ `Temp/opencode/proven-no-effect-final-d3e03c499e2a4b41a6e2eeadb12823c7`.
+-63checks novos: raw/audit/effective, UUID/payload/escopo/revisao/token, prova
+ antiga/invalida/duplicada/batch, lease/replay, contradicao APPLIED, schema1read-only,
+ reabertura/reanchor, faults nos tres estagios, auditorias corrompidas recusadas
+ e EDT recusada.
+-111checks de contexto incluindo confirmacao auditada e painel (positivos
+ sinteticos, nao clearance da memoria incerta de uma execucao real).
+-Regressoes anteriores isoladas:28journal,29dispatcher,27reanchor sem efeito.
+-65checks financeiros ORIGINAIS em `build/proven-no-effect-original-finance.log`:
+ plano persistente obsoleto recusado sem mutacao, receipt terminal interrompido,
+ witness NO_EFFECT comprometido, reconciliacao com raw UNKNOWN preservado e
+ lease antiga nunca reemitida. Autoridades da fixture sao ARTIFICIAIS.
+-159checks originais I/O/schema em `build/proven-no-effect-original-io.log`.
+ Wrappers rodaram51checks iniciais de reconciliacao;12extras passaram depois na
+ saida isolada final63total. Nao confundir suite inicial com final.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos passou em
+ `build/proven-no-effect-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-9ce7dd2cd8224781bea9a3b194efb55a`.
+
+Ainda pendem inclusao causal APPLIED/UNKNOWN no save, protocolo entre revisoes,
+UI/standalone, calendario/mercado/API publica. Sem mod novo, instalacao/EXE/save
+pessoal alterado, processo pessoal encerrado, release/tag ou nova sessao humana.
+Contrato e limites: `roadmap/PROVEN-NO-EFFECT-RECONCILIATION.md`.
+
 ## Observacao de mutacoes financeiras e intervalos do serializer — 20/10/2026
 
 FinanceMutationTransformer e opt-in no runtime instrumentado, body-only e

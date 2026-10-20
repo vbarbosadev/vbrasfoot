@@ -13,6 +13,23 @@ final class FinanceExecutionWitnessStore {
         boolean revisionChanged() { return !recordedSave.equals(observedSave); }
     }
     record Armed(Snapshot snapshot, Lease lease) { }
+    /** Constructible only from a verified committed NO_EFFECT witness, never a caller-supplied receipt. */
+    static final class NoEffectProof {
+        private final FinanceExecutionWitnessStore owner;
+        private final SaveRevision save;
+        private final String token;
+        private final Witness witness;
+        private NoEffectProof(FinanceExecutionWitnessStore owner, SaveRevision save, String token, Witness witness) {
+            this.owner = owner; this.save = save; this.token = token; this.witness = witness;
+        }
+        Key key() { return owner.key; } SaveRevision save() { return save; } String token() { return token; }
+        Witness witness() { return witness; }
+        void revalidate() throws IOException {
+            var current = owner.read(save); requireToken(current, token);
+            if (!current.witnesses().contains(witness) || witness.state() != State.NO_EFFECT_CONFIRMED)
+                throw new Failure(Reason.RECONCILIATION_REQUIRED, "Committed no-effect witness is no longer current");
+        }
+    }
     static final class Lease {
         private final UUID store, operation;
         private final SaveRevision save;
@@ -38,6 +55,14 @@ final class FinanceExecutionWitnessStore {
         if (view.value().isEmpty() && store.inventoryBinding(key.career(), key.binding()).tokens().containsKey(key.mod()))
             throw new Failure(Reason.RECONCILIATION_REQUIRED, "Uncommitted execution namespace requires review");
         return new Recovery(new Snapshot(view.token(), decode(view)), view.value().map(Value::save).orElse(observedSave), observedSave);
+    }
+    NoEffectProof proveNoEffect(SaveRevision save, String expectedToken, UUID operationId, CareerCommandJournal.Intent intent) throws IOException {
+        Objects.requireNonNull(operationId); Objects.requireNonNull(intent);
+        var snapshot = read(save); requireToken(snapshot, expectedToken);
+        var witness = snapshot.witnesses().stream().filter(value -> value.operationId().equals(operationId) && value.intent().equals(intent)).findFirst()
+                .orElseThrow(() -> new Failure(Reason.RECONCILIATION_REQUIRED, "Exact operation UUID and payload witness required"));
+        if (witness.state() != State.NO_EFFECT_CONFIRMED) throw new Failure(Reason.RECONCILIATION_REQUIRED, "Only durable NO_EFFECT can prove absence of execution effects");
+        return new NoEffectProof(this, save, snapshot.token(), witness);
     }
     Armed arm(CareerCommandGate.Context context, CareerCommandJournal.ExecutionPermit prepared, String expectedToken) throws IOException {
         Objects.requireNonNull(prepared);
