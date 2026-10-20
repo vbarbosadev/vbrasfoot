@@ -80,6 +80,9 @@ Mesmo bytes identicos nao sao usados para resolver a inclusao de efeitos APPLIED
 O caminho interno de [evidencia duravel de execucao](roadmap/FINANCE-EXECUTION-WITNESS.md)
 preserva o resultado observado mesmo se o receipt final falhar; execucao em memoria
 continua separada de inclusao no save e nao permite repetir uma operacao.
+O [inventario dos registros de execucao](roadmap/EXECUTION-WITNESS-INVENTORY.md)
+tambem participa dos bloqueios do contexto, inclusive para mods desativados e
+registros sem diario correspondente.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

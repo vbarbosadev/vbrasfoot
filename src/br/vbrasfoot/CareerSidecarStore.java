@@ -116,6 +116,8 @@ final class CareerSidecarStore {
     View inspectJournalRecord(Key key) throws IOException { offEdt(); return inspect(Objects.requireNonNull(key)); }
     /** Internal administrative read on a dedicated financial-contract root, never a public revision bypass. */
     View inspectFinanceRequests(Key key) throws IOException { offEdt(); return inspect(Objects.requireNonNull(key)); }
+    /** Administrative read on a dedicated execution-witness root only; never a public revision bypass. */
+    View inspectFinanceExecution(Key key) throws IOException { offEdt(); return inspect(Objects.requireNonNull(key)); }
     /** Opaque proof can only be created after journal decode proves every receipt NO_EFFECT_CONFIRMED. */
     View reanchorNoEffectJournal(CareerCommandJournal.NoEffectReanchor proof) throws IOException {
         offEdt(); Objects.requireNonNull(proof);
