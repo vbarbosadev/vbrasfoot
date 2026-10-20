@@ -1,0 +1,86 @@
+package br.vbrasfoot;
+
+import java.lang.ref.WeakReference;
+import java.util.*;
+import javax.swing.SwingUtilities;
+
+/** Bounded diagnostic sampling of witnessed operations at original root serialization boundaries.
+ * Samples never establish that Kryo emitted particular club/ledger fields or that an effect is included. */
+final class FinanceSerializationTracker implements AutoCloseable {
+    static final int MAX_OPERATIONS = 32;
+    enum Sample { MATCHED_EXPECTED_STATE, TARGET_UNAVAILABLE, ROOT_MISMATCH, LEDGER_MISMATCH, STATE_MISMATCH, WRONG_THREAD, READ_FAILED }
+    enum Continuity { UNAVAILABLE, OBSERVED_INTERFERENCE, NO_OBSERVED_DIRECT_WRITE }
+    interface Target { Sample sample(Object serializedPrimary) throws Exception; }
+    record Operation(UUID operationId, CareerCommandJournal.Intent intent, Sample before, Sample after, Continuity executionToSerializer) { }
+    record Capture(boolean validWindow, boolean capacityExceeded, List<Operation> operations) {
+        Capture { operations = List.copyOf(operations); }
+        static Capture unavailable() { return new Capture(false, false, List.of()); }
+    }
+    private record Entry(UUID operationId, CareerCommandJournal.Intent intent, WeakReference<Target> target,
+                         FinanceMutationTracker.Snapshot executionEnd) { }
+    static final class Window {
+        private final UUID tracker;
+        private final long revision;
+        private final boolean exceeded;
+        private final WeakReference<Object> primary;
+        private final List<Entry> entries;
+        private final List<Operation> before;
+        private boolean consumed;
+        private Window(UUID tracker, long revision, boolean exceeded, Object primary, List<Entry> entries, List<Operation> before) {
+            this.tracker = tracker; this.revision = revision; this.exceeded = exceeded; this.primary = new WeakReference<>(primary);
+            this.entries = entries; this.before = before;
+        }
+    }
+    private final UUID id = UUID.randomUUID();
+    private final LinkedHashMap<UUID, Entry> entries = new LinkedHashMap<>();
+    private long revision;
+    private boolean closed, exceeded;
+    synchronized void observe(UUID operation, CareerCommandJournal.Intent intent, Target target, FinanceMutationTracker.Snapshot checkpoint) {
+        Objects.requireNonNull(operation); Objects.requireNonNull(intent); Objects.requireNonNull(target);
+        if (closed) return;
+        if (entries.containsKey(operation) || entries.values().stream().anyMatch(value -> value.intent().key().equals(intent.key()) && value.intent().equals(intent))) {
+            exceeded = true; revision++; return; // Ambiguous registration never overwrites original evidence.
+        }
+        if (entries.size() >= MAX_OPERATIONS) { exceeded = true; revision++; return; }
+        entries.put(operation, new Entry(operation, intent, new WeakReference<>(target), checkpoint)); revision++;
+    }
+    synchronized void invalidate() { revision++; entries.clear(); exceeded = false; }
+    Window begin(Object primary, FinanceMutationTracker.Snapshot serializationStart) {
+        List<Entry> selected; long expected; boolean overflow;
+        synchronized (this) {
+            if (closed) return null;
+            selected = List.copyOf(entries.values()); expected = revision; overflow = exceeded;
+        }
+        var operations = new ArrayList<Operation>();
+        for (var entry : selected) operations.add(new Operation(entry.operationId(), entry.intent(), sample(entry, primary), Sample.TARGET_UNAVAILABLE,
+                continuity(entry.executionEnd(), serializationStart)));
+        return new Window(id, expected, overflow, primary, selected, List.copyOf(operations));
+    }
+    Capture finish(Window window, Object primary) {
+        if (window == null || !id.equals(window.tracker)) return Capture.unavailable();
+        synchronized (this) {
+            if (closed || window.consumed || revision != window.revision) return Capture.unavailable();
+            window.consumed = true;
+            if (primary == null || window.primary.get() != primary) return Capture.unavailable();
+        }
+        var operations = new ArrayList<Operation>();
+        for (int i = 0; i < window.entries.size(); i++) {
+            var before = window.before.get(i);
+            operations.add(new Operation(before.operationId(), before.intent(), before.before(), sample(window.entries.get(i), primary), before.executionToSerializer()));
+        }
+        synchronized (this) { if (closed || revision != window.revision) return Capture.unavailable(); }
+        return new Capture(true, window.exceeded, operations);
+    }
+    private static Sample sample(Entry entry, Object primary) {
+        if (!SwingUtilities.isEventDispatchThread()) return Sample.WRONG_THREAD;
+        var target = entry.target().get(); if (target == null) return Sample.TARGET_UNAVAILABLE;
+        try { var result = target.sample(primary); return result == null ? Sample.READ_FAILED : result; }
+        catch (Throwable failure) { return Sample.READ_FAILED; }
+    }
+    private static Continuity continuity(FinanceMutationTracker.Snapshot execution, FinanceMutationTracker.Snapshot serialization) {
+        if (execution == null || serialization == null || !execution.tracker().equals(serialization.tracker())
+                || !execution.healthy() || !serialization.healthy() || !execution.definingClassesObserved() || !serialization.definingClassesObserved()) return Continuity.UNAVAILABLE;
+        return serialization.stableSince(execution) ? Continuity.NO_OBSERVED_DIRECT_WRITE : Continuity.OBSERVED_INTERFERENCE;
+    }
+    @Override public synchronized void close() { closed = true; invalidate(); }
+}

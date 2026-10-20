@@ -89,6 +89,9 @@ reflexao/Unsafe nem transforma estabilidade observada em prova de inclusao no sa
 Um [UNKNOWN com prova duravel de ausencia de efeito](roadmap/PROVEN-NO-EFFECT-RECONCILIATION.md)
 pode receber resolucao auditada, preservando o recibo bruto e bloqueando replay.
 APPLIED e UNKNOWN sem essa prova nao sao resolvidos por esse caminho.
+A [captura por operacao nas fronteiras do serializer](roadmap/OPERATION-SERIALIZER-CAPTURE.md)
+correlaciona UUIDs com clube/ledger e estado amostrado, sem confundir amostras
+coincidentes com prova de que os campos foram gravados.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

@@ -1,5 +1,57 @@
 # Validacao — 16/10/2026
 
+## Alvos financeiros por operacao nas fronteiras do serializer — 20/10/2026
+
+No caminho executeWitnessedFinance, dispatcher entrega ExecutionPermit fresco ao
+plano somente apos APPLIED observado com roots iguais e receipt APPLIED no gate.
+Plano valida request/permit exatos e registra target FRACO com UUID/intent e
+checkpoint. Tracker nao retem grafo/runtime; target coletado e unavailable,
+sem rediscovery por saldo/nome/ID. Registro e diagnostico ANTES de gravar evidencia
+terminal/receipt: nao comprova que essas gravacoes tiveram sucesso ou que nao
+ocorreu timeout posterior. Nao e autoridade nem testemunho de inclusao duravel.
+
+FinanceSerializationTracker limita32operacoes e marca capacidade/duplicatas
+explicitamente. HookProbe abre janela antes da primeira root real do Kryo e
+fecha depois da segunda. Na EDT, amostra root/roots correntes/clube/indice/
+membership/nome/humano/ledger por IDENTIDADE e snapshot financeiro completo.
+Mudancas sao ROOT_MISMATCH/LEDGER_MISMATCH/STATE_MISMATCH; off-EDT e WRONG_THREAD,
+getter falho e READ_FAILED. Operacao/UUID/intent preservados, nunca inventados.
+Checkpoints distinguem interferencia direta, cobertura ausente ou nenhuma escrita
+direta observada. Load/reset/root/detach/registro novo invalidam janelas antigas.
+
+WrittenSaveProvenance guarda captura imutavel com os bytes/roots existentes
+somente se sequencia do save e completa. ProbeSession possui/fecha subscription,
+exporta UUIDs/status/count/capacity/continuity sem keys/payloads/valores/paths.
+operationInclusionProven=false e writeAuthority=false sempre mantidos.
+
+Evidencia final:
+-24checks de captura e39de writer/report em saida isolada atual
+ `Temp/opencode/operation-capture-reviewed-416c919eaae647f8b1b0e420d901fe80`:
+ status/identidade/UUID/intent, uma janela nao pode ser reutilizada, roots trocadas,
+ alteracao/invalidacao, EDT/read failure, interferencia/checkpoint ausente,
+ capacidade/duplicata e exportacao sem key/valores/paths.
+-69checks de witness e29de dispatcher preservados na mesma compilacao.
+-71checks financeiros ORIGINAIS em fixture PRIVADA com fontes finais do adapter
+ e pipeline, compiladas isoladamente em
+ `Temp/opencode/operation-serializer-final-fd22c69be2c24d7fb826dbc6b532dfba/fixture/runtime-test.log`.
+ Tres operacoes testemunhadas chegaram a captura com UUIDs exatos do journal;
+ ultimas amostras matched, anteriores mismatch/interferencia apos outros efeitos;
+ legado/rejeitado nao registrados. Writer/reload originais preservados. Refinamento
+ posterior somente consome janela com root errado (teste sintetico final).
+ Hashes de EXE/save de origem conferidos antes/depois, autoridades ARTIFICIAIS.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos passou em
+ `build/operation-capture-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-6a760e8fe59946809a362358f35a3e0a`.
+
+Limite critico: amostrar clube/ledger antes/depois da root NAO prova quais campos
+Kryo emitiu, serializer escolhido, campos transient/custom ou ausencia de Unsafe/
+reflexao/decoder. Nao existe INCLUDED/lease/reanchor novo, captura e EM MEMORIA e
+report de shutdown nao e protocolo crash-safe. APPLIED/UNKNOWN sem prova continuam
+bloqueados. Faltam emissao de campos e coverage causal pertinente/persistencia da
+inclusao/revisoes/restore/save-as, UI/standalone/calendario/mercado/API publica.
+Sem mod, instalacao/EXE/save pessoal alterado, processo pessoal encerrado, tag/
+release ou nova sessao humana. Contrato: `roadmap/OPERATION-SERIALIZER-CAPTURE.md`.
+
 ## Reconciliacao provada de UNKNOWN sem efeito — 20/10/2026
 
 Prova opaca emitida somente de witness comprometido NO_EFFECT para UUID/intent/

@@ -19,6 +19,7 @@ final class ProbeSession implements AutoCloseable {
     private final CareerOperationalContext operational = new CareerOperationalContext(commandGate);
     private final CareerIoInterlock interlock = new CareerIoInterlock(commandGate);
     private final AutoCloseable interlockSubscription;
+    private final AutoCloseable serializationSubscription;
     private final Thread shutdown;
     private final Logger logger;
     private final Path report;
@@ -32,18 +33,24 @@ final class ProbeSession implements AutoCloseable {
         dispatcher = new ProbeDispatcher(128, Duration.ofMillis(500), observation -> logger.info("career-hook-probe=" + observation));
         AutoCloseable attached;
          AutoCloseable lifecycleAttached;
-         AutoCloseable ioAttached = null;
+          AutoCloseable ioAttached = null;
+          AutoCloseable serializationAttached = null;
          try {
              ioAttached = HookProbe.attachIoInterlock(interlock);
             lifecycleAttached = HookProbe.attachLifecycle(lifecycle);
-            try { attached = HookProbe.attach(dispatcher::offer); }
+            try {
+                serializationAttached = HookProbe.attachFinancialSerialization(new FinanceSerializationTracker());
+                attached = HookProbe.attach(dispatcher::offer);
+            }
             catch (RuntimeException failure) { lifecycleAttached.close(); throw failure; }
         }
-         catch (Exception failure) {
+          catch (Exception failure) {
+              if (serializationAttached != null) try { serializationAttached.close(); } catch (Exception cleanup) { failure.addSuppressed(cleanup); }
              if (ioAttached != null) try { ioAttached.close(); } catch (Exception cleanup) { failure.addSuppressed(cleanup); }
              interlock.close(); commandGate.close(); dispatcher.close(); throw new IllegalStateException("Falha ao instalar guard da sonda", failure);
          }
-         interlockSubscription = ioAttached;
+          interlockSubscription = ioAttached;
+          serializationSubscription = serializationAttached;
         subscription = attached;
         lifecycleSubscription = lifecycleAttached;
         shutdown = new Thread(this::finish, "vbrasfoot-probe-shutdown");
@@ -76,6 +83,7 @@ final class ProbeSession implements AutoCloseable {
          catch (Exception failure) { System.err.println("Falha ao registrar interlock de I/O: " + failure); }
         try { subscription.close(); } catch (Exception failure) { logger.warning("Could not detach probe subscription"); }
         try { lifecycleSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach lifecycle guard"); }
+        try { serializationSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach serialization diagnostics"); }
         Properties decoded = new Properties();
         decoded.setProperty("format", "1");
         decoded.setProperty("session", reportSession);
@@ -101,8 +109,19 @@ final class ProbeSession implements AutoCloseable {
              output.setProperty("finance.noObservedDirectWriteDuringSerialization", Boolean.toString(value.noObservedFinanceWriteDuringSerialization()));
              value.financeBefore().ifPresent(snapshot -> output.setProperty("finance.before.revision", Long.toString(snapshot.revision())));
              value.financeAfter().ifPresent(snapshot -> output.setProperty("finance.after.revision", Long.toString(snapshot.revision())));
+             var capture = value.operationCapture();
+             output.setProperty("finance.operations.validWindow", Boolean.toString(capture.validWindow()));
+             output.setProperty("finance.operations.capacityExceeded", Boolean.toString(capture.capacityExceeded()));
+             output.setProperty("finance.operations.count", Integer.toString(capture.operations().size()));
+             for (int i = 0; i < capture.operations().size(); i++) {
+                 var operation = capture.operations().get(i); String prefix = "finance.operation." + i + ".";
+                 output.setProperty(prefix + "uuid", operation.operationId().toString());
+                 output.setProperty(prefix + "before", operation.before().name()); output.setProperty(prefix + "after", operation.after().name());
+                 output.setProperty(prefix + "directWriteContinuity", operation.executionToSerializer().name());
+             }
          });
          output.setProperty("finance.coverage", "Selected direct writes in defining classes only; excludes reflection, Unsafe, decoder and arbitrary Java writes; not operation inclusion");
+         output.setProperty("finance.operations.coverage", "Weak operation targets sampled around original root serialization; not field-level serialization coverage or durable inclusion evidence");
          output.setProperty("operationInclusionProven", "false"); output.setProperty("writeAuthority", "false");
          try (var writer = Files.newBufferedWriter(report.resolveSibling("written-save-provenance.properties"))) { output.store(writer, "Writer provenance before detachment; no paths or root objects exported"); }
          catch (Exception failure) { System.err.println("Falha ao registrar provenance do writer: " + failure); }
