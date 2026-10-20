@@ -53,6 +53,20 @@ final class CareerAssociationPanel {
         }
         text.append("Contrato sem receipt exige reconciliacao; nao e seguro repetir nem descartar.\n");
         text.append("LEGACY_NO_EFFECT_WITHOUT_REQUEST preserva apenas recusa antiga sem efeito; nao inventa contrato ou permite replay.\n");
+        text.append("\nEvidencias de execucao: inclui namespaces existentes mesmo de mods nao selecionados.\n");
+        for (var execution : review.executions()) {
+            text.append(execution.owner()).append(execution.configured() ? " [configurado]: " : " [existente, nao selecionado]: ");
+            execution.recovery().ifPresentOrElse(recovery -> {
+                text.append("registros: ").append(recovery.snapshot().witnesses().size()).append(" / mudanca de revisao: ").append(recovery.revisionChanged());
+                if (recovery.revisionChanged()) text.append("\n  Ancora de execucao SHA256: ").append(recovery.recordedSave().sha256())
+                        .append(" / bytes: ").append(recovery.recordedSave().size());
+                for (var operation : execution.operations()) text.append("\n  ").append(operation.intent().key()).append(" / UUID: ")
+                        .append(operation.operationId()).append(" / ").append(operation.status());
+            }, () -> text.append("RECUSADO ").append(execution.failure().orElseThrow()));
+            text.append('\n');
+        }
+        text.append("MEMORY_APPLIED_SAVE_UNPROVEN confirma execucao observada, NAO inclusao no save nem permissao de repetir.\n");
+        text.append("UNKNOWN/ARMED, conflitos, registros sem diario ou ancoras antigas continuam bloqueados.\n");
         text.append("Quarentena conserva todos os comprovantes e converte PREPARED em UNKNOWN; nao resolve efeitos.\n");
         return text.toString();
     }

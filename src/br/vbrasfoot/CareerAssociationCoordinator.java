@@ -16,6 +16,10 @@ final class CareerAssociationCoordinator {
                          Optional<CareerSidecarStore.Reason> failure, List<FinanceContractReview.Link> links) {
         RequestReview { links = List.copyOf(links); }
     }
+    record ExecutionReview(String owner, boolean configured, Optional<FinanceExecutionWitnessStore.Recovery> recovery,
+                           Optional<CareerSidecarStore.Reason> failure, List<FinanceExecutionRecovery.Operation> operations) {
+        ExecutionReview { operations = List.copyOf(operations); }
+    }
     static final class Review {
         private final UUID coordinator;
         private final SaveFileObserver.Observation observed;
@@ -24,23 +28,28 @@ final class CareerAssociationCoordinator {
         private final Optional<CareerSaveAssociations.Match> match;
         private final List<JournalReview> journals;
         private final List<RequestReview> requests;
+        private final List<ExecutionReview> executions;
         private final Status status;
         private final Optional<CareerSidecarStore.NamespaceInventory> inventory;
         private final Optional<CareerSidecarStore.NamespaceInventory> requestInventory;
+        private final Optional<CareerSidecarStore.NamespaceInventory> executionInventory;
         private final AtomicBoolean consumed = new AtomicBoolean();
         private Review(UUID coordinator, SaveFileObserver.Observation observed, LoadedSaveVerifier.Verified decoded,
                        Optional<CareerSaveAssociations.Association> association, Optional<CareerSaveAssociations.Match> match,
                         List<JournalReview> journals, List<RequestReview> requests, Status status,
-                        Optional<CareerSidecarStore.NamespaceInventory> inventory, Optional<CareerSidecarStore.NamespaceInventory> requestInventory) {
+                         Optional<CareerSidecarStore.NamespaceInventory> inventory, Optional<CareerSidecarStore.NamespaceInventory> requestInventory,
+                         List<ExecutionReview> executions, Optional<CareerSidecarStore.NamespaceInventory> executionInventory) {
             this.coordinator = coordinator; this.observed = observed; this.decoded = decoded; this.association = association;
             this.match = match; this.journals = List.copyOf(journals); this.status = status;
             this.inventory = inventory; this.requests = List.copyOf(requests); this.requestInventory = requestInventory;
+            this.executions = List.copyOf(executions); this.executionInventory = executionInventory;
         }
         LoadedSaveVerifier.Verified decoded() { return decoded; }
         Optional<CareerSaveAssociations.Association> association() { return association; }
         Optional<CareerSaveAssociations.Match> match() { return match; }
         List<JournalReview> journals() { return journals; }
         List<RequestReview> requests() { return requests; }
+        List<ExecutionReview> executions() { return executions; }
         Status status() { return status; }
     }
     private final UUID instance = UUID.randomUUID();
@@ -48,6 +57,7 @@ final class CareerAssociationCoordinator {
     private final CareerSaveAssociations associations;
     private final CareerSidecarStore journalStore;
     private final CareerSidecarStore requestStore;
+    private final CareerSidecarStore executionStore;
     private final SaveFileObserver observer;
     private final LoadedSaveVerifier verifier;
     private final List<String> owners;
@@ -62,14 +72,16 @@ final class CareerAssociationCoordinator {
     }
     CareerAssociationCoordinator(Path saves, Path metadata, LegacyRuntime runtime, Collection<String> owners) {
         this(saves, new CareerSaveAssociations(metadata.resolve("associations")), new CareerSidecarStore(metadata.resolve("journals")),
-                new CareerSidecarStore(metadata.resolve("finance-requests")), new SaveFileObserver(), new LoadedSaveVerifier(runtime), owners);
+                new CareerSidecarStore(metadata.resolve("finance-requests")), new CareerSidecarStore(metadata.resolve("finance-execution-witnesses")),
+                new SaveFileObserver(), new LoadedSaveVerifier(runtime), owners);
     }
     CareerAssociationCoordinator(Path saves, CareerSaveAssociations associations, CareerSidecarStore journalStore,
-                                 CareerSidecarStore requestStore, SaveFileObserver observer, LoadedSaveVerifier verifier, Collection<String> owners) {
+                                 CareerSidecarStore requestStore, CareerSidecarStore executionStore, SaveFileObserver observer, LoadedSaveVerifier verifier, Collection<String> owners) {
         this.saves = Objects.requireNonNull(saves).toAbsolutePath();
         if (!this.saves.equals(this.saves.normalize())) throw new IllegalArgumentException("Normalized save directory required");
         this.associations = Objects.requireNonNull(associations); this.journalStore = Objects.requireNonNull(journalStore);
         this.requestStore = Objects.requireNonNull(requestStore);
+        this.executionStore = Objects.requireNonNull(executionStore);
         this.observer = Objects.requireNonNull(observer); this.verifier = Objects.requireNonNull(verifier);
         if (owners == null || owners.size() > 64 || new HashSet<>(owners).size() != owners.size()) throw new IllegalArgumentException("At most64 distinct explicitly configured owners required");
         for (String owner : owners) new CareerSidecarStore.Key(instance, instance, owner);
@@ -88,17 +100,22 @@ final class CareerAssociationCoordinator {
         Optional<CareerSaveAssociations.Match> match = association.map(value -> associations.assess(value, observed));
         var journals = new ArrayList<JournalReview>();
         var requests = new ArrayList<RequestReview>();
+        var executions = new ArrayList<ExecutionReview>();
         Optional<CareerSidecarStore.NamespaceInventory> reviewedInventory = Optional.empty();
         Optional<CareerSidecarStore.NamespaceInventory> reviewedRequests = Optional.empty();
+        Optional<CareerSidecarStore.NamespaceInventory> reviewedExecutions = Optional.empty();
         if (association.isPresent()) {
             var known = association.orElseThrow();
             var inventory = journalStore.inventoryBinding(known.handle().career(), known.handle().binding());
             reviewedInventory = Optional.of(inventory);
             var contractInventory = requestStore.inventoryBinding(known.handle().career(), known.handle().binding());
             reviewedRequests = Optional.of(contractInventory);
+            var executionInventory = executionStore.inventoryBinding(known.handle().career(), known.handle().binding());
+            reviewedExecutions = Optional.of(executionInventory);
             var registered = new TreeSet<>(owners); registered.addAll(inventory.tokens().keySet());
             registered.addAll(contractInventory.tokens().keySet());
-            if (registered.size() > CareerSidecarStore.MAX_BINDING_NAMESPACES) throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.QUOTA, "Configured owners, journals and contracts exceed binding inventory capacity; no partial review accepted");
+            registered.addAll(executionInventory.tokens().keySet());
+            if (registered.size() > CareerSidecarStore.MAX_BINDING_NAMESPACES) throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.QUOTA, "Configured owners, journals, contracts and execution witnesses exceed binding inventory capacity; no partial review accepted");
             for (String owner : registered) {
                 boolean configured = owners.contains(owner);
                 String expectedToken = inventory.tokens().getOrDefault(owner, CareerSidecarStore.EMPTY);
@@ -123,9 +140,20 @@ final class CareerAssociationCoordinator {
                     if (failure.reason() == CareerSidecarStore.Reason.CONFLICT) throw failure;
                     requests.add(new RequestReview(owner, configured, Optional.empty(), Optional.of(failure.reason()), List.of()));
                 }
+                try {
+                    var recovery = executions(known.handle(), owner).inspectRecordedRecovery(observed.revision());
+                    if (!recovery.snapshot().token().equals(executionInventory.tokens().getOrDefault(owner, CareerSidecarStore.EMPTY)))
+                        throw conflict("Evidencias de execucao mudaram durante inventario");
+                    var operations = journalReview.recovery().map(value -> FinanceExecutionRecovery.inspect(value.snapshot(), recovery.snapshot())).orElse(List.of());
+                    executions.add(new ExecutionReview(owner, configured, Optional.of(recovery), Optional.empty(), operations));
+                } catch (CareerSidecarStore.Failure failure) {
+                    if (failure.reason() == CareerSidecarStore.Reason.CONFLICT) throw failure;
+                    executions.add(new ExecutionReview(owner, configured, Optional.empty(), Optional.of(failure.reason()), List.of()));
+                }
             }
             if (!inventory.equals(journalStore.inventoryBinding(known.handle().career(), known.handle().binding()))) throw conflict("Namespaces ou HEADs mudaram durante revisao");
             if (!contractInventory.equals(requestStore.inventoryBinding(known.handle().career(), known.handle().binding()))) throw conflict("Contratos ou HEADs mudaram durante revisao");
+            if (!executionInventory.equals(executionStore.inventoryBinding(known.handle().career(), known.handle().binding()))) throw conflict("Evidencias ou HEADs mudaram durante revisao");
             if (!associations.inspect(known.handle()).token().equals(known.token())) throw conflict("Associacao mudou durante revisao");
         }
         if (!decoded.equals(verifier.verify(observed))) throw conflict("Carregamento mudou durante revisao");
@@ -136,7 +164,7 @@ final class CareerAssociationCoordinator {
                 : metadataChanged ? Status.ASSOCIATION_CONFLICT
                 : match.orElseThrow() == CareerSaveAssociations.Match.EXACT_OBSERVATION || match.orElseThrow() == CareerSaveAssociations.Match.FILE_IDENTITY_UNAVAILABLE
                 ? Status.READ_ONLY_LINKED : Status.ASSOCIATION_CONFLICT;
-        return new Review(instance, observed, decoded, association, match, journals, requests, status, reviewedInventory, reviewedRequests);
+        return new Review(instance, observed, decoded, association, match, journals, requests, status, reviewedInventory, reviewedRequests, executions, reviewedExecutions);
     }
     /** Call only after showing this exact review and receiving an explicit action-specific human confirmation.
      * One-shot even on error. A returned handle is metadata identity, never game readiness. */
@@ -160,6 +188,8 @@ final class CareerAssociationCoordinator {
                     throw conflict("Diarios ou namespaces mudaram desde a revisao; confirmar novamente");
                 if (!review.requestInventory.orElseThrow().equals(requestStore.inventoryBinding(handle.career(), handle.binding())))
                     throw conflict("Contratos ou namespaces mudaram desde a revisao; confirmar novamente");
+                if (!review.executionInventory.orElseThrow().equals(executionStore.inventoryBinding(handle.career(), handle.binding())))
+                    throw conflict("Evidencias de execucao mudaram desde a revisao; confirmar novamente");
             }
             if (action == Action.CREATE_NEW) {
                 if (selected.isPresent()) throw conflict("Criar IDs novos requer nenhuma associacao selecionada; copia deve usar fork explicito");
@@ -205,9 +235,23 @@ final class CareerAssociationCoordinator {
                         if (recovery.revisionChanged() || row.links().stream().anyMatch(FinanceContractReview.Link::blocksContext))
                             throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Contrato/diario divergente ou historico incompleto bloqueia contexto");
                     }
+                    for (var row : review.executions) {
+                        var recovery = row.recovery().orElseThrow(() -> new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Evidencia incompleta/corrompida bloqueia contexto"));
+                        if (recovery.revisionChanged()) throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Ancora de execucao divergente bloqueia contexto");
+                        var receipts = review.journals.stream().filter(value -> value.owner().equals(row.owner())).findFirst().orElseThrow()
+                                .recovery().orElseThrow().snapshot().receipts();
+                        for (var operation : row.operations()) {
+                            boolean absentLegacy = operation.status() == FinanceExecutionRecovery.Status.NO_EXECUTION_WITNESS
+                                    && receipts.stream().anyMatch(value -> value.operationId().equals(operation.operationId())
+                                    && value.intent().equals(operation.intent()) && value.state() == CareerCommandJournal.State.NO_EFFECT_CONFIRMED);
+                            if (operation.status() != FinanceExecutionRecovery.Status.NO_EFFECT_CONFIRMED && !absentLegacy)
+                                throw new CareerSidecarStore.Failure(CareerSidecarStore.Reason.RECONCILIATION_REQUIRED, "Execucao historica/incerta ou conflitante nao prova inclusao no save");
+                        }
+                    }
                     if (!review.decoded.equals(verifier.verify(review.observed))) throw conflict("Origem mudou durante preparacao de contexto");
                     if (!review.inventory.orElseThrow().equals(journalStore.inventoryBinding(handle.career(), handle.binding()))
                             || !review.requestInventory.orElseThrow().equals(requestStore.inventoryBinding(handle.career(), handle.binding()))
+                            || !review.executionInventory.orElseThrow().equals(executionStore.inventoryBinding(handle.career(), handle.binding()))
                             || !associations.inspect(handle).token().equals(token)) throw conflict("Metadados ou diarios mudaram antes da instalacao");
                     var installed = verifier.installReviewedContext(review.decoded, handle, operational.gate(), preparation);
                     operational.accepted(installed); bound = true; yield handle;
@@ -224,6 +268,9 @@ final class CareerAssociationCoordinator {
     }
     private FinanceRequestStore requests(CareerSaveAssociations.Handle handle, String owner) {
         return new FinanceRequestStore(requestStore, new CareerSidecarStore.Key(handle.career(), handle.binding(), owner));
+    }
+    private FinanceExecutionWitnessStore executions(CareerSaveAssociations.Handle handle, String owner) {
+        return new FinanceExecutionWitnessStore(executionStore, new CareerSidecarStore.Key(handle.career(), handle.binding(), owner));
     }
     private static CareerSidecarStore.Failure conflict(String message) { return new CareerSidecarStore.Failure(CareerSidecarStore.Reason.CONFLICT, message); }
     private static void offEdt() throws CareerSidecarStore.Failure {

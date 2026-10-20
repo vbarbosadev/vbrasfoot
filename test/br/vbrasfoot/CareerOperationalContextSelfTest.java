@@ -29,9 +29,10 @@ public final class CareerOperationalContextSelfTest {
         final SaveFileObserver observer = new SaveFileObserver();
         final LoadedSaveVerifier verifier;
         final CareerSaveAssociations associations;
-        final CareerSidecarStore journals, requests;
+        final CareerSidecarStore journals, requests, executions;
         final CareerAssociationCoordinator coordinator;
         final String owner = "br.owned.operational";
+        final Map<String, FinanceExecutionWitnessStore> executionInstances = new HashMap<>();
         CareerSaveAssociations.Handle handle;
         Harness(Path parent) throws Exception {
             root = Files.createTempDirectory(parent, "operational-context-").toRealPath(); saves = Files.createDirectory(root.resolve("sav"));
@@ -39,7 +40,8 @@ public final class CareerOperationalContextSelfTest {
             verifier = new LoadedSaveVerifier(observer, () -> new CareerCommandDispatcher.Roots(primary, secondary), Duration.ofSeconds(2));
             associations = new CareerSaveAssociations(root.resolve("associations")); journals = new CareerSidecarStore(root.resolve("journals"));
             requests = new CareerSidecarStore(root.resolve("finance-requests"));
-            coordinator = new CareerAssociationCoordinator(saves, associations, journals, requests, observer, verifier, List.of(owner)).operational(operational);
+            executions = new CareerSidecarStore(root.resolve("finance-execution-witnesses"));
+            coordinator = new CareerAssociationCoordinator(saves, associations, journals, requests, executions, observer, verifier, List.of(owner)).operational(operational);
             guarded = HookProbe.attachLifecycle(lifecycle); attached = HookProbe.attachIoInterlock(io);
         }
         void load(boolean initialized) throws Exception {
@@ -61,11 +63,144 @@ public final class CareerOperationalContextSelfTest {
                     new FinanceRequest.Club(0, 1, "Synthetic club"), FinanceDelta.Direction.CREDIT_RAW_6, 1, new FinanceDelta.Snapshot(100, ledger));
         }
         FinanceRequestStore requestStore(String owner) { return new FinanceRequestStore(requests, new Key(handle.career(), handle.binding(), owner)); }
+        FinanceExecutionWitnessStore executionStore(String owner) {
+            return executionInstances.computeIfAbsent(owner, value -> new FinanceExecutionWitnessStore(executions, new Key(handle.career(), handle.binding(), value)));
+        }
+        FinanceExecutionWitnessStore.Armed arm(String owner, CareerCommandJournal journal, CareerCommandJournal.Prepared prepared, String token) throws Exception {
+            var context = new CareerCommandGate.Context(UUID.randomUUID(), handle.career(), handle.binding(), lifecycle.ticket().generation(),
+                    observer.observe(saves, "owned.s22").revision());
+            return executionStore(owner).arm(context, journal.executionPermit(prepared.lease().orElseThrow(), prepared.snapshot().token()), token);
+        }
         @Override public void close() throws Exception { attached.close(); guarded.close(); io.close(); gate.close(); lifecycle.close(); }
     }
     public static void main(String[] args) throws Exception {
         String local = System.getenv("LOCALAPPDATA");
         Path parent = local == null ? Files.createDirectories(Path.of("build")) : Files.createDirectories(Path.of(local, "Temp", "opencode"));
+        for (var terminal : FinanceExecutionWitnessStore.State.values()) {
+            try (var h = new Harness(parent)) {
+                h.load(true); h.associate(); var request = h.request(h.owner, "execution-review");
+                h.requestStore(h.owner).persist(request, EMPTY);
+                var journal = h.journal(); var prepared = journal.prepare(request.save(), EMPTY, request.intent());
+                var store = h.executionStore(h.owner); var armed = h.arm(h.owner, journal, prepared, EMPTY);
+                if (terminal != FinanceExecutionWitnessStore.State.ARMED) store.complete(armed.lease(), terminal, armed.snapshot().token());
+                if (terminal == FinanceExecutionWitnessStore.State.NO_EFFECT_CONFIRMED)
+                    journal.complete(prepared.lease().orElseThrow(), CareerCommandJournal.State.NO_EFFECT_CONFIRMED, prepared.snapshot().token());
+                var review = h.coordinator.review(Optional.of(h.handle));
+                var status = switch (terminal) {
+                    case ARMED -> FinanceExecutionRecovery.Status.ARMED_UNCERTAIN;
+                    case MEMORY_APPLIED -> FinanceExecutionRecovery.Status.MEMORY_APPLIED_SAVE_UNPROVEN;
+                    case NO_EFFECT_CONFIRMED -> FinanceExecutionRecovery.Status.NO_EFFECT_CONFIRMED;
+                    default -> FinanceExecutionRecovery.Status.EXECUTION_UNCERTAIN;
+                };
+                check(review.executions().get(0).operations().get(0).status() == status, "witness review keeps state distinct " + terminal);
+                String text = CareerAssociationPanel.report(review);
+                check(text.contains(status.name()) && text.contains(prepared.snapshot().receipts().get(0).operationId().toString()), "panel shows exact execution UUID/status " + terminal);
+                if (terminal == FinanceExecutionWitnessStore.State.NO_EFFECT_CONFIRMED) {
+                    h.bind(); check(h.gate.contextInstalled(), "only matching same-anchor proven no-effect histories permit internal context");
+                } else rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+            }
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); h.bind(); String disabled = "br.owned.execution-only";
+            var request = h.request(disabled, "orphan-operation");
+            var journal = new CareerCommandJournal(new CareerSidecarStore(h.root.resolve("other-journal-root")), new Key(h.handle.career(), h.handle.binding(), disabled));
+            var prepared = journal.prepare(request.save(), EMPTY, request.intent());
+            var armed = h.arm(disabled, journal, prepared, EMPTY);
+            h.executionStore(disabled).complete(armed.lease(), FinanceExecutionWitnessStore.State.NO_EFFECT_CONFIRMED, armed.snapshot().token());
+            var review = h.coordinator.review(Optional.of(h.handle));
+            check(review.executions().stream().anyMatch(row -> row.owner().equals(disabled) && !row.configured()
+                    && row.operations().get(0).status() == FinanceExecutionRecovery.Status.CONFLICT), "execution-only disabled owner without matching journal is included and conflicts even for NO_EFFECT");
+            check(review.journals().stream().anyMatch(row -> row.owner().equals(disabled)) && review.requests().stream().anyMatch(row -> row.owner().equals(disabled)), "execution root contributes to complete union of owners");
+            rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+            check(!h.gate.contextInstalled(), "execution-only conflict invalidates old operational context on preparation");
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); var request = h.request(h.owner, "contradictory"); h.requestStore(h.owner).persist(request, EMPTY);
+            var journal = h.journal(); var prepared = journal.prepare(request.save(), EMPTY, request.intent()); var armed = h.arm(h.owner, journal, prepared, EMPTY);
+            h.executionStore(h.owner).complete(armed.lease(), FinanceExecutionWitnessStore.State.MEMORY_APPLIED, armed.snapshot().token());
+            journal.complete(prepared.lease().orElseThrow(), CareerCommandJournal.State.NO_EFFECT_CONFIRMED, prepared.snapshot().token());
+            check(h.coordinator.review(Optional.of(h.handle)).executions().get(0).operations().get(0).status() == FinanceExecutionRecovery.Status.CONFLICT,
+                    "execution/journal contradiction cannot be hidden behind clean NO_EFFECT journal and contract");
+            rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); var request = h.request(h.owner, "no-effect-unknown-journal"); h.requestStore(h.owner).persist(request, EMPTY);
+            var journal = h.journal(); var prepared = journal.prepare(request.save(), EMPTY, request.intent()); var armed = h.arm(h.owner, journal, prepared, EMPTY);
+            h.executionStore(h.owner).complete(armed.lease(), FinanceExecutionWitnessStore.State.NO_EFFECT_CONFIRMED, armed.snapshot().token());
+            check(h.coordinator.review(Optional.of(h.handle)).executions().get(0).operations().get(0).status() == FinanceExecutionRecovery.Status.NO_EFFECT_CONFIRMED,
+                    "execution evidence can preserve no-effect observation separately from unknown journal");
+            rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+            check(journal.read(request.save()).receipts().get(0).state() == CareerCommandJournal.State.OUTCOME_UNKNOWN,
+                    "review does not silently rewrite journal uncertainty based on independent execution evidence");
+        }
+        for (int schema : List.of(1, 2)) {
+            try (var h = new Harness(parent)) {
+                h.load(true); h.associate();
+                var save = h.observer.observe(h.saves, "owned.s22").revision();
+                h.executions.write(new Key(h.handle.career(), h.handle.binding(), h.owner), save, schema, EMPTY, new byte[] {1});
+                var review = h.coordinator.review(Optional.of(h.handle));
+                check(review.executions().get(0).failure().orElseThrow() == Reason.CORRUPT,
+                        "valid envelope with malformed or unknown witness schema is not skipped " + schema);
+                check(CareerAssociationPanel.report(review).contains("RECUSADO CORRUPT"), "panel reports witness decode failure " + schema);
+                rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+            }
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); var request = h.request(h.owner, "stale-witness"); h.requestStore(h.owner).persist(request, EMPTY);
+            var journal = h.journal(); var prepared = journal.prepare(request.save(), EMPTY, request.intent()); var armed = h.arm(h.owner, journal, prepared, EMPTY);
+            journal.complete(prepared.lease().orElseThrow(), CareerCommandJournal.State.NO_EFFECT_CONFIRMED, prepared.snapshot().token());
+            var stale = h.coordinator.review(Optional.of(h.handle));
+            h.executionStore(h.owner).complete(armed.lease(), FinanceExecutionWitnessStore.State.NO_EFFECT_CONFIRMED, armed.snapshot().token());
+            rejects(Reason.CONFLICT, () -> h.coordinator.confirm(stale, Action.PREPARE_INTERNAL_CONTEXT, Optional.empty()));
+            h.bind(); check(h.gate.contextInstalled(), "fresh review can accept completed no-effect evidence, not stale HEAD token");
+            var old = h.coordinator.review(Optional.of(h.handle));
+            String disabled = "br.owned.new-execution-owner";
+            var alternate = new CareerCommandJournal(new CareerSidecarStore(h.root.resolve("other-journal")), new Key(h.handle.career(), h.handle.binding(), disabled));
+            var pending = alternate.prepare(request.save(), EMPTY, h.request(disabled, "added-owner").intent()); h.arm(disabled, alternate, pending, EMPTY);
+            rejects(Reason.CONFLICT, () -> h.coordinator.confirm(old, Action.PREPARE_INTERNAL_CONTEXT, Optional.empty()));
+            check(!h.gate.contextInstalled(), "namespace added in execution root invalidates stale review and authority");
+        }
+        for (boolean orphan : List.of(false, true)) {
+            try (var h = new Harness(parent)) {
+                h.load(true); h.associate(); var request = h.request(h.owner, "broken");
+                var journal = h.journal(); var prepared = journal.prepare(request.save(), EMPTY, request.intent());
+                if (orphan) {
+                    var faulty = new FinanceExecutionWitnessStore(new CareerSidecarStore(h.root.resolve("finance-execution-witnesses"), stage -> {
+                        if (stage == Stage.RECORD_WRITTEN) throw new IOException("Owned interruption");
+                    }), new Key(h.handle.career(), h.handle.binding(), h.owner));
+                    var context = new CareerCommandGate.Context(UUID.randomUUID(), h.handle.career(), h.handle.binding(), 1, request.save());
+                    try { faulty.arm(context, journal.executionPermit(prepared.lease().orElseThrow(), prepared.snapshot().token()), EMPTY); } catch (IOException expected) { }
+                    check(h.coordinator.review(Optional.of(h.handle)).executions().get(0).failure().orElseThrow() == Reason.RECONCILIATION_REQUIRED, "witness orphan is pending, not absent evidence");
+                    rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+                } else {
+                    h.arm(h.owner, journal, prepared, EMPTY);
+                    Files.write(h.root.resolve("finance-execution-witnesses").resolve(h.handle.career().toString()).resolve(h.handle.binding().toString()).resolve(h.owner).resolve("HEAD"), new byte[] {1});
+                    rejects(Reason.CORRUPT, h::bind);
+                }
+            }
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); var request = h.request(h.owner, "old-witness");
+            var journal = h.journal(); var prepared = journal.prepare(request.save(), EMPTY, request.intent()); var armed = h.arm(h.owner, journal, prepared, EMPTY);
+            h.executionStore(h.owner).complete(armed.lease(), FinanceExecutionWitnessStore.State.NO_EFFECT_CONFIRMED, armed.snapshot().token());
+            journal.complete(prepared.lease().orElseThrow(), CareerCommandJournal.State.NO_EFFECT_CONFIRMED, prepared.snapshot().token());
+            Files.write(h.source, new byte[] {8, 9}); h.load(true);
+            h.coordinator.confirm(h.coordinator.review(Optional.of(h.handle)), Action.ACCEPT_REVISION, Optional.empty());
+            h.coordinator.confirm(h.coordinator.review(Optional.of(h.handle)), Action.REANCHOR_NO_EFFECT_JOURNAL, Optional.of(h.owner));
+            var row = h.coordinator.review(Optional.of(h.handle)).executions().get(0);
+            check(row.recovery().orElseThrow().revisionChanged() && row.recovery().orElseThrow().recordedSave().equals(request.save()), "review exposes original witness anchor even after journal-only reanchor");
+            check(CareerAssociationPanel.report(h.coordinator.review(Optional.of(h.handle))).contains("Ancora de execucao SHA256: " + request.save().sha256()), "panel displays actual old execution anchor");
+            rejects(Reason.RECONCILIATION_REQUIRED, h::bind);
+            rejects(Reason.SAVE_REVISION_MISMATCH, () -> h.executionStore(h.owner).read(h.observer.observe(h.saves, "owned.s22").revision()));
+        }
+        try (var h = new Harness(parent)) {
+            h.load(true); h.associate(); String owner = "br.owned.execution-overflow"; var request = h.request(owner, "overflow");
+            var journal = new CareerCommandJournal(new CareerSidecarStore(h.root.resolve("other-root")), new Key(h.handle.career(), h.handle.binding(), owner));
+            var prepared = journal.prepare(request.save(), EMPTY, request.intent()); h.arm(owner, journal, prepared, EMPTY);
+            var capacity = new ArrayList<String>(); for (int i = 0; i < 64; i++) capacity.add("br.owned.capacity" + i);
+            var limited = new CareerAssociationCoordinator(h.saves, h.associations, h.journals, h.requests, h.executions, h.observer, h.verifier, capacity);
+            rejects(Reason.QUOTA, () -> limited.review(Optional.of(h.handle)));
+        }
         try (var h = new Harness(parent)) {
             h.load(false); h.associate();
             check(!h.gate.contextInstalled(), "metadata association never automatically installs operational context");
@@ -165,7 +300,7 @@ public final class CareerOperationalContextSelfTest {
             h.load(true); h.associate();
             h.requestStore("br.owned.unselected").persist(h.request("br.owned.unselected", "extra-owner"), EMPTY);
             var capacity = new ArrayList<String>(); for (int i = 0; i < 64; i++) capacity.add("br.owned.limit" + i);
-            var limited = new CareerAssociationCoordinator(h.saves, h.associations, h.journals, h.requests, h.observer, h.verifier, capacity);
+            var limited = new CareerAssociationCoordinator(h.saves, h.associations, h.journals, h.requests, h.executions, h.observer, h.verifier, capacity);
             rejects(Reason.QUOTA, () -> limited.review(Optional.of(h.handle)));
         }
         for (boolean orphan : List.of(false, true)) {
@@ -222,7 +357,7 @@ public final class CareerOperationalContextSelfTest {
         }
         try (var h = new Harness(parent); var foreignGate = new CareerCommandGate()) {
             h.load(true); h.associate();
-            var foreign = new CareerAssociationCoordinator(h.saves, h.associations, h.journals, h.requests, h.observer, h.verifier, List.of(h.owner))
+            var foreign = new CareerAssociationCoordinator(h.saves, h.associations, h.journals, h.requests, h.executions, h.observer, h.verifier, List.of(h.owner))
                     .operational(new CareerOperationalContext(foreignGate));
             boolean refused = false;
             try { foreign.confirm(foreign.review(Optional.of(h.handle)), Action.PREPARE_INTERNAL_CONTEXT, Optional.empty()); }

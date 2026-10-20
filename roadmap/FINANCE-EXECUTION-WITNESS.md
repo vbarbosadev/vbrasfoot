@@ -1,5 +1,8 @@
 # Evidencia duravel de execucao financeira
 
+Incremento posterior: EXECUTION-WITNESS-INVENTORY.md conecta Main/coordenador ao
+inventario e revisao de witnesses, sem conceder escrita ou prova de save.
+
 Incremento interno experimental apos WRITTEN-SAVE-EVIDENCE.md. NAO resolve por si
 so inclusao no save. Nenhum owner/handler publico foi criado em Main, nenhum mod
 foi gerado/instalado e nenhum schema/EXE/save pessoal foi alterado.
@@ -77,10 +80,9 @@ do clube/ledger e captura causal no serializer, mais persistencia/recuperacao do
 testemunho de inclusao para revisoes/restore/save-as. Saldo/ledger iguais nao
 substituem essa cobertura. Nao modificar schema do save para incluir UUID.
 
-Main ainda nao seleciona root de witnesses nem integra esses registros ao painel/
-inventario de contexto. Sem autoridade de escrita publica, isso nao e bypass para
-mods. Integracao precisa de inventario bounded/review/revalidacao conservadores
-equivalentes aos contratos/journals, antes de qualquer grant publico.
+Main agora seleciona root dedicado de witnesses para inventario/review read-only,
+conforme EXECUTION-WITNESS-INVENTORY.md. Nao arma witnesses nem cria owners/handlers
+de escrita para mods. Nenhuma dessas leituras e autoridade de gameplay.
 
 Falhas injetadas sao excecoes controladas; nao prova de power-loss/fsync de todos
 os diretorios, transacao multi-root ou exactly-once. Path/checksums nao autenticam

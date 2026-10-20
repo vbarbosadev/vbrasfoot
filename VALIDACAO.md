@@ -1,5 +1,51 @@
 # Validacao — 16/10/2026
 
+## Inventario de execucao no contexto operacional — 20/10/2026
+
+Coordenador de Main inclui agora root dedicado finance-execution-witnesses na
+uniao de owners configurados + diarios + contratos + registros de execucao.
+Inclui mods desativados/nao selecionados e execution-only owners. Limite64 e
+aplicado a uniao, sem omissao/resultado parcial. Construcao/read de ausencia nao
+criam pastas; sem handle nao ha inventario ou inferencia de identidade.
+
+Inspecao administrativa valida registros comprometidos e mostra ancora REAL
+separada do save observado. Read/arm/complete ordinarios continuam exigindo ancora
+exata; nenhuma migracao. Review conserva os TRES inventarios e revalida conjunto
+de namespaces/HEADtokens no fim, antes de qualquer confirmacao e antes de instalar
+contexto na EDT no MESMO gate/interlock. HEAD/namespace novos invalidam review.
+
+Painel mostra owner/contagem/ancora antiga/key/UUID/status/falhas, sem botao de
+executar/apagar/migrar. ARMED/UNKNOWN/MEMORY_APPLIED_SAVE_UNPROVEN/conflitos ou
+ancora divergente bloqueiam contexto. NO_EFFECT de execucao nao apaga journal
+UNKNOWN: guard anterior continua bloqueando. Compatibilidade de recibo legado
+NO_EFFECT sem witness exige UUID/intent exatos, sem inventar registro ou lease.
+Journal-only reanchor nao move witness antigo e contexto permanece bloqueado.
+
+Evidencia em compilacao isolada atual:
+ `Temp/opencode/execution-inventory-final-0339fbfdbe574f33af659f47b2cb0ceb`.
+-107checks de contexto (39novos): todos estados, owner desativado execution-only,
+ contradicao mesmo com journal NO_EFFECT, execucao NO_EFFECT com journal UNKNOWN,
+ alteracao HEAD/namespace apos review, orphan/HEAD corrupto/schema/payload invalidos,
+ ancora antiga apos journal-only reanchor, guard ordinario e limite da uniao.
+ Positivos usam roots/markers init PROPRIOS, nao qualificacao original/global.
+-43checks de coordenador e69de witness/recovery preservados.
+-SDK-only ZIP/hashes/allowlist/cinco projetos/negativos passou em
+ `build/execution-inventory-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-895ca313b20a4dfb8bf0b2f9a2943266`.
+
+Fixture inicial criava instancia diferente de witness-store ao completar a lease;
+guard corretamente recusou foreign/previous-process lease. Fixture foi corrigida
+para manter mesma instancia, sem relaxar implementacao/contar falha como positivo.
+
+Nao e snapshot atomico multi-root nem grant duradouro contra qualquer escritor
+externo; novo preflight por operacao ainda necessario. Checksums/path checks nao
+autenticam historico contra Java/FS hostis. Main so revisa/bloqueia: nao arma
+witnesses nem cria handlers/owners publicos. Captura causal no serializer/prova
+persistente de inclusao no save e protocolo de revisoes/restore/save-as seguem
+pendentes. Sem novo mod/instalacao/EXE/save pessoal alterado, processo pessoal
+encerrado, release/tag ou nova sessao humana. Detalhes:
+ `roadmap/EXECUTION-WITNESS-INVENTORY.md`.
+
 ## Evidencia duravel de execucao financeira — 20/10/2026
 
 Novo caminho interno executeWitnessedFinance liga contrato persistido, journal

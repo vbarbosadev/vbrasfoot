@@ -9,6 +9,9 @@ final class FinanceExecutionWitnessStore {
     enum State { ARMED, MEMORY_APPLIED, NO_EFFECT_CONFIRMED, OUTCOME_UNKNOWN }
     record Witness(UUID operationId, CareerCommandJournal.Intent intent, UUID context, long generation, State state) { }
     record Snapshot(String token, List<Witness> witnesses) { Snapshot { witnesses = List.copyOf(witnesses); } }
+    record Recovery(Snapshot snapshot, SaveRevision recordedSave, SaveRevision observedSave) {
+        boolean revisionChanged() { return !recordedSave.equals(observedSave); }
+    }
     record Armed(Snapshot snapshot, Lease lease) { }
     static final class Lease {
         private final UUID store, operation;
@@ -28,6 +31,13 @@ final class FinanceExecutionWitnessStore {
         if (view.value().isEmpty() && store.inventoryBinding(key.career(), key.binding()).tokens().containsKey(key.mod()))
             throw new Failure(Reason.RECONCILIATION_REQUIRED, "Uncommitted witness namespace must not become a clean history");
         return new Snapshot(view.token(), decode(view));
+    }
+    /** Current committed anchor for explicit review only, never migration, invocation or save-inclusion proof. */
+    Recovery inspectRecordedRecovery(SaveRevision observedSave) throws IOException {
+        Objects.requireNonNull(observedSave); var view = store.inspectFinanceExecution(key);
+        if (view.value().isEmpty() && store.inventoryBinding(key.career(), key.binding()).tokens().containsKey(key.mod()))
+            throw new Failure(Reason.RECONCILIATION_REQUIRED, "Uncommitted execution namespace requires review");
+        return new Recovery(new Snapshot(view.token(), decode(view)), view.value().map(Value::save).orElse(observedSave), observedSave);
     }
     Armed arm(CareerCommandGate.Context context, CareerCommandJournal.ExecutionPermit prepared, String expectedToken) throws IOException {
         Objects.requireNonNull(prepared);
