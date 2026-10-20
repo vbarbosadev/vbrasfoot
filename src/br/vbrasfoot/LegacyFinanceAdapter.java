@@ -140,6 +140,15 @@ final class LegacyFinanceAdapter {
             // Original writer may reassign numeric club IDs: never fabricate a persistent new locator from it.
             return snapshot(target).equals(after) ? FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE : FinanceSerializationTracker.Sample.STATE_MISMATCH;
         }
+        @Override public FinanceSerializationTracker.Argument emitted(java.lang.reflect.Field field, Object receiver, long value) {
+            requireEdt();
+            if (receiver == club.get() && field.getDeclaringClass() == clubClass && field.getName().equals("nb") && field.getType() == long.class)
+                return value == after.balance() ? FinanceSerializationTracker.Argument.MATCHED : FinanceSerializationTracker.Argument.MISMATCH;
+            if (receiver == ledger.get() && field.getDeclaringClass() == ledgerClass && FinanceDelta.FIELDS.contains(field.getName())
+                    && (field.getType() == long.class || field.getType() == int.class))
+                return value == after.ledger().get(field.getName()) ? FinanceSerializationTracker.Argument.MATCHED : FinanceSerializationTracker.Argument.MISMATCH;
+            return FinanceSerializationTracker.Argument.IRRELEVANT;
+        }
         private boolean current(Object target, Object originalLedger, CareerCommandDispatcher.Roots roots) throws Exception {
             if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null
                     || roots.primary() != primary.get() || roots.secondary() != secondary.get() || CareerBridge.call(target, "kL") != originalLedger) return false;

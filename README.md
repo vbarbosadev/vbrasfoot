@@ -92,6 +92,9 @@ APPLIED e UNKNOWN sem essa prova nao sao resolvidos por esse caminho.
 A [captura por operacao nas fronteiras do serializer](roadmap/OPERATION-SERIALIZER-CAPTURE.md)
 correlaciona UUIDs com clube/ledger e estado amostrado, sem confundir amostras
 coincidentes com prova de que os campos foram gravados.
+A [observacao de argumentos numericos do Kryo](roadmap/FINANCIAL-NUMERIC-EMISSION.md)
+captura os15argumentos financeiros depois das chamadas originais de escrita,
+sem promover essa evidencia em memoria a inclusao duravel ou autoridade.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

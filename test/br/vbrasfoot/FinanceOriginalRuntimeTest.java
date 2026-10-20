@@ -10,6 +10,64 @@ import static br.vbrasfoot.CareerCommandDispatcher.*;
 public final class FinanceOriginalRuntimeTest {
     private static int checks;
     private static void check(boolean value, String label) { if (!value) throw new AssertionError(label); checks++; }
+    public static final class NumericFixture { public int number = Integer.MIN_VALUE + 17; public long wide = Long.MIN_VALUE + 19; }
+    private static void numericRoutes(LegacyRuntime runtime) throws Exception {
+        Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime);
+        Object kryo = kryoClass.getConstructor().newInstance();
+        Class<?> serializerClass = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", true, runtime);
+        Object serializer = serializerClass.getConstructor(kryoClass, Class.class).newInstance(kryo, NumericFixture.class);
+        Class<?> base = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer$CachedField", true, runtime);
+        var fieldSlot = base.getDeclaredField("field"); fieldSlot.setAccessible(true);
+        var varints = base.getDeclaredField("varIntsEnabled"); varints.setAccessible(true);
+        Class<?> outputClass = Class.forName("com.esotericsoftware.kryo.io.Output", true, runtime);
+        Class<?> accessClass = Class.forName("com.esotericsoftware.reflectasm.FieldAccess", true, runtime);
+        Object access = accessClass.getMethod("get", Class.class).invoke(null, NumericFixture.class);
+        NumericFixture fixture = new NumericFixture();
+        for (String family : List.of("UnsafeCacheFields$Unsafe", "AsmCacheFields$Asm", "ObjectField$Object")) {
+            for (boolean wide : List.of(false, true)) {
+                var field = NumericFixture.class.getField(wide ? "wide" : "number");
+                Class<?> route = Class.forName("com.esotericsoftware.kryo.serializers." + family + (wide ? "LongField" : "IntField"), true, runtime);
+                byte[] original;
+                try (var input = runtime.getResourceAsStream(route.getName().replace('.', '/') + ".class")) { original = input.readAllBytes(); }
+                original[original.length - 1] ^= 1;
+                boolean fingerprintRefused = false;
+                try { Class.forName("br.vbrasfoot.hooks.FinanceFieldTransformer").getMethod("transform", String.class, byte[].class).invoke(null, route.getName(), original); }
+                catch (java.lang.reflect.InvocationTargetException failure) { fingerprintRefused = failure.getCause() instanceof java.io.IOException; }
+                check(fingerprintRefused, "changed fingerprint refused for " + route.getSimpleName());
+                var ctor = family.startsWith("Unsafe") ? route.getDeclaredConstructor(java.lang.reflect.Field.class)
+                        : family.startsWith("Asm") ? route.getDeclaredConstructor() : route.getDeclaredConstructor(serializerClass);
+                ctor.setAccessible(true);
+                Object cached = family.startsWith("Unsafe") ? ctor.newInstance(field) : family.startsWith("Asm") ? ctor.newInstance() : ctor.newInstance(serializer);
+                fieldSlot.set(cached, field);
+                if (family.startsWith("Asm")) {
+                    var accessSlot = base.getDeclaredField("access"); accessSlot.setAccessible(true); accessSlot.set(cached, access);
+                    var indexSlot = base.getDeclaredField("accessIndex"); indexSlot.setAccessible(true);
+                    indexSlot.setInt(cached, (int) accessClass.getMethod("getIndex", String.class).invoke(access, field.getName()));
+                }
+                var write = route.getMethod("write", outputClass, Object.class); write.setAccessible(true);
+                for (boolean variable : List.of(false, true)) {
+                    varints.setBoolean(cached, variable);
+                    var actual = new java.io.ByteArrayOutputStream(); var expected = new java.io.ByteArrayOutputStream();
+                    Object out = outputClass.getConstructor(java.io.OutputStream.class).newInstance(actual);
+                    Object reference = outputClass.getConstructor(java.io.OutputStream.class).newInstance(expected);
+                    write.invoke(cached, out, fixture);
+                    String method = wide ? "writeLong" : "writeInt";
+                    Class<?> type = wide ? long.class : int.class;
+                    Object value = field.get(fixture);
+                    if (variable) outputClass.getMethod(method, type, boolean.class).invoke(reference, value, false);
+                    else outputClass.getMethod(method, type).invoke(reference, value);
+                    outputClass.getMethod("close").invoke(out); outputClass.getMethod("close").invoke(reference);
+                    check(Arrays.equals(actual.toByteArray(), expected.toByteArray()), "transformed " + route.getSimpleName() + " preserves exact " + (variable ? "varint" : "fixed") + " bytes");
+                    Object full = outputClass.getConstructor(int.class, int.class).newInstance(1, 1);
+                    boolean refused = false;
+                    try { write.invoke(cached, full, fixture); } catch (java.lang.reflect.InvocationTargetException failure) {
+                        refused = failure.getCause().getClass().getName().equals("com.esotericsoftware.kryo.KryoException");
+                    }
+                    check(refused, "transformed " + route.getSimpleName() + " preserves output overflow failure");
+                }
+            }
+        }
+    }
     public static void main(String[] args) throws Exception {
         Path game = Path.of(args[0]).toRealPath(), home = Path.of(args[1]).toAbsolutePath();
         if (!Files.isRegularFile(game.resolve(".finance-test-fixture")) || !Path.of("").toAbsolutePath().toRealPath().equals(game)
@@ -24,6 +82,7 @@ public final class FinanceOriginalRuntimeTest {
              AutoCloseable writerGuard = probeWriter ? HookProbe.attachLifecycle(writerLifecycle) : () -> { };
              AutoCloseable serializationGuard = probeWriter ? HookProbe.attachFinancialSerialization(new FinanceSerializationTracker()) : () -> { }) {
             current.setContextClassLoader(runtime);
+            if (probeWriter) numericRoutes(runtime);
             Class.forName("best.M", true, runtime).getConstructor(boolean.class).newInstance(true);
             Class<?> state = Class.forName("c.a", false, runtime);
             JFrame frame = CareerBridge.onEdt(() -> {
@@ -226,6 +285,13 @@ public final class FinanceOriginalRuntimeTest {
                         var lastCapture = operationCapture.operations().stream().filter(value -> value.operationId().equals(finalOperation)).findFirst().orElseThrow();
                         check(lastCapture.before() == FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE && lastCapture.after() == FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE,
                                 "exact final original club/ledger expected snapshot is sampled around root serialization without asserting individual field emission");
+                        check(lastCapture.fields().status() == FinanceSerializationTracker.Emission.EXPECTED_NUMERIC_ARGUMENTS_OBSERVED && lastCapture.fields().observed() == 15,
+                                "all fifteen exact final financial numeric arguments observed after original cached-field Output calls returned: " + lastCapture.fields());
+                        check(operationCapture.operations().stream().filter(value -> !value.operationId().equals(finalOperation))
+                                        .allMatch(value -> value.fields().status() == FinanceSerializationTracker.Emission.VALUE_MISMATCH && value.fields().observed() == 15),
+                                "actual numeric emissions mismatch previous operations expected states, not inferred from root samples");
+                        check(!lastCapture.fields().routes().isEmpty(), "runtime identifies actual numeric cached-field routes without exporting financial values");
+                        System.out.println("Observed original numeric routes: " + new TreeSet<>(lastCapture.fields().routes()) + "; fields=" + lastCapture.fields().observed() + "; operation inclusion remains unproven.");
                         java.lang.ref.Reference.reachabilityFence(credit); java.lang.ref.Reference.reachabilityFence(debit); java.lang.ref.Reference.reachabilityFence(finalSerializerPlan);
                     }
                     check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "finance-output", false)), "original loader reloads private financially modified save");
