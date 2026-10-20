@@ -29,10 +29,12 @@ sem receipt nao ganha UUID. Nenhum estado INCLUDED existe neste avaliador e
 nenhum journal/contrato/metadata e migrado, completado ou liberado para replay.
 
 Evidencia:
--32checks de stream/provenance/verificador e18de avaliacao por operacao passaram
+-36checks de stream/provenance/verificador/report e18de avaliacao por operacao passaram
  em compilacao isolada atual em
  `Temp/opencode/save-assessment-final-e8cc4929971842a9bdaeda8f91b9d8dd`.
  Positivos de hooks/roots nesses testes sao SINTETICOS.
+ Os4checks finais de report conferem captura antes de detach, ausencia de paths
+ exportados e flags de inclusao/autoridade sempre falsas.
 -159checks I/O/schema ORIGINAIS em `build/written-save-original-validation.log`,
  em fixture privada: hash/size/path/roots do output primario reais, backup nao
  selecionado implicitamente, reload dos mesmos bytes sem autoridade antiga e

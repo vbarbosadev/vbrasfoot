@@ -113,6 +113,18 @@ public final class WrittenSaveProvenanceSelfTest {
             check(HookProbe.writtenSaveProvenance().binding().isEmpty(), "reload never restores old save evidence as current authority");
         }
         check(HookProbe.writtenSaveProvenance().binding().isEmpty(), "detachment invalidates writer evidence");
+        Path report = Files.createDirectory(root.resolve("reports")).resolve("probe-delivery.properties");
+        var logger = java.util.logging.Logger.getLogger("owned-written-save-report"); logger.setUseParentHandlers(false);
+        try (var probe = new ProbeSession(logger, report)) {
+            HookProbe.enterLoad("owned", false); HookProbe.rootAssigned(); HookProbe.rootAssigned(); HookProbe.decodedLoad(primary, secondary); HookProbe.exitLoad(true);
+            save(file, primary, secondary, true, true, false, 2);
+        }
+        var properties = new Properties();
+        try (var in = Files.newInputStream(report.resolveSibling("written-save-provenance.properties"))) { properties.load(in); }
+        check(properties.getProperty("status").equals("STREAM_BOUND"), "report captures writer evidence before detach invalidates it");
+        check(properties.getProperty("operationInclusionProven").equals("false") && properties.getProperty("writeAuthority").equals("false"), "report never invents effect inclusion or write permission");
+        check(!properties.containsKey("destination") && !Files.readString(report.resolveSibling("written-save-provenance.properties")).contains(root.toString()), "diagnostic report does not export save paths or root objects");
+        check(HookProbe.writtenSaveProvenance().binding().isEmpty(), "probe disposal never restores reported evidence as live authority");
         System.out.println("PASS: " + checks + " written-save stream checks; owned fixture " + root + "; no financial operation inclusion inferred.");
     }
 }
