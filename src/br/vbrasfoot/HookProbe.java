@@ -21,6 +21,7 @@ public final class HookProbe {
     private static final CreationDialogTracker creationDialogs = new CreationDialogTracker();
     private static final CreationEntryTracker creationEntries = new CreationEntryTracker();
     private static final DecodedSaveProvenance decodedProvenance = new DecodedSaveProvenance();
+    private static final WrittenSaveProvenance writtenProvenance = new WrittenSaveProvenance();
     private static final ThreadLocal<ArrayDeque<Load>> loads = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Save>> saves = ThreadLocal.withInitial(ArrayDeque::new);
     private static final ThreadLocal<ArrayDeque<Reset>> resets = ThreadLocal.withInitial(ArrayDeque::new);
@@ -43,6 +44,13 @@ public final class HookProbe {
         boolean metadata, closed, backup, streamClosed, streamCloseFailed;
         Object output;
         CareerLifecycle.SaveAttempt attempt;
+        CareerLifecycle.Ticket ticket;
+        long evidenceRevision;
+        java.nio.file.Path destination;
+        SaveOutputTrace trace;
+        java.lang.ref.WeakReference<Object> serializedPrimary, serializedSecondary;
+        int rootsStarted, rootsFinished, destinations;
+        boolean sourceRejected;
         Save(String name) { this.name = name; }
     }
     private HookProbe() { }
@@ -93,13 +101,15 @@ public final class HookProbe {
         java.util.Objects.requireNonNull(state);
         if (!lifecycle.compareAndSet(null, state)) throw new IllegalStateException("Lifecycle guard ja ativo");
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED);
-        return () -> { if (lifecycle.compareAndSet(state, null)) decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED); };
+        writtenProvenance.invalidate();
+        return () -> { if (lifecycle.compareAndSet(state, null)) { decodedProvenance.invalidate(DecodedSaveProvenance.Reason.DETACHED); writtenProvenance.invalidate(); } };
     }
     private static CareerLifecycle.Ticket ticket() {
         CareerLifecycle state = lifecycle.get();
         return state == null ? null : state.ticket();
     }
     public static void rootAssigned() {
+        writtenProvenance.invalidate();
         var attachedIo = ioInterlock.get(); if (attachedIo != null) attachedIo.invalidateContext();
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.ROOT_CHANGED);
         creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
@@ -162,6 +172,7 @@ public final class HookProbe {
         try { emit("creation-candidate-failed", label, false, false, false, false, true); } catch (Throwable ignored) { }
     }
     public static void enterLoad(String name, boolean backup) {
+        writtenProvenance.invalidate();
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.LOAD_STARTED);
         creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
         try {
@@ -224,6 +235,7 @@ public final class HookProbe {
     static long creationProgressOutside() { return asyncCreation.progressOutside(); }
     static AsyncCreationTracker.Snapshot asyncCreationSnapshot() { return asyncCreation.capture(); }
     public static void enterReset() {
+        writtenProvenance.invalidate();
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.RESET_STARTED);
         creationInterference(CreationPathQualification.Reason.MUTATION_OBSERVED);
         try {
@@ -323,13 +335,47 @@ public final class HookProbe {
     }
     public static void enterSave(String name) {
         decodedProvenance.invalidate(DecodedSaveProvenance.Reason.SAVE_STARTED);
+        long writtenRevision = writtenProvenance.invalidate();
         creationInterference(CreationPathQualification.Reason.SAVE_OBSERVED);
         try {
             Save frame = new Save(name); saves.get().push(frame);
+            frame.ticket = ticket(); frame.evidenceRevision = writtenRevision;
             CareerLifecycle state = lifecycle.get(); if (state != null) frame.attempt = state.beginSave();
         } catch (Throwable ignored) { }
     }
     static DecodedSaveProvenance.Snapshot decodedProvenance() { return decodedProvenance.snapshot(); }
+    static WrittenSaveProvenance.Snapshot writtenSaveProvenance() { return writtenProvenance.snapshot(); }
+    static boolean currentWrittenProvenance(WrittenSaveProvenance.Binding binding, Object primary, Object secondary) {
+        return writtenProvenance.current(binding, ticket(), primary, secondary);
+    }
+    public static void saveDestination(String path) {
+        try {
+            Save frame = saves.get().peek(); if (frame == null) { saves.remove(); return; }
+            frame.destinations++;
+            if (frame.trace != null) { frame.sourceRejected = true; return; }
+            frame.destination = java.nio.file.Path.of(path).toAbsolutePath().normalize();
+        } catch (Throwable ignored) { var frame = saves.get().peek(); if (frame != null) frame.sourceRejected = true; }
+    }
+    public static java.io.OutputStream traceSaveOutput(java.io.OutputStream output) {
+        try {
+            Save frame = saves.get().peek(); if (frame == null) { saves.remove(); return output; }
+            if (frame.trace != null || frame.destination == null || frame.destinations != 2
+                    || !frame.destination.getFileName().toString().endsWith(".s22")) { frame.sourceRejected = true; return output; }
+            frame.trace = new SaveOutputTrace(output); return frame.trace;
+        } catch (Throwable ignored) { return output; }
+    }
+    public static void saveRootSerializing(Object root) {
+        try {
+            Save frame = saves.get().peek(); if (frame == null) { saves.remove(); return; }
+            if (frame.rootsStarted != frame.rootsFinished || root == null) frame.sourceRejected = true;
+            if (frame.rootsStarted++ == 0) frame.serializedPrimary = new java.lang.ref.WeakReference<>(root);
+            else if (frame.rootsStarted == 2) frame.serializedSecondary = new java.lang.ref.WeakReference<>(root);
+            else frame.sourceRejected = true;
+        } catch (Throwable ignored) { }
+    }
+    public static void saveRootSerialized() {
+        try { Save frame = saves.get().peek(); if (frame != null) frame.rootsFinished++; else saves.remove(); } catch (Throwable ignored) { }
+    }
     static boolean currentProvenance(DecodedSaveProvenance.Binding binding, Object primary, Object secondary) {
         return decodedProvenance.current(binding, ticket(), primary, secondary);
     }
@@ -381,8 +427,12 @@ public final class HookProbe {
             Save frame = stack.pop();
             if (stack.isEmpty()) saves.remove();
             CareerLifecycle state = lifecycle.get();
-            if (state != null) state.finishSave(frame.attempt, frame.name, frame.metadata, frame.closed, frame.backup, !aborted,
+            var outcome = state == null ? null : state.finishSave(frame.attempt, frame.name, frame.metadata, frame.closed, frame.backup, !aborted,
                     frame.streamClosed, frame.streamCloseFailed);
+            writtenProvenance.complete(frame.evidenceRevision, frame.ticket, ticket(), frame.destination,
+                    frame.trace == null ? null : frame.trace.finish(), outcome != null && outcome.completeSequence() && !frame.sourceRejected
+                            && frame.rootsStarted == 2 && frame.rootsFinished == 2,
+                    frame.serializedPrimary == null ? null : frame.serializedPrimary.get(), frame.serializedSecondary == null ? null : frame.serializedSecondary.get());
             emit("save", frame.name, frame.closed && !aborted && !frame.streamCloseFailed, frame.backup, !aborted, false, aborted);
         } catch (Throwable ignored) { }
     }

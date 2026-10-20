@@ -264,11 +264,26 @@ public final class CareerHookRuntimeTest {
                 check(lifecycle.snapshot().lastSaveOutcome().streamClosed() && !lifecycle.snapshot().lastSaveOutcome().streamCloseFailed(), "original save underlying stream close observed");
                 check(ioHub.state().completedSaves() == 0, "all original save stages insufficient without qualified load generation");
                 check(Files.isRegularFile(saves.resolve("output.s22")) && Files.mismatch(saves.resolve("output.s22"), saves.resolve("output.sbck")) == -1, "save and backup bytes agree");
+                var written = HookProbe.writtenSaveProvenance().binding().orElseThrow();
+                var outputObservation = new SaveFileObserver().observe(saves, "output.s22");
+                var verifiedOutput = new WrittenSaveVerifier(runtime).verify(outputObservation);
+                check(written.bytes().equals(outputObservation.revision()) && verifiedOutput.bytes().equals(outputObservation.revision())
+                        && written.destination().equals(saves.resolve("output.s22")), "actual original writer stream/path/hash/size match private output file");
+                check(CareerBridge.onEdt(() -> {
+                    var current = new LegacyFinanceAdapter(runtime).roots();
+                    return written.matches(current.primary(), current.secondary());
+                }), "exact roots fed to original serializer are weakly linked, not reconstructed from final balance");
+                boolean backupNotSelected = false;
+                try { new WrittenSaveVerifier(runtime).verify(new SaveFileObserver().observe(saves, "output.sbck")); }
+                catch (WrittenSaveVerifier.Failure expected) { backupNotSelected = expected.reason() == WrittenSaveVerifier.Reason.FILE_MISMATCH; }
+                check(backupNotSelected, "byte-identical original backup is not silently selected as primary output stream destination");
                 events.clear();
                 var beforeReload = bridge.scopedClubs("", 0, 1).items().get(0).reference();
                 check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "output", false)), "produced save reloads by original method");
                 check(only(events, "load").completed(), "reload observation");
                 check(lifecycle.snapshot().loads() == 2 && lifecycle.snapshot().lastSavedFile() == null, "original reload replaces guard incarnation");
+                var verifiedReload = new LoadedSaveVerifier(runtime).verify(new SaveFileObserver().observe(saves, "output.s22"));
+                check(verifiedReload.bytes().equals(verifiedOutput.bytes()) && HookProbe.writtenSaveProvenance().binding().isEmpty(), "original reload consumes exact observed output bytes but never restores write authority or proves operation inclusion");
                 boolean rejectedReference = false;
                 try { bridge.scopedPlayers(beforeReload, 0, 20); }
                 catch (br.vbrasfoot.api.GameQueryException expected) { rejectedReference = expected.reason() == br.vbrasfoot.api.GameQueryException.Reason.STALE_SCOPE; }
@@ -291,6 +306,7 @@ public final class CareerHookRuntimeTest {
                 check(lifecycle.snapshot().saves() == 1, "failed primary does not increment guard saves");
                 check(lifecycle.snapshot().lastSaveOutcome().metadataClosed() && !lifecycle.snapshot().lastSaveOutcome().primaryClosed()
                         && lifecycle.snapshot().failedSaveSequences() == 1, "successful metadata with failed primary is not complete save");
+                check(HookProbe.writtenSaveProvenance().binding().isEmpty(), "swallowed original primary write failure cannot bind output stream evidence");
                 events.clear();
                 Files.createDirectory(saves.resolve("backup-failed.sbck"));
                 Files.writeString(saves.resolve("backup-failed.sbck/keep"), "nonempty fixture directory");
@@ -299,6 +315,7 @@ public final class CareerHookRuntimeTest {
                 check(observation.completed() && !observation.backup(), "backup failure distinct from primary success");
                 check(lifecycle.snapshot().saves() == 2, "guard tracks primary close despite backup failure, not durable commit");
                 check(!lifecycle.snapshot().lastSaveOutcome().completeSequence() && lifecycle.snapshot().partialSaveSequences() == 1, "backup failure cannot complete full save sequence");
+                check(HookProbe.writtenSaveProvenance().binding().isEmpty(), "successful primary with failed original backup remains incomplete output evidence");
                 events.clear();
                 Files.createDirectory(saves.resolve("metadata-failed.info"));
                 CareerBridge.onEdt(() -> { save.invoke(null, "metadata-failed"); return null; });
@@ -306,6 +323,7 @@ public final class CareerHookRuntimeTest {
                 check(observation.completed() && observation.backup() && !lifecycle.snapshot().lastSaveOutcome().metadataClosed(), "original swallowed metadata failure distinguished despite primary and backup success");
                 check(lifecycle.snapshot().saves() == 3 && lifecycle.snapshot().completeSaveSequences() == 1
                         && lifecycle.snapshot().partialSaveSequences() == 2 && lifecycle.snapshot().inFlightSaves() == 0, "only fully observed sequence counted complete, attempts cleaned");
+                check(HookProbe.writtenSaveProvenance().binding().isEmpty(), "swallowed original metadata failure cannot qualify complete writer evidence");
                 events.clear();
                 CareerBridge.onEdt(() -> { save.invoke(null, (Object) null); return null; });
                 observation = only(events, "save");

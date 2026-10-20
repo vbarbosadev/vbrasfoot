@@ -58,6 +58,7 @@ final class ProbeSession implements AutoCloseable {
         if (closed) return;
         closed = true;
          var provenance = HookProbe.decodedProvenance();
+         var written = HookProbe.writtenSaveProvenance();
          String reportSession = lifecycle.ticket().session();
          var ioBeforeClose = interlock.snapshot();
          try { interlockSubscription.close(); } catch (Exception failure) { logger.warning("Could not detach original I/O interlock"); }
@@ -88,8 +89,19 @@ final class ProbeSession implements AutoCloseable {
             decoded.setProperty("initializationPathObserved", Boolean.toString(value.initializedPath()));
         });
         decoded.setProperty("writeAuthority", "false");
-        try (var writer = Files.newBufferedWriter(report.resolveSibling("decoded-save-provenance.properties"))) { decoded.store(writer, "Decoder provenance before probe detachment; no save paths or root objects exported"); }
-        catch (Exception failure) { System.err.println("Falha ao registrar provenance do decoder: " + failure); }
+          try (var writer = Files.newBufferedWriter(report.resolveSibling("decoded-save-provenance.properties"))) { decoded.store(writer, "Decoder provenance before probe detachment; no save paths or root objects exported"); }
+         catch (Exception failure) { System.err.println("Falha ao registrar provenance do decoder: " + failure); }
+         Properties output = new Properties();
+         output.setProperty("format", "1"); output.setProperty("session", reportSession);
+         output.setProperty("status", written.status().name()); output.setProperty("revision", Long.toString(written.revision()));
+         output.setProperty("coverage", "Original writer stream bytes and weak serialized roots only; not operation inclusion, save durability or write authority");
+         written.binding().ifPresent(value -> {
+             output.setProperty("generation", Long.toString(value.generation()));
+             output.setProperty("bytes.sha256", value.bytes().sha256()); output.setProperty("bytes.size", Long.toString(value.bytes().size()));
+         });
+         output.setProperty("operationInclusionProven", "false"); output.setProperty("writeAuthority", "false");
+         try (var writer = Files.newBufferedWriter(report.resolveSibling("written-save-provenance.properties"))) { output.store(writer, "Writer provenance before detachment; no paths or root objects exported"); }
+         catch (Exception failure) { System.err.println("Falha ao registrar provenance do writer: " + failure); }
         Properties async = new Properties();
         var asyncSnapshot = HookProbe.asyncCreationSnapshot();
         async.setProperty("coverage", "Causal candidate tasks/progression only; not exclusive new-career origin, readiness, unload or durable lifecycle");

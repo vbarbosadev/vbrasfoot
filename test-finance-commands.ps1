@@ -1,6 +1,7 @@
 param(
     [string]$GameDir = (Join-Path $PSScriptRoot '..\Brasfoot22-23'),
-    [string]$Save = (Join-Path $PSScriptRoot '..\Brasfoot22-23\sav\Flamengo.s22')
+    [string]$Save = (Join-Path $PSScriptRoot '..\Brasfoot22-23\sav\Flamengo.s22'),
+    [switch]$ProbeWriter
 )
 $ErrorActionPreference = 'Stop'
 $game = (Resolve-Path -LiteralPath $GameDir).Path
@@ -29,7 +30,8 @@ $classpath = "$PSScriptRoot\build\classes;$PSScriptRoot\build\tests"
 Push-Location $copy
 try {
     $ErrorActionPreference = 'Continue'
-    & java '--add-exports=java.desktop/sun.java2d=ALL-UNNAMED' -Xmx1536m -cp $classpath br.vbrasfoot.FinanceOriginalRuntimeTest $copy $loaderHome *> (Join-Path $fixture 'runtime-test.log')
+    $probeArgs = @(); if ($ProbeWriter) { $probeArgs = @('--probe-writer') }
+    & java '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' '--add-exports=java.desktop/sun.java2d=ALL-UNNAMED' -Xmx1536m -cp $classpath br.vbrasfoot.FinanceOriginalRuntimeTest $copy $loaderHome @probeArgs *> (Join-Path $fixture 'runtime-test.log')
     $code=$LASTEXITCODE
 } finally { $ErrorActionPreference='Stop'; Pop-Location }
 Get-Content -LiteralPath (Join-Path $fixture 'runtime-test.log') -Tail 18

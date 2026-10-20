@@ -23,7 +23,7 @@ public final class CareerTransformer {
     static byte[] transformFixture(byte[] original) throws IOException {
         ClassReader reader = new ClassReader(original);
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        int[] counts = new int[11];
+        int[] counts = new int[14];
         reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
             @Override public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 MethodVisitor method = super.visitMethod(access, name, descriptor, signature, exceptions);
@@ -90,6 +90,15 @@ public final class CareerTransformer {
                         call(load ? "enterLoad" : "enterSave", load ? "(Ljava/lang/String;Z)V" : "(Ljava/lang/String;)V");
                     }
                     @Override public void visitMethodInsn(int op, String owner, String name, String desc, boolean iface) {
+                        if (save && owner.equals("java/io/FileOutputStream") && name.equals("<init>") && desc.equals("(Ljava/lang/String;)V")) {
+                            super.visitInsn(Opcodes.DUP); call("saveDestination", "(Ljava/lang/String;)V"); counts[11]++;
+                        }
+                        if (save && owner.equals("com/esotericsoftware/kryo/io/Output") && name.equals("<init>") && desc.equals("(Ljava/io/OutputStream;)V")) {
+                            call("traceSaveOutput", "(Ljava/io/OutputStream;)Ljava/io/OutputStream;"); counts[12]++;
+                        }
+                        boolean serializedRoot = save && owner.equals("com/esotericsoftware/kryo/Kryo") && name.equals("writeClassAndObject")
+                                && desc.equals("(Lcom/esotericsoftware/kryo/io/Output;Ljava/lang/Object;)V");
+                        if (serializedRoot) { super.visitInsn(Opcodes.DUP); call("saveRootSerializing", "(Ljava/lang/Object;)V"); counts[13]++; }
                         if (load && owner.equals("java/io/FileInputStream") && name.equals("<init>") && desc.equals("(Ljava/lang/String;)V")) {
                             super.visitInsn(Opcodes.DUP); call("loadSource", "(Ljava/lang/String;)V"); counts[9]++;
                         }
@@ -100,6 +109,7 @@ public final class CareerTransformer {
                             super.visitInsn(Opcodes.DUP); call("primaryOutputClosing", "(Ljava/lang/Object;)V");
                         }
                         super.visitMethodInsn(op, owner, name, desc, iface);
+                        if (serializedRoot) call("saveRootSerialized", "()V");
                         if (load && owner.equals("com/esotericsoftware/kryo/io/Input") && name.equals("close") && desc.equals("()V")) {
                             counts[2]++;
                             if (reader.getClassName().equals("c/a")) {
@@ -157,6 +167,7 @@ public final class CareerTransformer {
         if (reader.getClassName().equals("c/a") && counts[6] != 5) throw new IOException("Root-assignment sites changed; refused");
         if (reader.getClassName().equals("c/a") && (counts[7] != 1 || counts[8] != 1)) throw new IOException("Metadata/load initialization sites changed; refused");
         if (reader.getClassName().equals("c/a") && (counts[9] != 1 || counts[10] != 1)) throw new IOException("Decoder input construction sites changed; refused");
+        if (reader.getClassName().equals("c/a") && (counts[11] != 2 || counts[12] != 1 || counts[13] != 2)) throw new IOException("Writer output/root sites changed; refused");
         return writer.toByteArray();
     }
 }

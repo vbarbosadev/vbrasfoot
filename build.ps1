@@ -78,6 +78,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de pedidos financeiros persistentes falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceRequestStoreSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do armazenamento de pedidos financeiros falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.WrittenSaveProvenanceSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes da evidencia do stream de save falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceSaveAssessmentSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes da avaliacao por operacao no save falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkValidatorJsonSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes JSON do validador SDK falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.DiagnosticExportSelfTest

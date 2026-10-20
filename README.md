@@ -75,6 +75,8 @@ incerteza de efeitos/revisoes automaticamente.
 O [inventario de contratos e diarios](roadmap/FINANCE-CONTRACT-INVENTORY.md)
 inclui mods desativados e bloqueia contexto interno diante de contratos incompletos,
 divergentes ou ancorados em outra revisao. Nao concede escrita publica.
+O codigo experimental tambem cruza [stream real do writer, arquivo e recarga](roadmap/WRITTEN-SAVE-EVIDENCE.md).
+Mesmo bytes identicos nao sao usados para resolver a inclusao de efeitos APPLIED/UNKNOWN.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

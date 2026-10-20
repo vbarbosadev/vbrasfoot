@@ -18,7 +18,10 @@ public final class FinanceOriginalRuntimeTest {
             throw new IllegalArgumentException("Fresh private fixture/cwd required; no user saves may be targeted");
         String inputHash = Profile.digest(game.resolve("sav/input.s22"));
         Thread current = Thread.currentThread(); ClassLoader previous = current.getContextClassLoader();
-        try (LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home.resolve("runtime"))) {
+        boolean probeWriter = args.length == 3 && args[2].equals("--probe-writer");
+        var writerLifecycle = new CareerLifecycle();
+        try (LegacyRuntime runtime = LegacyRuntime.prepare(Profile.verify(game), home.resolve("runtime"), probeWriter);
+             AutoCloseable writerGuard = probeWriter ? HookProbe.attachLifecycle(writerLifecycle) : () -> { }) {
             current.setContextClassLoader(runtime);
             Class.forName("best.M", true, runtime).getConstructor(boolean.class).newInstance(true);
             Class<?> state = Class.forName("c.a", false, runtime);
@@ -140,6 +143,8 @@ public final class FinanceOriginalRuntimeTest {
                     finally { gate.endSave(saveFence); } // Even writer failure must not restore the old context.
                     check(Files.isRegularFile(game.resolve("sav/finance-output.s22")) && Files.mismatch(game.resolve("sav/finance-output.s22"), game.resolve("sav/finance-output.sbck")) == -1,
                             "original writer produces private output and matching backup");
+                    var writtenStream = probeWriter ? new WrittenSaveVerifier(runtime).verify(observer.observe(game.resolve("sav"), "finance-output.s22")) : null;
+                    if (probeWriter) check(writtenStream.bytes().sha256().equals(Profile.digest(game.resolve("sav/finance-output.s22"))), "post-financial-effect output is linked to actual original written stream, not balance inference");
                     check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "finance-output", false)), "original loader reloads private financially modified save");
                     var restoredRoots = CareerBridge.onEdt(adapter::roots);
                     Object restoredHuman = CareerBridge.onEdt(() -> ((List<?>) CareerBridge.call(restoredRoots.primary(), "aN")).get(0));
@@ -168,6 +173,16 @@ public final class FinanceOriginalRuntimeTest {
                     var recovery = journal.inspectRecovery(revision, outputObservation.revision());
                     check(recovery.status() == CareerCommandJournal.RecoveryStatus.HISTORICAL_EFFECTS && recovery.revisionChanged(),
                             "original roundtrip still classified as historical effects, not automatic journal reconciliation");
+                    if (probeWriter) {
+                        var decodedOutput = new LoadedSaveVerifier(runtime).verify(outputObservation);
+                        var assessment = FinanceSaveAssessment.assess(key, requestStore.inspectRecordedRecovery(outputObservation.revision()), recovery,
+                                decodedOutput, Optional.of(writtenStream));
+                        check(assessment.relation() == FinanceSaveAssessment.SaveRelation.EXACT_WRITTEN_BYTES_RELOADED && assessment.blocksContext(),
+                                "original writer/decoder bytes correlate but do not clear historical operation quarantine");
+                        check(assessment.operations().stream().filter(operation -> operation.receipt().orElse(null) == CareerCommandJournal.State.APPLIED)
+                                        .allMatch(operation -> operation.inclusion() == FinanceSaveAssessment.Inclusion.UNPROVEN && operation.operationId().isPresent()),
+                                "per-operation APPLIED UUIDs retain unproven inclusion even with matching original output/reload bytes");
+                    }
                     check(journal.quarantinePending(revision, recovery.snapshot().token()).token().equals(recovery.snapshot().token()),
                             "startup quarantine cannot rewrite terminal original financial receipts");
                     var oldPlanResult = dispatcher.execute(owner, context, changed.intent("old-roots"), journal.read(revision).token(), changed);
