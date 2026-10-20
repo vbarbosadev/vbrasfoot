@@ -123,6 +123,16 @@ public final class FinanceOriginalRuntimeTest {
                                     .allMatch(value -> value.state() == FinanceExecutionWitnessStore.State.MEMORY_APPLIED), "credit and debit execution facts persist without declaring save inclusion");
                     check(CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(debit.expected()) && debit.expected().balance() == before.balance() + 100,
                             "original debit preserves exact ledger and net100balance");
+                    if (probeWriter) {
+                        var checkpoint = debit.executionMutationEnd().orElseThrow();
+                        check(checkpoint.definingClassesObserved() && checkpoint.healthy() && checkpoint.active() == 0,
+                                "both fingerprinted defining classes expose quiescent direct-write observation after original effect");
+                        check(HookProbe.financeMutationSnapshot(runtime).stableSince(checkpoint), "unchanged diagnostic checkpoint remains stable before further original writes");
+                        CareerBridge.onEdt(() -> { human.getClass().getMethod("e", long.class).invoke(human, debit.expected().balance()); return null; });
+                        check(!HookProbe.financeMutationSnapshot(runtime).stableSince(checkpoint)
+                                        && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(debit.expected()),
+                                "original equal-value balance setter invalidates causal checkpoint even though balance and full ledger remain equal");
+                    }
                     var stale = CareerBridge.onEdt(() -> adapter.prepare(human, FinanceDelta.Direction.CREDIT_RAW_6, 11));
                     var changed = CareerBridge.onEdt(() -> adapter.prepare(human, FinanceDelta.Direction.CREDIT_RAW_6, 5));
                     var changedResult = dispatcher.execute(owner, context, changed.intent("owned-change"), debited.journal().orElseThrow().token(), changed);
@@ -145,13 +155,25 @@ public final class FinanceOriginalRuntimeTest {
                     check(noEffectResult.kind() == Kind.NO_EFFECT && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(changed.expected()),
                             "original adapter rejects consumed/stale plan with no mutation in separate no-effect journal");
                     var beforeSave = CareerBridge.onEdt(() -> adapter.snapshot(human));
+                    var preWriterMutations = probeWriter ? HookProbe.financeMutationSnapshot(runtime) : null;
                     var saveFence = gate.beginSave();
                     try { CareerBridge.onEdt(() -> { saveMethod.invoke(null, "finance-output"); return null; }); }
                     finally { gate.endSave(saveFence); } // Even writer failure must not restore the old context.
                     check(Files.isRegularFile(game.resolve("sav/finance-output.s22")) && Files.mismatch(game.resolve("sav/finance-output.s22"), game.resolve("sav/finance-output.sbck")) == -1,
                             "original writer produces private output and matching backup");
                     var writtenStream = probeWriter ? new WrittenSaveVerifier(runtime).verify(observer.observe(game.resolve("sav"), "finance-output.s22")) : null;
-                    if (probeWriter) check(writtenStream.bytes().sha256().equals(Profile.digest(game.resolve("sav/finance-output.s22"))), "post-financial-effect output is linked to actual original written stream, not balance inference");
+                    if (probeWriter) {
+                        check(writtenStream.bytes().sha256().equals(Profile.digest(game.resolve("sav/finance-output.s22"))), "post-financial-effect output is linked to actual original written stream, not balance inference");
+                        var bindingWritten = HookProbe.writtenSaveProvenance().binding().orElseThrow();
+                        check(bindingWritten.financeBefore().orElseThrow().definingClassesObserved() && bindingWritten.financeAfter().orElseThrow().definingClassesObserved(),
+                                "serializer boundary captures checkpoints from the same instrumented runtime as original roots");
+                        check(bindingWritten.noObservedFinanceWriteDuringSerialization(), "private original serializer observed no selected direct financial writes during the two root writes; not full mutation coverage");
+                        var mutationAssessment = FinanceMutationAssessment.assess(changed.executionMutationEnd(), bindingWritten);
+                        check(mutationAssessment.executionToSerializer() != FinanceMutationAssessment.Status.UNAVAILABLE
+                                && mutationAssessment.serializerWindow() == FinanceMutationAssessment.Status.NO_OBSERVED_DIRECT_WRITE,
+                                "original financial effect and serializer checkpoints can be compared without treating sampled ledger equality as causal proof");
+                        check(preWriterMutations != null && preWriterMutations.healthy(), "original pre-writer mutation checkpoint remains diagnostic, not a save grant");
+                    }
                     check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "finance-output", false)), "original loader reloads private financially modified save");
                     var restoredRoots = CareerBridge.onEdt(adapter::roots);
                     Object restoredHuman = CareerBridge.onEdt(() -> ((List<?>) CareerBridge.call(restoredRoots.primary(), "aN")).get(0));

@@ -91,6 +91,7 @@ final class LegacyFinanceAdapter {
         private final AtomicBoolean used = new AtomicBoolean();
         private final String digest;
         private final FinanceRequest request;
+        private volatile FinanceMutationTracker.Snapshot executionMutationEnd;
         Plan(Object club, Object ledger, CareerCommandDispatcher.Roots roots, FinanceDelta.Snapshot before, FinanceDelta.Snapshot after,
               FinanceDelta.Direction direction, int amount, FinanceRequest request) throws Exception {
             this.club = new WeakReference<>(club); this.ledger = new WeakReference<>(ledger);
@@ -118,6 +119,7 @@ final class LegacyFinanceAdapter {
         @Override public Optional<FinanceRequest> persistentRequest() { return Optional.ofNullable(request); }
         @Override public boolean supportsExecutionWitness() { return request != null; }
         FinanceDelta.Snapshot expected() { return after; }
+        Optional<FinanceMutationTracker.Snapshot> executionMutationEnd() { return Optional.ofNullable(executionMutationEnd); }
         private boolean current(Object target, Object originalLedger, CareerCommandDispatcher.Roots roots) throws Exception {
             if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null
                     || roots.primary() != primary.get() || roots.secondary() != secondary.get() || CareerBridge.call(target, "kL") != originalLedger) return false;
@@ -135,8 +137,10 @@ final class LegacyFinanceAdapter {
                 if (failure.getCause() instanceof Error error) throw error;
                 throw failure;
             }
-            return current(target, originalLedger, roots()) && snapshot(target).equals(after)
+            var result = current(target, originalLedger, roots()) && snapshot(target).equals(after)
                     ? CareerCommandGate.Status.APPLIED : CareerCommandGate.Status.OUTCOME_UNKNOWN;
+            if (result == CareerCommandGate.Status.APPLIED) executionMutationEnd = HookProbe.financeMutationSnapshot(runtime);
+            return result;
         }
     }
 }

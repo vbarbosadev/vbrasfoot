@@ -84,6 +84,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes da avaliacao por operacao no save falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceExecutionWitnessSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da evidencia duravel de execucao financeira falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceMutationTrackerSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do tracker de mutacao financeira falharam' }
+    & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.FinanceMutationTransformerSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do transformer de mutacao financeira falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkValidatorJsonSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes JSON do validador SDK falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.DiagnosticExportSelfTest
