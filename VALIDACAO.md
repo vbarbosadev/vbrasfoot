@@ -40,6 +40,16 @@ Evidencia:
  selecionado implicitamente, reload dos mesmos bytes sem autoridade antiga e
  falhas originais engolidas de metadata/primary/backup sem evidencia falsa.
  Fixture continua pulando init completo: NAO e qualificacao global de gameplay.
+-50checks financeiros ORIGINAIS com `test-finance-commands.ps1 -ProbeWriter`
+ em `build/written-save-probed-finance.log`, fixture PRIVADA
+ `Temp/opencode/vbrasfoot-finance-4f7e9dbd9b0a4a5bbe736a2904aec91a`:
+ stream efetivo apos efeitos financeiros ligado ao arquivo, decoder dos mesmos
+ bytes e avaliacao com UUIDs APPLIED ainda UNPROVEN/bloqueados. Autoridades dessa
+ fixture sao ARTIFICIAIS; nao e aceite do contexto de Main/standalone/UI.
+-47checks financeiros ORIGINAIS sem instrumentacao tambem passaram em
+ `build/written-save-normal-finance.log`. Wrappers financeiros rodaram32checks
+ iniciais de stream+18de assessment;4checks adicionais de report passaram depois
+ em saida isolada (36total), sem alterar o runtime financeiro original testado.
 -SDK-only ZIP/hashes/allowlist/cinco projetos/negativos passou em
  `build/written-save-sdk-test.log`, fixture propria
  `Temp/opencode/vbrasfoot-sdk-author-6ce72bf97fd74a3cad8063f36559a889`.
