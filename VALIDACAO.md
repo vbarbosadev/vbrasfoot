@@ -27,6 +27,14 @@ Evidencia final sintetica:
  lease antiga/prova de outro career, schema/payload/EDT e conflitos de recovery.
  Nao e power-loss nem aceite de gameplay; efeitos/roots sao PROPRIOS.
 -29checks do dispatcher existente passaram na mesma compilacao isolada.
+-54checks financeiros ORIGINAIS com writer instrumentado passaram em
+ `build/execution-witness-original-finance.log`: credito/debito possuem UUIDs
+ exatos e MEMORY_APPLIED duravel, evidencias reabertas iguais apos writer/reload,
+ ancora de output divergente recusada e restore do input na fixture com gate
+ novo nao reemite lease. Autoridades da fixture sao ARTIFICIAIS. Wrapper rodou
+ build/suite com64checks iniciais de witness;5checks adicionais de escopo/schema/
+ payload/EDT/conflito passaram depois em compilacao isolada (69total). Nao
+ confundir64com suite final. Nenhum hash de origem alterado pelo wrapper.
 -SDK-only ZIP/hashes/allowlist/cinco projetos/negativos passou em
  `build/execution-witness-sdk-test.log`, fixture propria
  `Temp/opencode/vbrasfoot-sdk-author-9dde6548b60e4011b87ddae3ffe3518b`.
