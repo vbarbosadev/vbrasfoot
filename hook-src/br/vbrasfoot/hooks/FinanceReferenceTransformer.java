@@ -24,9 +24,10 @@ public final class FinanceReferenceTransformer {
                         super.visitVarInsn(Opcodes.ALOAD, nullValue ? 1 : 8);
                         if (nullValue) { super.visitInsn(Opcodes.ACONST_NULL); super.visitInsn(Opcodes.ACONST_NULL); }
                         else { super.visitVarInsn(Opcodes.ALOAD, 9); super.visitVarInsn(Opcodes.ALOAD, 10); }
-                        super.visitLdcInsn(route);
-                        super.visitMethodInsn(Opcodes.INVOKESTATIC, "br/vbrasfoot/HookProbe", "financeReferenceEmitted",
-                                "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)V", false);
+                         super.visitLdcInsn(route);
+                         if (nullValue) super.visitInsn(Opcodes.ACONST_NULL); else super.visitVarInsn(Opcodes.ALOAD, 11);
+                         super.visitMethodInsn(Opcodes.INVOKESTATIC, "br/vbrasfoot/HookProbe", "financeReferenceEmitted",
+                                 "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;)V", false);
                     }
                     @Override public void visitMethodInsn(int opcode, String owner, String method, String desc, boolean itf) {
                         if (opcode == Opcodes.INVOKEVIRTUAL && owner.equals("com/esotericsoftware/kryo/Kryo")
@@ -34,7 +35,11 @@ public final class FinanceReferenceTransformer {
                                 && desc.equals("(Lcom/esotericsoftware/kryo/io/Output;Ljava/lang/Object;Lcom/esotericsoftware/kryo/Serializer;)V")) {
                             counts[method.equals("writeObject") ? 0 : 1]++;
                             // Preserve actual stack arguments, not a second field read or a reconstructed serializer.
-                            super.visitVarInsn(Opcodes.ASTORE, 10); super.visitVarInsn(Opcodes.ASTORE, 9); super.visitVarInsn(Opcodes.ASTORE, 8);
+                             super.visitVarInsn(Opcodes.ASTORE, 10); super.visitVarInsn(Opcodes.ASTORE, 9); super.visitVarInsn(Opcodes.ASTORE, 8);
+                             super.visitVarInsn(Opcodes.ALOAD, 0); super.visitVarInsn(Opcodes.ALOAD, 2); super.visitVarInsn(Opcodes.ALOAD, 8); super.visitVarInsn(Opcodes.ALOAD, 9);
+                             super.visitMethodInsn(Opcodes.INVOKESTATIC, "br/vbrasfoot/HookProbe", "financeReferenceCalling",
+                                     "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+                             super.visitVarInsn(Opcodes.ASTORE, 11);
                             super.visitVarInsn(Opcodes.ALOAD, 8); super.visitVarInsn(Opcodes.ALOAD, 9); super.visitVarInsn(Opcodes.ALOAD, 10);
                             super.visitMethodInsn(opcode, owner, method, desc, itf); callback(method, false); return;
                         }

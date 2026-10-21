@@ -5,7 +5,8 @@ import java.util.*;
 import javax.swing.SwingUtilities;
 
 /** Bounded weak-target samples, numeric Output arguments and ledger arguments for witnessed operations.
- * No Kryo reference-table/byte-range decoding, complete mutation coverage or durable effect inclusion. */
+ * Separate memory-only scalar reference-table observations; no byte-range decoding,
+ * complete mutation coverage or durable effect inclusion. */
 final class FinanceSerializationTracker implements AutoCloseable {
     static final int MAX_OPERATIONS = 32;
     private static final Set<String> NUMERIC_ROUTES = Set.of("UnsafeIntField", "UnsafeLongField", "AsmIntField", "AsmLongField", "ObjectIntField", "ObjectLongField");
@@ -25,6 +26,7 @@ final class FinanceSerializationTracker implements AutoCloseable {
         default SampleFact sampleFact(Object serializedPrimary) throws Exception { return SampleFact.unavailable(sample(serializedPrimary)); }
         default Argument emitted(java.lang.reflect.Field field, Object receiver, long value) throws Exception { return Argument.IRRELEVANT; }
         default Argument referenced(java.lang.reflect.Field field, Object receiver, Object value) throws Exception { return Argument.IRRELEVANT; }
+        default boolean tracksLedger(Object value) { return false; }
     }
     record Fields(Emission status, int observed, Set<String> routes) {
         Fields { routes = Set.copyOf(routes); }
@@ -40,8 +42,10 @@ final class FinanceSerializationTracker implements AutoCloseable {
             this(id, intent, before, after, continuity, fields, edge, FinanceQualificationManifest.legacy());
         }
     }
-    record Capture(boolean validWindow, boolean capacityExceeded, List<Operation> operations) {
-        Capture { operations = List.copyOf(operations); }
+    record ReferenceTrace(UUID operationId, KryoLedgerReferenceTrace.Summary summary) { }
+    record Capture(boolean validWindow, boolean capacityExceeded, List<Operation> operations, List<ReferenceTrace> referenceTraces) {
+        Capture { operations = List.copyOf(operations); referenceTraces = List.copyOf(referenceTraces); }
+        Capture(boolean valid, boolean exceeded, List<Operation> operations) { this(valid, exceeded, operations, List.of()); }
         static Capture unavailable() { return new Capture(false, false, List.of()); }
     }
     private record Entry(UUID operationId, CareerCommandJournal.Intent intent, WeakReference<Target> target,
@@ -58,6 +62,7 @@ final class FinanceSerializationTracker implements AutoCloseable {
         private final boolean[] mismatched, ambiguous, failed;
         private final Edge[] edges;
         private final List<Optional<LedgerSerializerProfile.Status>> profiles;
+        private final List<KryoLedgerReferenceTrace> references;
         private boolean consumed;
         private Window(UUID tracker, long revision, boolean exceeded, Object primary, List<Entry> entries, List<Operation> before) {
             this.tracker = tracker; this.revision = revision; this.exceeded = exceeded; this.primary = new WeakReference<>(primary);
@@ -65,6 +70,7 @@ final class FinanceSerializationTracker implements AutoCloseable {
             mismatched = new boolean[entries.size()]; ambiguous = new boolean[entries.size()]; failed = new boolean[entries.size()];
             edges = new Edge[entries.size()]; Arrays.fill(edges, Edge.missing());
             profiles = new ArrayList<>(Collections.nCopies(entries.size(), Optional.empty()));
+            references = new ArrayList<>(); for (int i = 0; i < entries.size(); i++) references.add(new KryoLedgerReferenceTrace());
             for (int i = 0; i < entries.size(); i++) { emitted.add(new HashSet<>()); routes.add(new HashSet<>()); }
         }
     }
@@ -112,7 +118,69 @@ final class FinanceSerializationTracker implements AutoCloseable {
                     FinanceQualificationManifest.sampled(before.qualifications().membershipBefore(), after.membership(), window.profiles.get(i))));
         }
         synchronized (this) { if (closed || revision != window.revision) return Capture.unavailable(); }
-        return new Capture(true, window.exceeded, operations);
+        var references = new ArrayList<ReferenceTrace>();
+        synchronized (this) {
+            if (closed || revision != window.revision) return Capture.unavailable();
+            for (int i = 0; i < window.entries.size(); i++) references.add(new ReferenceTrace(window.entries.get(i).operationId(), window.references.get(i).snapshot()));
+        }
+        return new Capture(true, window.exceeded, operations, references);
+    }
+    static final class ReferenceCall {
+        private final Window window;
+        private final List<KryoLedgerReferenceTrace.Call> calls;
+        private ReferenceCall(Window window, List<KryoLedgerReferenceTrace.Call> calls) { this.window = window; this.calls = calls; }
+    }
+    ReferenceCall beginReferenceCall(Window window, java.lang.reflect.Field field, Object receiver, Object value) {
+        if (window == null || !id.equals(window.tracker)) return null;
+        var calls = new ArrayList<KryoLedgerReferenceTrace.Call>(); boolean selected = false;
+        for (int i = 0; i < window.entries.size(); i++) {
+            synchronized (this) { if (closed || window.consumed || revision != window.revision) return null; }
+            Argument result = null; var target = window.entries.get(i).target().get();
+            if (SwingUtilities.isEventDispatchThread() && target != null) try { result = target.referenced(field, receiver, value); } catch (Throwable ignored) { }
+            synchronized (this) {
+                if (closed || window.consumed || revision != window.revision) return null;
+                if (result == null) window.references.get(i).fail();
+                var call = result == Argument.MATCHED ? window.references.get(i).beginField() : null;
+                calls.add(call); selected |= call != null;
+            }
+        }
+        return selected ? new ReferenceCall(window, Collections.unmodifiableList(calls)) : null;
+    }
+    synchronized void endReferenceCall(ReferenceCall call) {
+        if (call == null || !id.equals(call.window.tracker)) return;
+        var window = call.window; if (closed || window.consumed || revision != window.revision) return;
+        for (int i = 0; i < call.calls.size(); i++) if (call.calls.get(i) != null) window.references.get(i).endField(call.calls.get(i));
+    }
+    void referenceMarker(Window window, Object ledger, int kind, int referenceId, int marker, boolean supportedResolver) {
+        referenceEvent(window, ledger, trace -> trace.marker(kind, referenceId, marker, supportedResolver));
+    }
+    void referenceContent(Window window, Object ledger, boolean supportedSerializer) {
+        referenceEvent(window, ledger, trace -> trace.contentReturned(supportedSerializer));
+    }
+    private void referenceEvent(Window window, Object ledger, java.util.function.Consumer<KryoLedgerReferenceTrace> event) {
+        if (window == null || !id.equals(window.tracker)) return;
+        for (int i = 0; i < window.entries.size(); i++) {
+            synchronized (this) { if (closed || window.consumed || revision != window.revision) return; }
+            var target = window.entries.get(i).target().get(); Boolean selected = null;
+            if (SwingUtilities.isEventDispatchThread() && target != null) try { selected = target.tracksLedger(ledger); } catch (Throwable ignored) { }
+            synchronized (this) {
+                if (closed || window.consumed || revision != window.revision) return;
+                if (selected == null) window.references.get(i).fail();
+                else if (selected) event.accept(window.references.get(i));
+            }
+        }
+    }
+    synchronized void referenceReset(Window window) {
+        if (closed || window == null || !id.equals(window.tracker) || window.consumed || revision != window.revision) return;
+        for (var trace : window.references) trace.reset();
+    }
+    synchronized void referenceResetCompleted(Window window) {
+        if (closed || window == null || !id.equals(window.tracker) || window.consumed || revision != window.revision) return;
+        for (var trace : window.references) trace.resetCompleted();
+    }
+    synchronized void referenceTableFailed(Window window) {
+        if (closed || window == null || !id.equals(window.tracker) || window.consumed || revision != window.revision) return;
+        for (var trace : window.references) trace.fail();
     }
     void emitted(Window window, java.lang.reflect.Field field, Object receiver, long value, String route) {
         if (window == null || !id.equals(window.tracker)) return;

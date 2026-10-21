@@ -140,6 +140,11 @@ public final class WrittenSaveProvenanceSelfTest {
                 && properties.getProperty("finance.operation.0.qualification.membershipAfter").equals("NOT_RECORDED")
                 && properties.getProperty("finance.operation.0.qualification.serializerAfterReference").equals("NOT_RECORDED"),
                 "new report identifies manifest1 but never invents unavailable sampler/profile facts");
+        check(properties.getProperty("finance.referenceTable.operations").equals("1")
+                && properties.getProperty("finance.referenceTable.0.resolution").equals("MISSING")
+                && properties.getProperty("finance.referenceTable.0.uuid").equals(reportOperation.toString())
+                && properties.getProperty("finance.referenceTable.0.supportedResolver").equals("false"),
+                "root-only report exports missing bounded table summary for UUID, not invented reference IDs or content coverage");
         check(!Files.readString(report.resolveSibling("written-save-provenance.properties")).contains("private-request-key"), "exported report does not disclose private operation key/payload or target values");
         System.out.println("PASS: " + checks + " written-save stream checks; owned fixture " + root + "; no financial operation inclusion inferred.");
     }

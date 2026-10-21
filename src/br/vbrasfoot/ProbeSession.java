@@ -122,7 +122,7 @@ final class ProbeSession implements AutoCloseable {
              output.setProperty("finance.operations.validWindow", Boolean.toString(capture.validWindow()));
              output.setProperty("finance.operations.capacityExceeded", Boolean.toString(capture.capacityExceeded()));
              output.setProperty("finance.operations.count", Integer.toString(capture.operations().size()));
-             for (int i = 0; i < capture.operations().size(); i++) {
+              for (int i = 0; i < capture.operations().size(); i++) {
                  var operation = capture.operations().get(i); String prefix = "finance.operation." + i + ".";
                  output.setProperty(prefix + "uuid", operation.operationId().toString());
                  output.setProperty(prefix + "before", operation.before().name()); output.setProperty(prefix + "after", operation.after().name());
@@ -138,13 +138,23 @@ final class ProbeSession implements AutoCloseable {
                   output.setProperty(prefix + "qualification.membershipBefore", facts.membershipBefore().map(Enum::name).orElse("NOT_RECORDED"));
                   output.setProperty(prefix + "qualification.membershipAfter", facts.membershipAfter().map(Enum::name).orElse("NOT_RECORDED"));
                   output.setProperty(prefix + "qualification.serializerAfterReference", facts.serializerAfterReference().map(Enum::name).orElse("NOT_RECORDED"));
-             }
+              }
+              output.setProperty("finance.referenceTable.operations", Integer.toString(capture.referenceTraces().size()));
+              for (int i = 0; i < capture.referenceTraces().size(); i++) {
+                  var entry = capture.referenceTraces().get(i); var trace = entry.summary(); String prefix = "finance.referenceTable." + i + ".";
+                  output.setProperty(prefix + "uuid", entry.operationId().toString()); output.setProperty(prefix + "resolution", trace.fieldResolution().name());
+                  output.setProperty(prefix + "newMarkers", Integer.toString(trace.newMarkers())); output.setProperty(prefix + "existingMarkers", Integer.toString(trace.existingMarkers()));
+                  output.setProperty(prefix + "contentReturns", Integer.toString(trace.contentReturns())); output.setProperty(prefix + "usesOutsideFieldCall", Integer.toString(trace.usesOutsideFieldCall()));
+                  output.setProperty(prefix + "resets", Integer.toString(trace.resets())); output.setProperty(prefix + "fieldCalls", Integer.toString(trace.fieldCalls()));
+                  output.setProperty(prefix + "supportedResolver", Boolean.toString(trace.supportedResolver()));
+              }
          });
           output.setProperty("finance.coverage", "Selected direct writes plus fingerprinted original Kryo int/long/object setter sites; excludes other reflection/Unsafe/decoder/custom/native/arbitrary writes; not operation inclusion");
           output.setProperty("finance.kryo.coverage", "18 numeric read/copy and 6 object set/copy sites in 9 original classes, selected fields only; loaded-class inventory is not universal mutation coverage");
          output.setProperty("finance.operations.coverage", "Weak operation targets sampled around original root serialization; not field-level serialization coverage or durable inclusion evidence");
          output.setProperty("finance.numericEmission.coverage", "Exact numeric arguments after selected cached-field Output writes returned; excludes ledger reference encoding, custom serializers, mutation completeness and durable inclusion");
           output.setProperty("finance.ledgerReference.coverage", "Exact ledger argument after original ObjectField Kryo call returned; current supported profile additionally samples 14 numeric field routes, regions/transients disabled; historic statuses do not imply this profile; no reference-table/byte-range decoding, mutation completeness or durable inclusion");
+          output.setProperty("finance.referenceTable.coverage", "Memory-only original marker IDs and completed bodies in same writer Kryo/Output; field-scoped correlation detects additional ledger uses, not exclusive graph ownership, byte ranges or persisted inclusion; schemas1/2/3 do not store this trace");
          output.setProperty("operationInclusionProven", "false"); output.setProperty("writeAuthority", "false");
          try (var writer = Files.newBufferedWriter(report.resolveSibling("written-save-provenance.properties"))) { output.store(writer, "Writer provenance before detachment; no paths or root objects exported"); }
          catch (Exception failure) { System.err.println("Falha ao registrar provenance do writer: " + failure); }

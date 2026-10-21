@@ -171,6 +171,7 @@ final class LegacyFinanceAdapter {
             Object expected = ledger.get();
             return expected != null && value == expected ? FinanceSerializationTracker.Argument.MATCHED : FinanceSerializationTracker.Argument.MISMATCH;
         }
+        @Override public boolean tracksLedger(Object value) { requireEdt(); return value != null && value.getClass() == ledgerClass && value == ledger.get(); }
         private boolean current(Object target, Object originalLedger, CareerCommandDispatcher.Roots roots) throws Exception {
             if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null
                     || roots.primary() != primary.get() || roots.secondary() != secondary.get() || CareerBridge.call(target, "kL") != originalLedger) return false;
