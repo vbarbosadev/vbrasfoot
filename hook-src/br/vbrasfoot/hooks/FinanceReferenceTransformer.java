@@ -49,6 +49,6 @@ public final class FinanceReferenceTransformer {
             }
         }, ClassReader.EXPAND_FRAMES);
         if (counts[0] != 2 || counts[1] != 1 || counts[2] != 2) throw new IOException("ObjectField write/return inventory changed; refused");
-        return writer.toByteArray();
+        return KryoFinanceMutationTransformer.addToVerified("com.esotericsoftware.kryo.serializers.ObjectField", writer.toByteArray());
     }
 }

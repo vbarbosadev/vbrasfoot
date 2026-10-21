@@ -1,5 +1,9 @@
 # Argumento de referencia clube -> ledger no Kryo original
 
+Posteriormente, [escritas Kryo selecionadas](KRYO-FINANCIAL-MUTATIONS.md) passaram
+a instrumentar setField/copy body-only, preservando schema/dados/bytes. O texto
+de preservacao de read/copy abaixo descreve o incremento original da referencia.
+
 Incremento apos FINANCIAL-NUMERIC-EMISSION.md. Captura o objeto/serializer
 efetivamente recebidos pelo Kryo, NAO interpreta IDs da tabela de referencias ou
 bytes individuais. Nao concede INCLUDED, reconciliacao APPLIED/UNKNOWN ou lease.

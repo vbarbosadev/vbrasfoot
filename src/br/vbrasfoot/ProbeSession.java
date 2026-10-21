@@ -108,7 +108,16 @@ final class ProbeSession implements AutoCloseable {
              output.setProperty("bytes.sha256", value.bytes().sha256()); output.setProperty("bytes.size", Long.toString(value.bytes().size()));
              output.setProperty("finance.noObservedDirectWriteDuringSerialization", Boolean.toString(value.noObservedFinanceWriteDuringSerialization()));
              value.financeBefore().ifPresent(snapshot -> output.setProperty("finance.before.revision", Long.toString(snapshot.revision())));
-             value.financeAfter().ifPresent(snapshot -> output.setProperty("finance.after.revision", Long.toString(snapshot.revision())));
+              value.financeAfter().ifPresent(snapshot -> output.setProperty("finance.after.revision", Long.toString(snapshot.revision())));
+              value.financeBefore().ifPresent(snapshot -> {
+                  output.setProperty("finance.kryo.before.started", Long.toString(snapshot.kryoStarted()));
+                  output.setProperty("finance.kryo.before.completed", Long.toString(snapshot.kryoCompleted()));
+                  output.setProperty("finance.kryo.classesObserved", Integer.toString(snapshot.kryoClassesObserved().size()));
+              });
+              value.financeAfter().ifPresent(snapshot -> {
+                  output.setProperty("finance.kryo.after.started", Long.toString(snapshot.kryoStarted()));
+                  output.setProperty("finance.kryo.after.completed", Long.toString(snapshot.kryoCompleted()));
+              });
              var capture = value.operationCapture();
              output.setProperty("finance.operations.validWindow", Boolean.toString(capture.validWindow()));
              output.setProperty("finance.operations.capacityExceeded", Boolean.toString(capture.capacityExceeded()));
@@ -126,7 +135,8 @@ final class ProbeSession implements AutoCloseable {
                  output.setProperty(prefix + "ledgerReferenceRoutes", String.join(",", new java.util.TreeSet<>(operation.edge().routes())));
              }
          });
-         output.setProperty("finance.coverage", "Selected direct writes in defining classes only; excludes reflection, Unsafe, decoder and arbitrary Java writes; not operation inclusion");
+          output.setProperty("finance.coverage", "Selected direct writes plus fingerprinted original Kryo int/long/object setter sites; excludes other reflection/Unsafe/decoder/custom/native/arbitrary writes; not operation inclusion");
+          output.setProperty("finance.kryo.coverage", "18 numeric read/copy and 6 object set/copy sites in 9 original classes, selected fields only; loaded-class inventory is not universal mutation coverage");
          output.setProperty("finance.operations.coverage", "Weak operation targets sampled around original root serialization; not field-level serialization coverage or durable inclusion evidence");
          output.setProperty("finance.numericEmission.coverage", "Exact numeric arguments after selected cached-field Output writes returned; excludes ledger reference encoding, custom serializers, mutation completeness and durable inclusion");
          output.setProperty("finance.ledgerReference.coverage", "Exact ledger argument after original ObjectField Kryo call returned; no reference-table/byte-range decoding, mutation completeness or durable inclusion");

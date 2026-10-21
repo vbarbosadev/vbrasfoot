@@ -5,7 +5,7 @@ import java.security.MessageDigest;
 import java.util.*;
 import jdk.internal.org.objectweb.asm.*;
 
-/** Observe the exact numeric argument only AFTER the original Output call returns. No read/copy/schema changes. */
+/** Numeric emission callbacks plus fingerprint-verified selected read/copy setters; no schema changes. */
 public final class FinanceFieldTransformer {
     private static final String PREFIX = "com.esotericsoftware.kryo.serializers.";
     private static final Map<String, String> HASHES = Map.of(
@@ -58,6 +58,6 @@ public final class FinanceFieldTransformer {
             }
         }, ClassReader.EXPAND_FRAMES);
         if (calls[0] != 1 || calls[1] != 1) throw new IOException("Numeric Output call inventory changed; refused");
-        return writer.toByteArray();
+        return KryoFinanceMutationTransformer.addToVerified(name, writer.toByteArray());
     }
 }

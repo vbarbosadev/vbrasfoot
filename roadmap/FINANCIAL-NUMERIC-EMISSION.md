@@ -1,5 +1,9 @@
 # Argumentos numericos emitidos pelo Kryo original
 
+Posteriormente, [setters Kryo selecionados](KRYO-FINANCIAL-MUTATIONS.md) passaram a
+ser observados em read/copy. A preservacao de read/copy descrita abaixo e do
+incremento de emissao original; o schema/dados/bytes continuam preservados.
+
 Incremento experimental apos OPERATION-SERIALIZER-CAPTURE.md. Nao e INCLUDED,
 reconciliacao de APPLIED/UNKNOWN, lease ou permissao publica de escrita.
 
