@@ -269,6 +269,32 @@ public final class FinanceOriginalRuntimeTest {
         check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, ledger, runtime)) == LedgerSerializerProfile.Status.FIELD_SET_MISMATCH,
                 "removed field rejects even when class/other fields/values still match");
     }
+    private static void ledgerMembership(LegacyFinanceAdapter adapter, Object human) throws Exception {
+        var roots = CareerBridge.onEdt(adapter::roots);
+        Object ledger = CareerBridge.onEdt(() -> CareerBridge.call(human, "kL"));
+        var initialMembership = CareerBridge.onEdt(() -> adapter.ledgerMembership(human, ledger, roots));
+        check(initialMembership == FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST,
+                "original career passes bounded club-list ledger uniqueness, not whole-graph ownership: " + initialMembership
+                        + " clubs=" + CareerBridge.onEdt(() -> ((List<?>) CareerBridge.call(roots.primary(), "P")).size()));
+        Object other = CareerBridge.onEdt(() -> ((List<?>) CareerBridge.call(roots.primary(), "P")).stream().filter(value -> value != human).findFirst().orElseThrow());
+        Object otherLedger = CareerBridge.onEdt(() -> CareerBridge.call(other, "kL"));
+        var nx = human.getClass().getDeclaredField("nx"); nx.setAccessible(true);
+        var before = CareerBridge.onEdt(() -> adapter.snapshot(human)); var otherBefore = CareerBridge.onEdt(() -> adapter.snapshot(other));
+        try {
+            CareerBridge.onEdt(() -> { nx.set(other, ledger); return null; }); // Controlled alias, private fixture only; restored in finally.
+            check(CareerBridge.onEdt(() -> adapter.ledgerMembership(human, ledger, roots)) == FinanceLedgerMembership.Status.SHARED_LEDGER,
+                    "same ledger shared by two actual original clubs is detected by identity");
+            boolean refused = CareerBridge.onEdt(() -> {
+                try { adapter.prepare(human, FinanceDelta.Direction.CREDIT_RAW_6, 1); }
+                catch (IllegalStateException expected) { return true; }
+                return false;
+            });
+            check(refused && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(before), "shared-ledger financial plan refused before invoking any financial effect");
+        } finally { CareerBridge.onEdt(() -> { nx.set(other, otherLedger); return null; }); }
+        check(CareerBridge.onEdt(() -> adapter.ledgerMembership(human, ledger, roots)) == FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST
+                        && CareerBridge.onEdt(() -> adapter.snapshot(human)).equals(before) && CareerBridge.onEdt(() -> adapter.snapshot(other)).equals(otherBefore),
+                "private alias fixture restores exact original ledger identity and both snapshots before normal pipeline acceptance");
+    }
     private static void objectMutationRoutes(LegacyRuntime runtime) throws Exception {
         Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime);
         Class<?> fieldsClass = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", true, runtime);
@@ -344,6 +370,7 @@ public final class FinanceOriginalRuntimeTest {
                     relevantKryoMutations(runtime, adapter, human);
                     externalReflectionBoundary(runtime, adapter, human);
                     ledgerProfiles(runtime, human);
+                    ledgerMembership(adapter, human);
                 }
                 var before = CareerBridge.onEdt(() -> adapter.snapshot(human));
                 int clubCount = new CareerBridge(runtime).snapshot().clubs().size();
