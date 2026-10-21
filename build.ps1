@@ -112,6 +112,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes dos fatos versionados de referencias falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceMultiRootRecoveryReviewSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da revisao de recovery multi-root falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceNoEffectRevisionRecoverySelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes das restricoes de recovery de revisao sem efeito falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.FinanceMutationTransformerSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do transformer de mutacao financeira falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkValidatorJsonSelfTest
