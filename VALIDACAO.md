@@ -1,5 +1,52 @@
 # Validacao — 16/10/2026
 
+## Argumento original de referencia clube/ledger — 20/10/2026
+
+FinanceReferenceTransformer fingerprinta ObjectField do Kryo4.0.2 e inventario
+exato2writeObject/1writeObjectOrNull/2returns. Probe opt-in Java17/21, body-only,
+sem read/copy/schema/EXE/recursos/fallback. Observa argumentos EXATOS da stack
+(Output/objeto/serializer) SOMENTE apos chamada retornar; null dinamico observado
+apos writeClass(null). Caminho obrigatorio nulo/falha/overflow preservado.
+
+HookProbe exige root em andamento, runtime/classloaders e SaveOutputTrace exatos;
+Plan compara field nx/tipo/declaradora/receiver/ledger por IDENTIDADE aos weak
+alvos testemunhados, sem reler valor para inventar argumento serializado.
+Serializer e FieldSerializer EXATO, nenhum ou outro; custom nao qualificado.
+Tracker guarda apenas status/count/rotas limitadas; duplicata e ambigua, count
+satura2, falta de target/EDT/falha/rota invalida e unavailable. Sem reter objeto,
+Field/serializer/Output/valores/paths. Finish congela Edge, lifecycle revalida e
+invalida janelas antigas. Report nao promove roots/numeros matched a referencia.
+operationInclusionProven=false/writeAuthority=false sempre preservados.
+
+Compilacao isolada final em
+`Temp/opencode/finance-reference-original-82f0f118516a4e438c07669442cbece3`:
+-25checks numeric/reference com classes geradas PROPRIAS;
+-24root capture/41writer-report/69witness/29dispatcher;
+-122checks financeiros ORIGINAIS em `final-runtime-test.log`, incluindo comparacao
+ probe vs SEM probe para dados proprios, byte/falha de dinamico/fixo nullable/
+ obrigatorio null/nao-null/overflow DIRETO no cached-field nx (sem primitive
+ anterior consumir a falha) e fingerprint adulterado recusado;
+-roots reais: cada um dos3UUIDs tem uma referencia writeObject retornada com
+ ledger exato esperado e FieldSerializer;15argumentos numericos esperados na
+ ultima operacao, anteriores VALUE_MISMATCH. Save/reload e historico bloqueado
+ preservados. Fixture copiada de OUTRA copia privada, EXE/input hash-conferidos.
+-159checks de I/O/schema ORIGINAIS em `build/finance-reference-original-io.log`,
+ fixture privada `Temp/opencode/vbrasfoot-hook-io-669d136d99e24422a087e900ea0bf28b`.
+-SDK ZIP fora do checkout/hashes/allowlist/template/observador SDK-only e negativos
+ passaram em `build/finance-reference-sdk-test.log`, fixture propria
+ `Temp/opencode/vbrasfoot-sdk-author-8b497cb994a94ef0807ef7db09b8b6ea`.
+
+Nao observa IDs/tabela de referencias/ranges/bytes individuais nem ownership
+exclusivo/aliases do ledger. Retorno pode somente bufferizar. Sem protecao contra
+Java arbitrario/custom metadata ou ampliacao de cobertura de escrita Unsafe/
+reflexao/decoder/copy; causalidade ainda incompleta. Captura EM MEMORIA/report
+shutdown nao e commit duravel/crash-safe. APPLIED/UNKNOWN sem prova continuam
+bloqueados. Persistencia por UUID/writer, interrupcao/recovery/revisoes/restore/
+copia/save-as/UI/standalone/calendario/mercado/SDK publico seguem pendentes.
+Sem instalacao/save pessoal alterado, processo pessoal encerrado, carreira nova/
+progresso automatico, mod novo, release/tag ou novo teste humano. STATUS.md
+inalterado. Contrato: `roadmap/FINANCIAL-LEDGER-REFERENCE.md`.
+
 ## Emissao numerica efetiva do serializer — 20/10/2026
 
 FinanceFieldTransformer fingerprinta as seis variantes int/long CachedField

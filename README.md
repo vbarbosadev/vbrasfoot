@@ -95,6 +95,9 @@ coincidentes com prova de que os campos foram gravados.
 A [observacao de argumentos numericos do Kryo](roadmap/FINANCIAL-NUMERIC-EMISSION.md)
 captura os15argumentos financeiros depois das chamadas originais de escrita,
 sem promover essa evidencia em memoria a inclusao duravel ou autoridade.
+A [captura do argumento clube→ledger](roadmap/FINANCIAL-LEDGER-REFERENCE.md)
+verifica a identidade entregue ao Kryo e o serializer escolhido; ainda nao
+decodifica referencias internas nem estabelece inclusao duravel.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

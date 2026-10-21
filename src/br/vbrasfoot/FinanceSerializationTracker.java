@@ -4,23 +4,31 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import javax.swing.SwingUtilities;
 
-/** Bounded weak-target samples and numeric Output arguments for witnessed operations.
- * Neither establishes ledger reference encoding, complete mutation coverage or durable effect inclusion. */
+/** Bounded weak-target samples, numeric Output arguments and ledger arguments for witnessed operations.
+ * No Kryo reference-table/byte-range decoding, complete mutation coverage or durable effect inclusion. */
 final class FinanceSerializationTracker implements AutoCloseable {
     static final int MAX_OPERATIONS = 32;
     private static final Set<String> NUMERIC_ROUTES = Set.of("UnsafeIntField", "UnsafeLongField", "AsmIntField", "AsmLongField", "ObjectIntField", "ObjectLongField");
+    private static final Set<String> REFERENCE_ROUTES = Set.of("writeObject", "writeObjectOrNull", "writeClass(null)");
     enum Sample { MATCHED_EXPECTED_STATE, TARGET_UNAVAILABLE, ROOT_MISMATCH, LEDGER_MISMATCH, STATE_MISMATCH, WRONG_THREAD, READ_FAILED }
     enum Continuity { UNAVAILABLE, OBSERVED_INTERFERENCE, NO_OBSERVED_DIRECT_WRITE }
     enum Argument { IRRELEVANT, MATCHED, MISMATCH }
     enum Emission { MISSING, PARTIAL, EXPECTED_NUMERIC_ARGUMENTS_OBSERVED, VALUE_MISMATCH, AMBIGUOUS, UNAVAILABLE }
+    enum Reference { MISSING, EXPECTED_LEDGER_ARGUMENT_OBSERVED, REFERENCE_MISMATCH, AMBIGUOUS, UNAVAILABLE, UNSUPPORTED_SERIALIZER }
+    enum SerializerKind { FIELD_SERIALIZER, NONE, OTHER }
     interface Target {
         Sample sample(Object serializedPrimary) throws Exception;
         default Argument emitted(java.lang.reflect.Field field, Object receiver, long value) throws Exception { return Argument.IRRELEVANT; }
+        default Argument referenced(java.lang.reflect.Field field, Object receiver, Object value) throws Exception { return Argument.IRRELEVANT; }
     }
     record Fields(Emission status, int observed, Set<String> routes) {
         Fields { routes = Set.copyOf(routes); }
     }
-    record Operation(UUID operationId, CareerCommandJournal.Intent intent, Sample before, Sample after, Continuity executionToSerializer, Fields fields) { }
+    record Edge(Reference status, int observed, Set<String> routes) {
+        Edge { routes = Set.copyOf(routes); }
+        static Edge missing() { return new Edge(Reference.MISSING, 0, Set.of()); }
+    }
+    record Operation(UUID operationId, CareerCommandJournal.Intent intent, Sample before, Sample after, Continuity executionToSerializer, Fields fields, Edge edge) { }
     record Capture(boolean validWindow, boolean capacityExceeded, List<Operation> operations) {
         Capture { operations = List.copyOf(operations); }
         static Capture unavailable() { return new Capture(false, false, List.of()); }
@@ -37,11 +45,13 @@ final class FinanceSerializationTracker implements AutoCloseable {
         private final List<Set<String>> emitted = new ArrayList<>();
         private final List<Set<String>> routes = new ArrayList<>();
         private final boolean[] mismatched, ambiguous, failed;
+        private final Edge[] edges;
         private boolean consumed;
         private Window(UUID tracker, long revision, boolean exceeded, Object primary, List<Entry> entries, List<Operation> before) {
             this.tracker = tracker; this.revision = revision; this.exceeded = exceeded; this.primary = new WeakReference<>(primary);
             this.entries = entries; this.before = before;
             mismatched = new boolean[entries.size()]; ambiguous = new boolean[entries.size()]; failed = new boolean[entries.size()];
+            edges = new Edge[entries.size()]; Arrays.fill(edges, Edge.missing());
             for (int i = 0; i < entries.size(); i++) { emitted.add(new HashSet<>()); routes.add(new HashSet<>()); }
         }
     }
@@ -67,7 +77,7 @@ final class FinanceSerializationTracker implements AutoCloseable {
         }
         var operations = new ArrayList<Operation>();
         for (var entry : selected) operations.add(new Operation(entry.operationId(), entry.intent(), sample(entry, primary), Sample.TARGET_UNAVAILABLE,
-                continuity(entry.executionEnd(), serializationStart), new Fields(Emission.MISSING, 0, Set.of())));
+                continuity(entry.executionEnd(), serializationStart), new Fields(Emission.MISSING, 0, Set.of()), Edge.missing()));
         return new Window(id, expected, overflow, primary, selected, List.copyOf(operations));
     }
     Capture finish(Window window, Object primary) {
@@ -80,7 +90,7 @@ final class FinanceSerializationTracker implements AutoCloseable {
         var operations = new ArrayList<Operation>();
         for (int i = 0; i < window.entries.size(); i++) {
             var before = window.before.get(i);
-            operations.add(new Operation(before.operationId(), before.intent(), before.before(), sample(window.entries.get(i), primary), before.executionToSerializer(), fields(window, i)));
+            operations.add(new Operation(before.operationId(), before.intent(), before.before(), sample(window.entries.get(i), primary), before.executionToSerializer(), fields(window, i), window.edges[i]));
         }
         synchronized (this) { if (closed || revision != window.revision) return Capture.unavailable(); }
         return new Capture(true, window.exceeded, operations);
@@ -113,6 +123,32 @@ final class FinanceSerializationTracker implements AutoCloseable {
     }
     synchronized void emissionFailed(Window window) {
         if (!closed && window != null && id.equals(window.tracker) && !window.consumed && revision == window.revision) Arrays.fill(window.failed, true);
+    }
+    void referenced(Window window, java.lang.reflect.Field field, Object receiver, Object value, String route, SerializerKind serializer) {
+        if (window == null || !id.equals(window.tracker)) return;
+        for (int i = 0; i < window.entries.size(); i++) {
+            synchronized (this) { if (closed || window.consumed || revision != window.revision) return; }
+            Argument result = null; var target = window.entries.get(i).target().get();
+            if (SwingUtilities.isEventDispatchThread() && target != null) {
+                try { result = target.referenced(field, receiver, value); } catch (Throwable failure) { /* unavailable below */ }
+            }
+            synchronized (this) {
+                if (closed || window.consumed || revision != window.revision) return;
+                if (result == Argument.IRRELEVANT) continue;
+                var prior = window.edges[i];
+                boolean supported = route != null && REFERENCE_ROUTES.contains(route);
+                boolean validField = field != null && field.getDeclaringClass().getName().equals("best.ah") && field.getName().equals("nx") && field.getType().getName().equals("best.C");
+                var routes = new HashSet<>(prior.routes()); if (supported) routes.add(route);
+                Reference status = result == null || !validField || !supported || serializer == null || prior.status() == Reference.UNAVAILABLE ? Reference.UNAVAILABLE
+                        : prior.observed() > 0 ? Reference.AMBIGUOUS : result != Argument.MATCHED ? Reference.REFERENCE_MISMATCH
+                        : serializer != SerializerKind.FIELD_SERIALIZER ? Reference.UNSUPPORTED_SERIALIZER : Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED;
+                window.edges[i] = new Edge(status, Math.min(2, prior.observed() + (result == null ? 0 : 1)), routes);
+            }
+        }
+    }
+    synchronized void referenceFailed(Window window) {
+        if (closed || window == null || !id.equals(window.tracker) || window.consumed || revision != window.revision) return;
+        for (int i = 0; i < window.edges.length; i++) window.edges[i] = new Edge(Reference.UNAVAILABLE, window.edges[i].observed(), window.edges[i].routes());
     }
     private static Fields fields(Window window, int i) {
         int count = window.emitted.get(i).size();
