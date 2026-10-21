@@ -66,7 +66,11 @@ EXE privado hash2fa65476a92611419ce28c0cfd158a0c7f741af235aa988b0bed00c44443bb1c
 Evidencia:Temp/opencode/reference-facts-original-75eb8ae2cc494c288da312e01254ef84/runtime-test.log.
 Esta fixture compilou40checks de facts;os3checks adicionais de alias review e
 future wire version/status foram depois aprovados na suite final43acima.
-Wrappers I/O/SDK executam isolados;registrar resultados finais antes de integrar.
+Wrappers finais aprovados:159I/O originais em build/reference-facts-original-io.log,
+fixture Temp/opencode/vbrasfoot-hook-io-b7a0b84dcb504d16aaf2ba2bf14d0a80;
+SDK ZIP isolado/hashes/allowlist/SDK-only authoring/corrupcao recusada em
+build/reference-facts-sdk-test.log,fixture
+Temp/opencode/vbrasfoot-sdk-author-7eea45f7c47f4b36846a704c641f1c82.
 CI17/21 e SHA exato seguem obrigatorios.Nao e aceite Main/UI/EXE standalone.
 
 ## Proximo elo

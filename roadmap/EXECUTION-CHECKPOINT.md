@@ -37,7 +37,8 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
   (rebaseado sobre main78e499e apos integracao exata da PR70):
   schema4/envelope1 separado,ausencia em1/2/3 preservada,43fact checks/
   89durable/280financeiros originais aprovados. Ver
-  PERSISTED-LEDGER-REFERENCE-FACTS.md para paths e limites.Wrappers I/O/SDK pendentes.
+  PERSISTED-LEDGER-REFERENCE-FACTS.md para paths e limites.159I/O originais e SDK
+  isolado aprovados.PR71 aberta;CI/integracao ainda pendentes.
 
 ## Evidencias reutilizaveis
 
