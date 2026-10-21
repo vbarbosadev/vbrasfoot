@@ -29,7 +29,8 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
   18scalar/37numeric-reference/28root/43writer/33manifest/63persistencia/
   23gaps/69witness/29dispatcher. Ver KRYO-LEDGER-REFERENCE-TRACE.md.
   Captura somente memoria/report;schemas1/2/3 nao armazenam esses facts.
-  Aguardar PR/CI/integracao deste incremento antes de presumir main atualizado.
+  PR70 aberta;159I/O originais e SDK isolado finais aprovados (ver documento).
+  Aguardar CI/integracao deste incremento antes de presumir main atualizado.
 
 ## Evidencias reutilizaveis
 

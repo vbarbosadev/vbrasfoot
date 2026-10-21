@@ -52,6 +52,12 @@ falham conservadoramente.
   33manifest,63durable observations,23gap review,69execution witness,29dispatcher.
 - Evidencia financeira final:Temp/opencode/ledger-reference-table-60dde270372b477e8b88653f0fdf543e/decoded-runtime-test.log.
 - Suite final:Temp/opencode/reference-table-final-reviewed-61bb77e608ea4c9a8ad2ccef22b8ac14.
+- Wrappers finais aprovados:159I/O originais em
+  build/reference-table-original-io-final.log,fixture
+  Temp/opencode/vbrasfoot-hook-io-4928e618478941638adf5736a71e124c;
+  SDK isolado/hashes/allowlist/authoring negativos em
+  build/reference-table-sdk-test-final.log,fixture
+  Temp/opencode/vbrasfoot-sdk-author-b1330b14b6a04ccfa60294f63e21c954.
 - Rota estatica:Temp/opencode/kryo-reference-route-45d1d03a7a5c4ab5a1ade4c5f4436178/route.javap.txt.
 - Os primeiros logs de compilacao/wrapper falharam por checkpoint indefinido em
   fixture propria;corrigido explicitamente como null (sem continuidade de mutacao).
