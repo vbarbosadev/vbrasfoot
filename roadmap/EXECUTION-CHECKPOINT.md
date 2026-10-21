@@ -1,0 +1,80 @@
+# Checkpoint de execucao continua — 21/10/2026
+
+Nao substitui roadmap/STATUS.md (mantido inalterado por instrucao do usuario).
+Checkpoint para retomar sem reexecutar evidencias ou depender de credenciais no
+contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
+
+## Entregas deste lote
+
+- PR65:inventario offline dos5arquivos originais,1317classes/406713instructions,
+  42writes diretos reencontrados. Descobriu UnsafeRegionField fora dos24setters.
+ 17checks proprios/CI17/21 aprovados;main fe623095a267167e6ae15be0b1433dd45376e738.
+- PR66:perfil live de ledger no hook real:regions/transients false,14campos/
+  rotas numeric exatos.14checks proprios/232financeiros/159I/O/SDK/CI17/21.
+ main04cd2d93124b2a81ffcbc80b38e576d2a3a440d2.
+- PR67:recusa alias entre clubes antes de preparar comando e em samples;
+  limite16384/250ms/lista completa/identity.18checks proprios/236financeiros/
+ 159I/O/SDK/CI17/21. maincd71d56c1565ba0983a3546a162d9395209c5275.
+- Proxima integracao deste lote:revisao pura de lacunas de observacoes persistidas,
+ 23checks proprios/238financeiros originais e fontes em
+ feat/explain-persisted-financial-evidence-gaps. PR/CI/results de wrappers ficam
+ registrados na descricao/comentarios da PR e nos logs abaixo, sem presumir sucesso.
+
+## Evidencias reutilizaveis
+
+- Temp/opencode/surface-inventory-a2333b4910b54c2e8c2e8ecd0136d57a/*.inventory.txt;
+- Temp/opencode/ledger-profile-original-04835af8fe874bee99a916b53d162339/runtime-test.log;
+- Temp/opencode/ledger-membership-original-f283031b9c7f4f8a891a043ec3fc760c/bounded-runtime-test.log;
+- Temp/opencode/ledger-membership-reviewed-e53af669d23145a994ff147648c24c53;
+- Temp/opencode/serialization-gap-review-51afffcc066147f2bda1ddd6d602eca5/runtime-test.log;
+- build/serialization-gap-original-io.log e build/serialization-gap-sdk-test.log:
+ wrappers iniciados;consultar conclusao notificada/PR antes de declarar aprovados.
+
+## Proxima acao concreta apos integrar a revisao
+
+Implementar manifest versionado de qualificacoes NOVAS nas observacoes:
+1. Definir facts separados para membership BEFORE/AFTER e perfil AFTER do
+   serializer. Registrar UNAVAILABLE/ausencia e instante/escopo, nao so positivo.
+2. Obter membership no MESMO sampler/EDT sem nova varredura duplicada;obter perfil
+   do argumento REAL do hook, sem reconstruir a partir de hash ou nome.
+3. Evoluir formato persistente explicitamente (ler1/2/novo,manter antigo sem
+   migracao em leitura). Observacoes antigas preservam facts AUSENTES.
+4. Testar mistura de histories,corrupt version/route/status,capacity,revogacao,
+   falha antes/depois de HEAD e reopen. Nunca copiar fatos live para UUID antigo.
+5. Integrar facts no report de gaps sem remover exclusividade/tabela de refs/
+   multi-root unproven. Fixture original privada+PR+CI17/21+main,seguir proximo.
+
+## Objetivos seguintes e dependencias
+
+- Qualificar tabela de referencias do Kryo/aliases fora de P(),sem transformar
+  UNIQUE_IN_CLUB_LIST em ownership global. MemRegion e UnsafeInput ainda nao
+  universalmente excluidos;perfil AFTER nao comprova estado durante a chamada.
+- Estabelecer fronteira de execucao justificavel para mecanismos restantes de
+  mutacao (Field.set/Unsafe externos comprovadamente escapam). JVM arbitrary Java
+  nao tem sandbox atual:nao emitir selo de exclusividade inventado.
+- Somente apos requisitos suficientes,decisao conservadora de inclusao por UUID,
+  recuperacao/revisoes/restore/copia/save-as/coordenacao multi-root.
+- UI refresh/EDT/lifetime e roteiro especifico de reabertura EXE original privado;
+  quando necessitar humano,preparar procedimento causal e seguir tarefa independente.
+- Calendario dia/partida/temporada:order/dedup/recovery/revogacao sem progress auto.
+- Negociacao:offer identity/lifetime/precommit/counteroffers/cancel/expiry/commit.
+- Storage global quotas/catalogo/retention/migrations;SDK permissoes/documentacao/
+  autoria externa. Nao gerar mods solicitados para depois.
+
+## Guardas e politica de continuidade
+
+Cada objetivo:branch,testes/evidencia,PR,CI17/21,integracao SHA exato,main CI;
+seguir objetivo viavel sem pedir outro continue. Se bloqueado,registrar motivo e
+seguir tarefa independente. Parar apenas para autorizacao necessaria,ambiguidade
+de dados,limite de servico ou ausencia de proximo passo seguro. Nao declarar todo
+o plano concluido ao finalizar um PR.
+
+operationInclusionProven=false/writeAuthority=false,APPLIED/UNKNOWN sem prova
+bloqueados;old keys nunca recebem lease nova. Installed loader0.9.3/APImajor1 e
+comparator visual inalterados;sem release/tag/licensing bypass. Cópias privadas
+de evidencia contêm autoridades ARTIFICIAIS,nao aceite de Main/UI/standalone.
+Nao encerrar processos pessoais/criar carreira/jogar partidas/rodar init como getter.
+
+Nao ha troca automatica de conexao configurada. Trocar credencial/conta/custo exige
+selecionar conexao autorizada;atingir limite pode impedir qualquer acao posterior.
+Nao prometer continuidade independente do host. Retomar deste checkpoint.

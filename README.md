@@ -113,6 +113,8 @@ nao converte observacoes antigas em provas novas.
 A [checagem de identidade entre clubes](roadmap/FINANCIAL-LEDGER-MEMBERSHIP.md)
 recusa preparar planos financeiros quando outro clube referencia o mesmo ledger;
 nao afirma exclusividade no grafo inteiro.
+A [revisao de lacunas persistidas](roadmap/PERSISTED-SERIALIZATION-GAPS.md)
+explica os bloqueios por UUID, sem emprestar verificacoes live a historicos antigos.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 
