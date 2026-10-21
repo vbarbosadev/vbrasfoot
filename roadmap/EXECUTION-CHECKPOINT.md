@@ -40,12 +40,20 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
   PERSISTED-LEDGER-REFERENCE-FACTS.md para paths e limites.159I/O originais e SDK
   isolado aprovados.PR71 integrada pelo head175927ffdb0844b61683d04f38f258d9644c0a1d,
   main277a3f6279c8af54609297a0c642edbeabd96512;CI17/21 PR39586553331/push39586548261
-  aprovados.CI de main39587322612 em andamento;nao presumir seu resultado.
+  aprovados.CI de main39587322612 aprovado em Java17/21.
 - Proximo incremento em feat/review-financial-multi-root-recovery (baseado no
   main277a3f6 apos integracao exata da PR71):revisao pura das3roots de metadados,
   nao transacao nem as2roots Kryo.32checks proprios/46coordinator/43facts/
   89durable/23gaps/160I/O originais e SDK isolado aprovados. Ver
   MULTI-ROOT-RECOVERY-REVIEW.md.Nao liberar reancoragem ou inferir inclusao.
+- PR72 integrada pelo head67ac2dfa817a364907702ccb32c1e4ae556a41d9,
+  main1068ff69ea26f00ded5083eb416ef51aac289969;CI17/21 PR39587678354/push39587669328
+  aprovados.CI de main39588232964 em andamento.
+- Proximo incremento em feat/qualify-no-effect-revision-recovery:14checks
+  metadata-only confirmam que journal-only reanchor deixa roots antigas,alterar
+  request.save quebra intent/receipt e copiar payload para ancora nova e CORRUPT.
+  Ver NO-EFFECT-REVISION-RECOVERY-PROTOCOL.md antes de tentar migracao real.
+  Nao ha transacao ou novo caminho de write;testes completos/SDK ainda pendentes.
 
 ## Evidencias reutilizaveis
 
