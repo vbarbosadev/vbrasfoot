@@ -78,6 +78,9 @@ final-runtime-test.log. Fontes finais compiladas isoladamente; copia da fixture
 privada anterior, nenhum acesso de escrita ao jogo/save pessoal.
 
 **Ainda falta** capturar a codificacao/identidade da aresta clube.nx->ledger,
+cujo [argumento exato passou a ser observado posteriormente](FINANCIAL-LEDGER-REFERENCE.md).
+Esse incremento nao decodifica IDs/ranges da tabela de referencias e nao elimina
+as demais lacunas abaixo. O limite original deste incremento permanece:
 verificar referencias/custom serializers/transients e os mecanismos pertinentes
 de mutacao nao-direta. Observar Unsafe LEITURA no serializer nao instrumenta
 Unsafe ESCRITA, decoder, copy, reflexao ou Java arbitrario.15argumentos coincidentes

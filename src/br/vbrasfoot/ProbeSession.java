@@ -121,11 +121,15 @@ final class ProbeSession implements AutoCloseable {
                  output.setProperty(prefix + "numericEmission", operation.fields().status().name());
                  output.setProperty(prefix + "numericFieldsObserved", Integer.toString(operation.fields().observed()));
                  output.setProperty(prefix + "numericRoutes", String.join(",", new java.util.TreeSet<>(operation.fields().routes())));
+                 output.setProperty(prefix + "ledgerReference", operation.edge().status().name());
+                 output.setProperty(prefix + "ledgerReferenceObserved", Integer.toString(operation.edge().observed()));
+                 output.setProperty(prefix + "ledgerReferenceRoutes", String.join(",", new java.util.TreeSet<>(operation.edge().routes())));
              }
          });
          output.setProperty("finance.coverage", "Selected direct writes in defining classes only; excludes reflection, Unsafe, decoder and arbitrary Java writes; not operation inclusion");
          output.setProperty("finance.operations.coverage", "Weak operation targets sampled around original root serialization; not field-level serialization coverage or durable inclusion evidence");
          output.setProperty("finance.numericEmission.coverage", "Exact numeric arguments after selected cached-field Output writes returned; excludes ledger reference encoding, custom serializers, mutation completeness and durable inclusion");
+         output.setProperty("finance.ledgerReference.coverage", "Exact ledger argument after original ObjectField Kryo call returned; no reference-table/byte-range decoding, mutation completeness or durable inclusion");
          output.setProperty("operationInclusionProven", "false"); output.setProperty("writeAuthority", "false");
          try (var writer = Files.newBufferedWriter(report.resolveSibling("written-save-provenance.properties"))) { output.store(writer, "Writer provenance before detachment; no paths or root objects exported"); }
          catch (Exception failure) { System.err.println("Falha ao registrar provenance do writer: " + failure); }

@@ -15,7 +15,7 @@ public final class FinanceFieldEmissionSelfTest {
         Path base = Files.createDirectories(Path.of(System.getProperty("java.io.tmpdir"), "opencode"));
         Path root = Files.createTempDirectory(base, "finance-numeric-emission-"); Path source = Files.createDirectory(root.resolve("best"));
         Path clubSource = source.resolve("ah.java"), ledgerSource = source.resolve("C.java");
-        Files.writeString(clubSource, "package best; public class ah { public long nb; }");
+        Files.writeString(clubSource, "package best; public class ah { public long nb; public C nx; }");
         StringBuilder ledgerText = new StringBuilder("package best; public class C {");
         for (String name : new TreeSet<>(FinanceDelta.FIELDS)) ledgerText.append("public long ").append(name).append(';');
         Files.writeString(ledgerSource, ledgerText.append('}').toString());
@@ -29,6 +29,10 @@ public final class FinanceFieldEmissionSelfTest {
                 public FinanceSerializationTracker.Argument emitted(Field field, Object receiver, long value) {
                     if (receiver != club && receiver != ledger) return FinanceSerializationTracker.Argument.IRRELEVANT;
                     return value == 7 ? FinanceSerializationTracker.Argument.MATCHED : FinanceSerializationTracker.Argument.MISMATCH;
+                }
+                public FinanceSerializationTracker.Argument referenced(Field field, Object receiver, Object value) {
+                    if (receiver != club || !field.getName().equals("nx")) return FinanceSerializationTracker.Argument.IRRELEVANT;
+                    return value == ledger ? FinanceSerializationTracker.Argument.MATCHED : FinanceSerializationTracker.Argument.MISMATCH;
                 }
             };
             var tracker = new FinanceSerializationTracker(); Object primary = new Object();
@@ -66,8 +70,49 @@ public final class FinanceFieldEmissionSelfTest {
             var stale = edt(() -> tracker.begin(primary, null)); tracker.invalidate();
             edt(() -> { tracker.emitted(stale, balance, club, 7, "UnsafeLongField"); return null; });
             check(!edt(() -> tracker.finish(stale, primary)).validWindow(), "stale lifecycle cannot collect emissions");
+            tracker.observe(UUID.randomUUID(), new CareerCommandJournal.Intent("reference", CareerCommandGate.Operation.FINANCE_CREDIT, "b".repeat(64)), target, null);
+            var edgeField = clubClass.getField("nx");
+            check(edt(() -> tracker.finish(tracker.begin(primary, null), primary)).operations().get(0).edge().status() == FinanceSerializationTracker.Reference.MISSING,
+                    "matching root alone cannot infer original ledger argument");
+            for (String route : List.of("writeObject", "writeObjectOrNull")) {
+                var edge = edt(() -> tracker.begin(primary, null));
+                edt(() -> { tracker.referenced(edge, edgeField, new Object(), ledger, route, FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER);
+                    tracker.referenced(edge, edgeField, club, ledger, route, FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER); return null; });
+                var result = edt(() -> tracker.finish(edge, primary)).operations().get(0).edge();
+                check(result.status() == FinanceSerializationTracker.Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED && result.observed() == 1 && result.routes().equals(Set.of(route)),
+                        "exact ledger identity after supported route, unrelated receiver ignored: " + route);
+                boolean edgeImmutable = false; try { result.routes().clear(); } catch (UnsupportedOperationException expected) { edgeImmutable = true; }
+                check(edgeImmutable, "reference route report immutable");
+            }
+            for (Object wrong : Arrays.asList(null, ledgerClass.getConstructor().newInstance())) {
+                var edge = edt(() -> tracker.begin(primary, null));
+                edt(() -> { tracker.referenced(edge, edgeField, club, wrong, wrong == null ? "writeClass(null)" : "writeObject", wrong == null
+                        ? FinanceSerializationTracker.SerializerKind.NONE : FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER); return null; });
+                check(edt(() -> tracker.finish(edge, primary)).operations().get(0).edge().status() == FinanceSerializationTracker.Reference.REFERENCE_MISMATCH,
+                        "null or replacement ledger never matched by values/class");
+            }
+            var repeatedEdge = edt(() -> tracker.begin(primary, null));
+            edt(() -> { for (int i = 0; i < 4; i++) tracker.referenced(repeatedEdge, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER); return null; });
+            var repeatedResult = edt(() -> tracker.finish(repeatedEdge, primary)).operations().get(0).edge();
+            check(repeatedResult.status() == FinanceSerializationTracker.Reference.AMBIGUOUS && repeatedResult.observed() == 2, "repeated ledger edge is ambiguous with saturated bounded count");
+            var custom = edt(() -> tracker.begin(primary, null));
+            edt(() -> { tracker.referenced(custom, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.OTHER); return null; });
+            check(edt(() -> tracker.finish(custom, primary)).operations().get(0).edge().status() == FinanceSerializationTracker.Reference.UNSUPPORTED_SERIALIZER,
+                    "matching argument with custom serializer not supported");
+            var offEdtEdge = edt(() -> tracker.begin(primary, null));
+            tracker.referenced(offEdtEdge, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER);
+            check(edt(() -> tracker.finish(offEdtEdge, primary)).operations().get(0).edge().status() == FinanceSerializationTracker.Reference.UNAVAILABLE, "off-EDT reference unavailable");
+            var failedEdge = edt(() -> tracker.begin(primary, null)); tracker.referenceFailed(failedEdge);
+            edt(() -> { tracker.referenced(failedEdge, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER); return null; });
+            check(edt(() -> tracker.finish(failedEdge, primary)).operations().get(0).edge().status() == FinanceSerializationTracker.Reference.UNAVAILABLE, "callback/stream attribution failure stays unavailable after later match");
+            var badRoute = edt(() -> tracker.begin(primary, null));
+            edt(() -> { tracker.referenced(badRoute, edgeField, club, ledger, "custom", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER); return null; });
+            check(edt(() -> tracker.finish(badRoute, primary)).operations().get(0).edge().status() == FinanceSerializationTracker.Reference.UNAVAILABLE, "unknown reference route refused");
+            var staleEdge = edt(() -> tracker.begin(primary, null)); tracker.invalidate();
+            edt(() -> { tracker.referenced(staleEdge, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER); return null; });
+            check(!edt(() -> tracker.finish(staleEdge, primary)).validWindow(), "invalidated reference window cannot recover by matching ledger");
             tracker.close(); java.lang.ref.Reference.reachabilityFence(target);
         }
-        System.out.println("PASS: " + checks + " numeric field emission checks; owned fixture " + root + "; no inclusion authority.");
+        System.out.println("PASS: " + checks + " numeric/reference field emission checks; owned fixture " + root + "; no inclusion authority.");
     }
 }

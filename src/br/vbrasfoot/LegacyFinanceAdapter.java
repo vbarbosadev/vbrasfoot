@@ -149,6 +149,13 @@ final class LegacyFinanceAdapter {
                 return value == after.ledger().get(field.getName()) ? FinanceSerializationTracker.Argument.MATCHED : FinanceSerializationTracker.Argument.MISMATCH;
             return FinanceSerializationTracker.Argument.IRRELEVANT;
         }
+        @Override public FinanceSerializationTracker.Argument referenced(java.lang.reflect.Field field, Object receiver, Object value) {
+            requireEdt();
+            if (receiver != club.get() || field.getDeclaringClass() != clubClass || !field.getName().equals("nx") || field.getType() != ledgerClass)
+                return FinanceSerializationTracker.Argument.IRRELEVANT;
+            Object expected = ledger.get();
+            return expected != null && value == expected ? FinanceSerializationTracker.Argument.MATCHED : FinanceSerializationTracker.Argument.MISMATCH;
+        }
         private boolean current(Object target, Object originalLedger, CareerCommandDispatcher.Roots roots) throws Exception {
             if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null
                     || roots.primary() != primary.get() || roots.secondary() != secondary.get() || CareerBridge.call(target, "kL") != originalLedger) return false;

@@ -95,6 +95,29 @@ public final class HookProbe {
             if (frame != null && frame.serializationTracker != null) frame.serializationTracker.emissionFailed(frame.serializationWindow);
         }
     }
+    /** Exact reference/serializer arguments, observed after ObjectField's original Kryo call returned. */
+    public static void financeReferenceEmitted(Object cachedField, Object receiver, Object output, Object value, Object serializer, String route) {
+        Save frame = null;
+        try {
+            if (receiver == null || !receiver.getClass().getName().equals("best.ah")) return;
+            frame = saves.get().peek(); if (frame == null) { saves.remove(); return; }
+            if (frame.serializationTracker == null || frame.serializationWindow == null || frame.rootsStarted != frame.rootsFinished + 1) return;
+            ClassLoader loader = receiver.getClass().getClassLoader();
+            if (cachedField == null || cachedField.getClass().getClassLoader() != loader || output == null || output.getClass().getClassLoader() != loader
+                    || frame.trace == null || output.getClass().getMethod("getOutputStream").invoke(output) != frame.trace) {
+                frame.serializationTracker.referenceFailed(frame.serializationWindow); return;
+            }
+            var base = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer$CachedField", false, loader);
+            var field = (java.lang.reflect.Field) base.getMethod("getField").invoke(cachedField);
+            var kind = serializer == null ? FinanceSerializationTracker.SerializerKind.NONE
+                    : serializer.getClass() == Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", false, loader)
+                    ? FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER : FinanceSerializationTracker.SerializerKind.OTHER;
+            frame.serializationTracker.referenced(frame.serializationWindow, field, receiver, value, route, kind);
+        } catch (Throwable ignored) {
+            try { if (frame != null && frame.serializationTracker != null) frame.serializationTracker.referenceFailed(frame.serializationWindow); }
+            catch (Throwable alsoIgnored) { /* Diagnostic failure must not escape into the original serializer. */ }
+        }
+    }
     public static void financeMutationStarting() {
         try { financeMutations.begin(); } catch (Throwable ignored) { try { financeMutations.failed(); } catch (Throwable alsoIgnored) { } }
     }

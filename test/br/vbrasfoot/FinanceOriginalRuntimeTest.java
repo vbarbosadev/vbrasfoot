@@ -10,7 +10,47 @@ import static br.vbrasfoot.CareerCommandDispatcher.*;
 public final class FinanceOriginalRuntimeTest {
     private static int checks;
     private static void check(boolean value, String label) { if (!value) throw new AssertionError(label); checks++; }
-    public static final class NumericFixture { public int number = Integer.MIN_VALUE + 17; public long wide = Long.MIN_VALUE + 19; }
+    public static final class NumericFixture { public int number = Integer.MIN_VALUE + 17; public long wide = Long.MIN_VALUE + 19; public NumericLedger nx = new NumericLedger(); }
+    public static final class NumericLedger { public long sum = 19; }
+    private record ReferenceBytes(byte[] bytes, String failure) { }
+    private static ReferenceBytes referenceBytes(LegacyRuntime runtime, String mode, boolean nullLedger, boolean overflow) throws Exception {
+        Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime);
+        Class<?> fieldsClass = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", true, runtime);
+        Class<?> cachedClass = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer$CachedField", true, runtime);
+        Class<?> outputClass = Class.forName("com.esotericsoftware.kryo.io.Output", true, runtime);
+        Object kryo = kryoClass.getConstructor().newInstance();
+        Object serializer = kryoClass.getMethod("getSerializer", Class.class).invoke(kryo, NumericFixture.class);
+        Object field = fieldsClass.getMethod("getField", String.class).invoke(serializer, "nx");
+        cachedClass.getMethod("setClass", Class.class).invoke(field, mode.equals("dynamic") ? null : NumericLedger.class);
+        cachedClass.getMethod("setCanBeNull", boolean.class).invoke(field, !mode.equals("required"));
+        NumericFixture fixture = new NumericFixture(); if (nullLedger) fixture.nx = null;
+        var bytes = new java.io.ByteArrayOutputStream();
+        Object output = overflow ? outputClass.getConstructor(int.class, int.class).newInstance(1, 1)
+                : outputClass.getConstructor(java.io.OutputStream.class).newInstance(bytes);
+        String failure = "";
+        // Exercise nx itself: a leading primitive field must not consume the overflow first.
+        try { cachedClass.getMethod("write", outputClass, Object.class).invoke(field, output, fixture); }
+        catch (java.lang.reflect.InvocationTargetException expected) { failure = expected.getCause().getClass().getName(); }
+        if (!overflow) outputClass.getMethod("close").invoke(output);
+        return new ReferenceBytes(bytes.toByteArray(), failure);
+    }
+    private static void referenceRoutes(LegacyRuntime probe, LegacyRuntime plain) throws Exception {
+        String name = "com.esotericsoftware.kryo.serializers.ObjectField";
+        byte[] changed; try (var input = probe.getResourceAsStream(name.replace('.', '/') + ".class")) { changed = input.readAllBytes(); }
+        changed[changed.length - 1] ^= 1; boolean refused = false;
+        try { Class.forName("br.vbrasfoot.hooks.FinanceReferenceTransformer").getMethod("transform", byte[].class).invoke(null, (Object) changed); }
+        catch (java.lang.reflect.InvocationTargetException failure) { refused = failure.getCause() instanceof java.io.IOException; }
+        check(refused, "changed ObjectField fingerprint refused");
+        for (String mode : List.of("dynamic", "nullable", "required")) {
+            for (boolean nullLedger : List.of(false, true)) {
+                var actual = referenceBytes(probe, mode, nullLedger, false); var expected = referenceBytes(plain, mode, nullLedger, false);
+                check(actual.failure().equals(expected.failure()) && Arrays.equals(actual.bytes(), expected.bytes()), "reference " + mode + " null=" + nullLedger + " preserves original bytes/failure");
+                check(actual.failure().isEmpty() == !(mode.equals("required") && nullLedger), "original required/null semantics retained");
+            }
+            var actual = referenceBytes(probe, mode, false, true); var expected = referenceBytes(plain, mode, false, true);
+            check(actual.failure().equals("com.esotericsoftware.kryo.KryoException") && actual.failure().equals(expected.failure()), "reference output overflow remains original failure: " + mode);
+        }
+    }
     private static void numericRoutes(LegacyRuntime runtime) throws Exception {
         Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime);
         Object kryo = kryoClass.getConstructor().newInstance();
@@ -83,6 +123,7 @@ public final class FinanceOriginalRuntimeTest {
              AutoCloseable serializationGuard = probeWriter ? HookProbe.attachFinancialSerialization(new FinanceSerializationTracker()) : () -> { }) {
             current.setContextClassLoader(runtime);
             if (probeWriter) numericRoutes(runtime);
+            if (probeWriter) try (var plain = LegacyRuntime.prepare(Profile.verify(game), home.resolve("reference-plain"), false)) { referenceRoutes(runtime, plain); }
             Class.forName("best.M", true, runtime).getConstructor(boolean.class).newInstance(true);
             Class<?> state = Class.forName("c.a", false, runtime);
             JFrame frame = CareerBridge.onEdt(() -> {
@@ -291,7 +332,11 @@ public final class FinanceOriginalRuntimeTest {
                                         .allMatch(value -> value.fields().status() == FinanceSerializationTracker.Emission.VALUE_MISMATCH && value.fields().observed() == 15),
                                 "actual numeric emissions mismatch previous operations expected states, not inferred from root samples");
                         check(!lastCapture.fields().routes().isEmpty(), "runtime identifies actual numeric cached-field routes without exporting financial values");
+                        check(operationCapture.operations().stream().allMatch(value -> value.edge().status() == FinanceSerializationTracker.Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED
+                                        && value.edge().observed() == 1), "all witnessed plans identify same exact original ledger argument after original Kryo reference write returned: " + lastCapture.edge());
+                        check(!lastCapture.edge().routes().isEmpty(), "original ledger reference route observed separately from numeric values");
                         System.out.println("Observed original numeric routes: " + new TreeSet<>(lastCapture.fields().routes()) + "; fields=" + lastCapture.fields().observed() + "; operation inclusion remains unproven.");
+                        System.out.println("Observed original ledger reference routes: " + new TreeSet<>(lastCapture.edge().routes()) + "; operation inclusion remains unproven.");
                         java.lang.ref.Reference.reachabilityFence(credit); java.lang.ref.Reference.reachabilityFence(debit); java.lang.ref.Reference.reachabilityFence(finalSerializerPlan);
                     }
                     check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "finance-output", false)), "original loader reloads private financially modified save");
