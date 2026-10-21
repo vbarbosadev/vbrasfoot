@@ -31,6 +31,11 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
   Captura somente memoria/report;schemas1/2/3 nao armazenam esses facts.
   PR70 aberta;159I/O originais e SDK isolado finais aprovados (ver documento).
   Aguardar CI/integracao deste incremento antes de presumir main atualizado.
+- Incremento seguinte iniciado em feat/persist-kryo-ledger-reference-facts
+  (ainda baseado no head da PR70,integrar/rebasear somente apos sua aceitacao):
+  schema4/envelope1 separado,ausencia em1/2/3 preservada,43fact checks/
+  89durable/280financeiros originais aprovados. Ver
+  PERSISTED-LEDGER-REFERENCE-FACTS.md para paths e limites.Wrappers I/O/SDK pendentes.
 
 ## Evidencias reutilizaveis
 

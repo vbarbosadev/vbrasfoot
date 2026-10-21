@@ -1,5 +1,9 @@
 # Trilha live de referencias do ledger
 
+Escopo entregue pela PR70. A extensao posterior em
+PERSISTED-LEDGER-REFERENCE-FACTS.md permite persistir resumos novos em schema4;
+nao altera a ausencia de referencias nos schemas1/2/3 descritos abaixo.
+
 ## Escopo
 
 Captura opt-in, body-only, no mesmo writer Kryo/Output/stream observado pelo

@@ -11,6 +11,7 @@ final class FinanceSerializationReview {
         LEDGER_REFERENCE_MISMATCH, LEDGER_REFERENCE_AMBIGUOUS, UNSUPPORTED_LEDGER_SERIALIZER,
         LIVE_SERIALIZER_PROFILE_NOT_RECORDED, CLUB_MEMBERSHIP_CHECK_NOT_RECORDED,
         SAMPLED_SERIALIZER_PROFILE_UNSUPPORTED, CLUB_MEMBERSHIP_NOT_QUALIFIED,
+        REFERENCE_TABLE_NOT_RECORDED, REFERENCE_TABLE_ENCODING_NOT_QUALIFIED, ADDITIONAL_LEDGER_USES_OBSERVED,
         MUTATION_EXCLUSIVITY_UNPROVEN, REFERENCE_TABLE_AND_ALIASES_UNPROVEN, MULTI_ROOT_RECOVERY_UNPROVEN }
     record Operation(UUID writerObservation, UUID operation, Set<Gap> gaps) {
         Operation { Objects.requireNonNull(writerObservation); Objects.requireNonNull(operation); gaps = Set.copyOf(gaps); }
@@ -26,7 +27,15 @@ final class FinanceSerializationReview {
             if (writer.operations().size() > FinanceSerializationTracker.MAX_OPERATIONS) throw new IllegalArgumentException("Bounded operation inventory required");
             for (var entry : writer.operations()) {
                 var gaps = EnumSet.of(Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED, Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED,
-                        Gap.MUTATION_EXCLUSIVITY_UNPROVEN, Gap.REFERENCE_TABLE_AND_ALIASES_UNPROVEN, Gap.MULTI_ROOT_RECOVERY_UNPROVEN);
+                         Gap.MUTATION_EXCLUSIVITY_UNPROVEN, Gap.REFERENCE_TABLE_AND_ALIASES_UNPROVEN, Gap.MULTI_ROOT_RECOVERY_UNPROVEN);
+                if (entry.referenceTable().isEmpty()) gaps.add(Gap.REFERENCE_TABLE_NOT_RECORDED);
+                else {
+                    var table = entry.referenceTable().orElseThrow().summary();
+                    if (table.fieldResolution() != KryoLedgerReferenceTrace.Resolution.NEW_CONTENT_RETURNED
+                            && table.fieldResolution() != KryoLedgerReferenceTrace.Resolution.PRIOR_CONTENT_REFERENCE)
+                        gaps.add(Gap.REFERENCE_TABLE_ENCODING_NOT_QUALIFIED);
+                    if (table.usesOutsideFieldCall() > 0) gaps.add(Gap.ADDITIONAL_LEDGER_USES_OBSERVED);
+                }
                 // Only versioned facts recorded in THIS capture, never current runtime or inferred legacy labels.
                 if (!writer.output().equals(observedSave)) gaps.add(Gap.OUTPUT_REVISION_DIFFERS);
                 if (writer.capacityExceeded()) gaps.add(Gap.PARTIAL_OPERATION_INVENTORY);

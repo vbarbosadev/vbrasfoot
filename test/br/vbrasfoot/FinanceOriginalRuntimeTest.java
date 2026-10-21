@@ -694,13 +694,21 @@ public final class FinanceOriginalRuntimeTest {
                         check(journal.read(revision).equals(originalJournal) && requestStore.read(revision).equals(originalContracts),
                                 "durable writer observation never modifies receipt, contract, anchor or payload");
                         check(new FinanceExecutionWitnessStore(new CareerSidecarStore(home.resolve("finance-execution-witnesses")), key).read(revision).equals(persistedWriter),
-                                "reopened schema3 reconstructs exact original writer evidence and qualified samples without runtime objects");
+                                 "reopened schema4 reconstructs exact original writer evidence and qualified samples without runtime objects");
+                         check(persistedWriter.serializations().get(0).operations().stream().allMatch(value -> value.referenceTable().orElseThrow().version() == 1
+                                         && value.referenceTable().orElseThrow().summary().fieldResolution() == KryoLedgerReferenceTrace.Resolution.NEW_CONTENT_RETURNED),
+                                 "all original witnessed UUIDs persist explicitly versioned reference-table summaries");
+                         check(new CareerSidecarStore(home.resolve("finance-execution-witnesses")).read(key, revision).value().orElseThrow().schema() == 4,
+                                 "original live reference facts select explicit schema4");
                         var persistedGaps = FinanceSerializationReview.inspect(persistedWriter, bindingWritten.bytes());
                         check(persistedGaps.size() == 3 && persistedGaps.stream().allMatch(value -> value.blocksInclusion() && !value.writeAuthority()
                                         && !value.gaps().contains(FinanceSerializationReview.Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED)
-                                        && !value.gaps().contains(FinanceSerializationReview.Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED)
+                                         && !value.gaps().contains(FinanceSerializationReview.Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED)
+                                         && !value.gaps().contains(FinanceSerializationReview.Gap.REFERENCE_TABLE_NOT_RECORDED)
+                                         && !value.gaps().contains(FinanceSerializationReview.Gap.REFERENCE_TABLE_ENCODING_NOT_QUALIFIED)
+                                         && value.gaps().contains(FinanceSerializationReview.Gap.REFERENCE_TABLE_AND_ALIASES_UNPROVEN)
                                         && value.gaps().contains(FinanceSerializationReview.Gap.MUTATION_EXCLUSIVITY_UNPROVEN)),
-                                "schema3 original UUIDs record sampled profile/membership without claiming mutation exclusivity or inclusion");
+                                 "schema4 original UUIDs record sampled profile/membership/reference encoding without claiming graph ownership, mutation exclusivity or inclusion");
                         check(persistedWriter.serializations().get(0).operations().stream().allMatch(value -> value.capture().qualifications().version() == 1
                                         && value.capture().qualifications().membershipBefore().orElseThrow() == FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST
                                         && value.capture().qualifications().membershipAfter().orElseThrow() == FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST
