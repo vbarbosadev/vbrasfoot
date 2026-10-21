@@ -107,6 +107,9 @@ cobertura global de reflexao/Unsafe ou prova de inclusao.
 O [inventario offline de superficies](roadmap/MUTATION-SURFACE-INVENTORY.md)
 identifica rotas restantes nos arquivos originais sem executar o jogo ou atribuir
 autoridade a uma busca estatica.
+O [perfil amostrado do ledger](roadmap/LEDGER-SERIALIZER-PROFILE.md) recusa
+qualificar referencia com regioes/transients ou mapeamento de campos nao suportado;
+nao converte observacoes antigas em provas novas.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

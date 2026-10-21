@@ -98,6 +98,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de emissao numerica de campos falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceSerializationEvidenceSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de observacoes duraveis do serializer falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LedgerSerializerProfileSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do perfil de serializer do ledger falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.FinanceMutationTransformerSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do transformer de mutacao financeira falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkValidatorJsonSelfTest

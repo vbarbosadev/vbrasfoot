@@ -228,6 +228,47 @@ public final class FinanceOriginalRuntimeTest {
         }
         check(HookProbe.financeMutationSnapshot(runtime).kryoClassesObserved().size() == 9, "all nine selected original decoder route classes defined with verified hooks, not universal Java coverage");
     }
+    private static void ledgerProfiles(LegacyRuntime runtime, Object club) throws Exception {
+        Object ledger = CareerBridge.onEdt(() -> CareerBridge.call(club, "kL"));
+        Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime);
+        Class<?> fieldsClass = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", true, runtime);
+        Object kryo = kryoClass.getConstructor().newInstance();
+        Object serializer = fieldsClass.getConstructor(kryoClass, Class.class).newInstance(kryo, ledger.getClass());
+        check(LedgerSerializerProfile.inspect(serializer, ledger, runtime) == LedgerSerializerProfile.Status.WRONG_THREAD, "profile never queries original metadata off EDT");
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, ledger, runtime)) == LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT,
+                "actual original ledger serializer has exact fourteen supported mapped fields with regions/transients disabled");
+        var regions = fieldsClass.getDeclaredField("useMemRegions"); regions.setAccessible(true);
+        regions.setBoolean(serializer, true);
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, ledger, runtime)) == LedgerSerializerProfile.Status.MEMORY_REGIONS,
+                "even exact FieldSerializer and numeric field samples do not qualify memory-region mode");
+        regions.setBoolean(serializer, false);
+        fieldsClass.getMethod("setSerializeTransient", boolean.class).invoke(serializer, true);
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, ledger, runtime)) == LedgerSerializerProfile.Status.TRANSIENT_SERIALIZATION,
+                "transient serialization is explicitly unsupported");
+        fieldsClass.getMethod("setSerializeTransient", boolean.class).invoke(serializer, false);
+        Object wrongType = fieldsClass.getConstructor(kryoClass, Class.class).newInstance(kryo, NumericFixture.class);
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(wrongType, ledger, runtime)) == LedgerSerializerProfile.Status.WRONG_TYPE,
+                "serializer instance for another type cannot qualify by class alone");
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, ledger, new ClassLoader() { })) == LedgerSerializerProfile.Status.WRONG_TYPE,
+                "another runtime cannot borrow original serializer metadata");
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(null, ledger, runtime)) == LedgerSerializerProfile.Status.WRONG_TYPE,
+                "null serializer never qualifies");
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, null, runtime)) == LedgerSerializerProfile.Status.WRONG_TYPE,
+                "null ledger never qualifies");
+        Object fields = fieldsClass.getMethod("getFields").invoke(serializer); Object first = java.lang.reflect.Array.get(fields, 0);
+        java.lang.reflect.Array.set(fields, 0, null);
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, ledger, runtime)) == LedgerSerializerProfile.Status.UNSUPPORTED_FIELD_ROUTE,
+                "missing numeric cached-field route is rejected");
+        java.lang.reflect.Array.set(fields, 0, java.lang.reflect.Array.get(fields, 1));
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, ledger, runtime)) == LedgerSerializerProfile.Status.FIELD_SET_MISMATCH,
+                "duplicate cached fields cannot replace complete unique field inventory");
+        java.lang.reflect.Array.set(fields, 0, first);
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, ledger, runtime)) == LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT,
+                "only disposable serializer restored in fixture, no game serializer configuration altered");
+        fieldsClass.getMethod("removeField", String.class).invoke(serializer, "dK");
+        check(CareerBridge.onEdt(() -> LedgerSerializerProfile.inspect(serializer, ledger, runtime)) == LedgerSerializerProfile.Status.FIELD_SET_MISMATCH,
+                "removed field rejects even when class/other fields/values still match");
+    }
     private static void objectMutationRoutes(LegacyRuntime runtime) throws Exception {
         Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime);
         Class<?> fieldsClass = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", true, runtime);
@@ -302,6 +343,7 @@ public final class FinanceOriginalRuntimeTest {
                             "original initial decoder observed selected non-direct financial setters, no outstanding mutation");
                     relevantKryoMutations(runtime, adapter, human);
                     externalReflectionBoundary(runtime, adapter, human);
+                    ledgerProfiles(runtime, human);
                 }
                 var before = CareerBridge.onEdt(() -> adapter.snapshot(human));
                 int clubCount = new CareerBridge(runtime).snapshot().clubs().size();
