@@ -5,7 +5,9 @@
 Aceitar a revisao da associacao ou reancorar apenas o diario nao coordena as
 ancoras de contratos e evidencias. A revisao precisa explicar quais roots
 continuam antigas/indisponiveis e quais histories ainda bloqueiam recuperacao.
-Estas sao as tres roots de METADADOS,nao as duas roots Kryo serializadas pelo jogo.
+Estas sao as tres roots FINANCEIRAS de metadados,nao as duas roots Kryo
+serializadas pelo jogo. A associacao e uma quarta root separada:esta revisao
+compara sua revisao de save,nao fornece seu token como compromisso transacional.
 
 FinanceMultiRootRecoveryReview consome somente snapshots ja revisados pelo
 coordinator. Nao faz I/O,scan global,write,migracao,retry,lease ou nova leitura
@@ -44,12 +46,18 @@ writer observado,owner omitido/desabilitado,duplicata/capacity/token invalido e
 imutabilidade.46checks coordinator passaram,incluindo texto real e ausencia de
 criacao de roots ao renderizar.43facts/89durable/23gaps preservados.
 Evidencia:Temp/opencode/multi-root-final-a8ce82a098ad470e895712b9ce363843.
-Wrapper original I/O e SDK isolado em andamento;nao presumir resultado ate concluir.
+Wrappers finais aprovados:160I/O originais em build/multi-root-review-original-io.log,
+fixture Temp/opencode/vbrasfoot-hook-io-dd53a3c5c8c244ae8c0ca2b277479e5d.
+Inclui report ligado as roots originais decodificadas,sem UI inicializada qualificada.
+SDK isolado/hashes/allowlist/authoring/corrupcao recusada em
+build/multi-root-review-sdk-test.log,fixture
+Temp/opencode/vbrasfoot-sdk-author-a2cc7947a330443c81efd5e1e44936ae.
 
 ## Dependencias restantes
 
 Uma transacao multi-root real ainda precisa de protocolo duravel de intencao,
-vetor de HEADs validado,exclusao de escritores/TOCTOU,commit e recovery por fases,
+vetor de HEADs validado INCLUINDO associacao e inventarios de namespaces,
+exclusao de escritores/TOCTOU,commit e recovery por fases,
 sem promover orfaos nem apagar UNKNOWN. Nunca migrar APPLIED por saldo/hash.
 Operacoes sem efeito precisam preservar requests,receipts,witnesses,audit e
 old-key refusal em todas as fases. Esta revisao nao implementa essa transacao.

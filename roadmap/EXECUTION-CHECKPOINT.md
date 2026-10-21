@@ -38,11 +38,13 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
   schema4/envelope1 separado,ausencia em1/2/3 preservada,43fact checks/
   89durable/280financeiros originais aprovados. Ver
   PERSISTED-LEDGER-REFERENCE-FACTS.md para paths e limites.159I/O originais e SDK
-  isolado aprovados.PR71 aberta;CI/integracao ainda pendentes.
+  isolado aprovados.PR71 integrada pelo head175927ffdb0844b61683d04f38f258d9644c0a1d,
+  main277a3f6279c8af54609297a0c642edbeabd96512;CI17/21 PR39586553331/push39586548261
+  aprovados.CI de main39587322612 em andamento;nao presumir seu resultado.
 - Proximo incremento em feat/review-financial-multi-root-recovery (baseado no
-  head175927f da PR71,ainda sem integracao):revisao pura das3roots de metadados,
+  main277a3f6 apos integracao exata da PR71):revisao pura das3roots de metadados,
   nao transacao nem as2roots Kryo.32checks proprios/46coordinator/43facts/
-  89durable/23gaps aprovados;I/O original e SDK em andamento. Ver
+  89durable/23gaps/160I/O originais e SDK isolado aprovados. Ver
   MULTI-ROOT-RECOVERY-REVIEW.md.Nao liberar reancoragem ou inferir inclusao.
 
 ## Evidencias reutilizaveis
