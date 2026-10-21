@@ -587,6 +587,13 @@ public final class FinanceOriginalRuntimeTest {
                                 "durable writer observation never modifies receipt, contract, anchor or payload");
                         check(new FinanceExecutionWitnessStore(new CareerSidecarStore(home.resolve("finance-execution-witnesses")), key).read(revision).equals(persistedWriter),
                                 "reopened schema2 reconstructs exact original writer evidence without runtime objects");
+                        var persistedGaps = FinanceSerializationReview.inspect(persistedWriter, bindingWritten.bytes());
+                        check(persistedGaps.size() == 3 && persistedGaps.stream().allMatch(value -> value.blocksInclusion() && !value.writeAuthority()
+                                        && value.gaps().contains(FinanceSerializationReview.Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED)
+                                        && value.gaps().contains(FinanceSerializationReview.Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED)),
+                                "persisted original UUIDs never borrow live sampled profile or membership checks absent from schema2");
+                        check(persistedGaps.stream().filter(value -> !value.operation().equals(finalOperation)).allMatch(value -> value.gaps().contains(FinanceSerializationReview.Gap.NUMERIC_ARGUMENT_MISMATCH)),
+                                "original earlier-operation emitted value divergence remains explicit in read-only recovery report");
                         java.lang.ref.Reference.reachabilityFence(credit); java.lang.ref.Reference.reachabilityFence(debit); java.lang.ref.Reference.reachabilityFence(finalSerializerPlan);
                     }
                     check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "finance-output", false)), "original loader reloads private financially modified save");

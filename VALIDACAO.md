@@ -1,5 +1,32 @@
 # Validacao — 16/10/2026
 
+## Lacunas explicitas das observacoes persistidas — 21/10/2026
+
+FinanceSerializationReview e funcao pura bounded/imutavel que explica por par
+UUID de writer/operacao os gaps de output/revision,partial inventory,execucao/
+receipt,roots,continuidade,numeric/reference mismatch/missing/ambiguous/custom.
+Schemas1/2nao registram perfil live nem membership:mesmo caso ideal permanece com
+5obrigacoes nao demonstradas(perfil,membership,mutacao exclusiva,tabela refs/aliases,
+multi-root recovery). Sem runtime/EDT/disk query/migracao ou positivo INCLUDED.
+Painel exibe gaps nos namespaces ja inventariados,sem acao/owner/public write novo.
+
+23checks proprios/50durable-observation/69witness em
+`Temp/opencode/serialization-gap-review-51afffcc066147f2bda1ddd6d602eca5`.
+238financeiros ORIGINAIS em `runtime-test.log` da mesma fixture:3UUIDs nunca
+emprestam live facts ausentes no formato persistido e2UUIDs anteriores preservam
+mismatch real de argumentos. Writer/captura/persistencia/reopen/save-reload e
+historico bloqueado preservados. Fixture de copia privada,EXE/input conferidos.
+-159I/O/schema ORIGINAIS em `build/serialization-gap-original-io.log`,fixture
+ `Temp/opencode/vbrasfoot-hook-io-260faa5d83e64cca9a22aadf4418d77b`;
+-SDK ZIP fora do checkout/hashes/allowlist/template/observador SDK-only/negativos
+ em `build/serialization-gap-sdk-test.log`,fixture
+ `Temp/opencode/vbrasfoot-sdk-author-25afb8dec3714e31a8cd894236499174`.
+
+Persistir manifest novo ainda e PROXIMO objetivo,nao implementado por esse report.
+Sem alterar save/EXE pessoal/mod novo/release/tag/teste humano ou STATUS.md.
+Contrato:`roadmap/PERSISTED-SERIALIZATION-GAPS.md`.
+Checkpoint operacional:`roadmap/EXECUTION-CHECKPOINT.md`.
+
 ## Identidade do ledger na lista atual de clubes — 21/10/2026
 
 FinanceLedgerMembership faz varredura COMPLETA bounded na EDT com target/type/
