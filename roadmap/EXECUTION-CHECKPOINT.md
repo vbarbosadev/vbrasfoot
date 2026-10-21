@@ -15,10 +15,10 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
 - PR67:recusa alias entre clubes antes de preparar comando e em samples;
   limite16384/250ms/lista completa/identity.18checks proprios/236financeiros/
  159I/O/SDK/CI17/21. maincd71d56c1565ba0983a3546a162d9395209c5275.
-- Proxima integracao deste lote:revisao pura de lacunas de observacoes persistidas,
- 23checks proprios/238financeiros originais e fontes em
- feat/explain-persisted-financial-evidence-gaps. PR/CI/results de wrappers ficam
- registrados na descricao/comentarios da PR e nos logs abaixo, sem presumir sucesso.
+- PR68:revisao pura de lacunas de observacoes persistidas,23checks proprios/
+ 238financeiros originais/159I/O/SDK isolado aprovados. Fontes em
+ feat/explain-persisted-financial-evidence-gaps. Confirmar mergeCommit e CI de main
+ na PR antes de iniciar alteracao posterior;nao presumir merge pela branch local.
 
 ## Evidencias reutilizaveis
 
@@ -27,8 +27,10 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
 - Temp/opencode/ledger-membership-original-f283031b9c7f4f8a891a043ec3fc760c/bounded-runtime-test.log;
 - Temp/opencode/ledger-membership-reviewed-e53af669d23145a994ff147648c24c53;
 - Temp/opencode/serialization-gap-review-51afffcc066147f2bda1ddd6d602eca5/runtime-test.log;
-- build/serialization-gap-original-io.log e build/serialization-gap-sdk-test.log:
- wrappers iniciados;consultar conclusao notificada/PR antes de declarar aprovados.
+- build/serialization-gap-original-io.log:159I/O/schema ORIGINAIS aprovados,
+ fixture Temp/opencode/vbrasfoot-hook-io-260faa5d83e64cca9a22aadf4418d77b;
+- build/serialization-gap-sdk-test.log:SDK isolado/hashes/allowlist/authoring
+ negativos aprovados,fixture Temp/opencode/vbrasfoot-sdk-author-25afb8dec3714e31a8cd894236499174.
 
 ## Proxima acao concreta apos integrar a revisao
 

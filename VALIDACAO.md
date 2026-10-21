@@ -16,6 +16,11 @@ Painel exibe gaps nos namespaces ja inventariados,sem acao/owner/public write no
 emprestam live facts ausentes no formato persistido e2UUIDs anteriores preservam
 mismatch real de argumentos. Writer/captura/persistencia/reopen/save-reload e
 historico bloqueado preservados. Fixture de copia privada,EXE/input conferidos.
+-159I/O/schema ORIGINAIS em `build/serialization-gap-original-io.log`,fixture
+ `Temp/opencode/vbrasfoot-hook-io-260faa5d83e64cca9a22aadf4418d77b`;
+-SDK ZIP fora do checkout/hashes/allowlist/template/observador SDK-only/negativos
+ em `build/serialization-gap-sdk-test.log`,fixture
+ `Temp/opencode/vbrasfoot-sdk-author-25afb8dec3714e31a8cd894236499174`.
 
 Persistir manifest novo ainda e PROXIMO objetivo,nao implementado por esse report.
 Sem alterar save/EXE pessoal/mod novo/release/tag/teste humano ou STATUS.md.
