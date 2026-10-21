@@ -66,7 +66,13 @@ public final class CareerAssociationCoordinatorSelfTest {
             var selected = coordinator.review(Optional.of(handle));
             check(selected.status() == Status.READ_ONLY_LINKED && selected.journals().size() == 2, "explicit selected handle links read-only and reviews configured owners");
             check(selected.journals().stream().allMatch(row -> row.recovery().orElseThrow().status() == CareerCommandJournal.RecoveryStatus.EMPTY), "absent configured journals remain absent and classified empty");
-            check(!Files.exists(journals), "registry assessment never creates empty journal files");
+             check(!Files.exists(journals), "registry assessment never creates empty journal files");
+             String selectedText = CareerAssociationPanel.report(selected);
+             check(selectedText.contains("Recuperacao entre roots de metadados") && selectedText.contains("COORDINATED_COMMIT_UNPROVEN")
+                     && selectedText.contains("roots com HEAD: 0") && selectedText.contains("Nao sao as duas roots Kryo"),
+                     "panel reports absent metadata roots and no transaction authority, distinct from game roots");
+             check(!Files.exists(journals) && !Files.exists(root.resolve("finance-requests")) && !Files.exists(root.resolve("finance-execution-witnesses")),
+                     "rendering multi-root review does not materialize missing roots");
             rejects(Reason.CONFLICT, () -> coordinator.confirm(selected, Action.CREATE_NEW, Optional.empty()));
             var known = associations.inspect(handle); var key = new Key(handle.career(), handle.binding(), owners.get(0));
             var journal = new CareerCommandJournal(journalStore, key);
@@ -104,7 +110,8 @@ public final class CareerAssociationCoordinatorSelfTest {
             check(revised.status() == Status.REVISION_REVIEW_REQUIRED && revised.journals().stream().anyMatch(row -> row.recovery().orElseThrow().revisionChanged()), "changed source keeps committed old anchors separate from actual decoder bytes");
             coordinator.confirm(revised, Action.ACCEPT_REVISION, Optional.empty());
             var afterRevision = coordinator.review(Optional.of(handle));
-            check(afterRevision.journals().stream().anyMatch(row -> row.recovery().orElseThrow().revisionChanged()), "administrative review exposes actual committed old anchor without migrating journal");
+             check(afterRevision.journals().stream().anyMatch(row -> row.recovery().orElseThrow().revisionChanged()), "administrative review exposes actual committed old anchor without migrating journal");
+             check(CareerAssociationPanel.report(afterRevision).contains("JOURNAL_ANCHOR_DIFFERS"), "panel exposes old journal anchor after association-only revision acceptance without inventing coordinated recovery");
             coordinator.confirm(afterRevision, Action.QUARANTINE_PENDING, Optional.of(owners.get(0)));
             check(journal.read(known.save()).token().equals(recovered.token()), "quarantine across anchor mismatch preserves existing unknown and does not reanchor");
             Files.write(source, first); load(source, primary, secondary);
