@@ -19,7 +19,7 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
  238financeiros originais/159I/O/SDK isolado aprovados. Fontes em
  feat/explain-persisted-financial-evidence-gaps. Confirmar mergeCommit e CI de main
  na PR antes de iniciar alteracao posterior;nao presumir merge pela branch local.
-- Incremento seguinte implementado em feat/version-financial-qualification-manifests:
+- PR69 implementado em feat/version-financial-qualification-manifests:
  manifest0legacy/1sampled e witness schema1/2/3,mistura sem requalificacao retroativa.
 33manifest/63persistencia/28root/29numeric-reference e239financeiros originais;
 ver PR correspondente/CI antes de presumir integracao.Main base12937276e27763aac55a1cf1f34105761c1b9393.
@@ -51,9 +51,13 @@ Foi implementado o manifest versionado de qualificacoes NOVAS nas observacoes:
    multi-root unproven. Fixture original privada+PR+CI17/21+main,seguir proximo.
 
 Evidencia adicional:Temp/opencode/qualification-manifest-reviewed-ec40413436304065af095f50a768e8f9/runtime-test.log.
-Wrappers build/qualification-manifest-original-io.log e
-build/qualification-manifest-sdk-test.log:consultar conclusao notificada/PR antes
-de declarar aprovados.Nao sao power-loss ou aceite Main/UI/standalone.
+Wrappers adicionais aprovados:159I/O/schema ORIGINAIS em
+build/qualification-manifest-original-io.log,fixture
+Temp/opencode/vbrasfoot-hook-io-33b52076d5f74964bc76cc3e0381b34a;
+SDK ZIP isolado/hashes/allowlist/authoring negativos em
+build/qualification-manifest-sdk-test.log,fixture
+Temp/opencode/vbrasfoot-sdk-author-bde9550bf4244312992163cf8abb7184.
+Nao sao power-loss ou aceite Main/UI/standalone.
 
 ## Proxima acao concreta apos integrar o manifesto
 

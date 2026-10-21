@@ -26,6 +26,11 @@ membershipBefore/After UNIQUE_IN_CLUB_LIST e perfil real SUPPORTED_SAMPLED_LAYOU
 persistidos/reabertos3sem runtime objects;writer/argumentos/contratos/recibos/
 save-reload/historico bloqueado preservados.Copia de outra copia privada,hashes
 de EXE/input conferidos.Nao e aceite de contexto de Main/UI/standalone.
+-159I/O/schema ORIGINAIS aprovados em `build/qualification-manifest-original-io.log`,
+ fixture `Temp/opencode/vbrasfoot-hook-io-33b52076d5f74964bc76cc3e0381b34a`;
+-SDK ZIP isolado/hashes/allowlist/template/observador SDK-only/negativos em
+ `build/qualification-manifest-sdk-test.log`,fixture
+ `Temp/opencode/vbrasfoot-sdk-author-bde9550bf4244312992163cf8abb7184`.
 
 Revisao retira SOMENTE gaps de fatos ausentes registrados na propria operacao e
 mostra negativos separadamente;before negativo+after ausente mantem os2gaps.
