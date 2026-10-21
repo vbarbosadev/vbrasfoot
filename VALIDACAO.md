@@ -1,5 +1,30 @@
 # Validacao — 16/10/2026
 
+## Perfil amostrado de serializer do ledger — 21/10/2026
+
+LedgerSerializerProfile exige na EDT:best.C/FieldSerializer/getType/runtime exatos,
+memory regions/transient serialization desativados e14campos completos/distintos
+com declaradora/tipo/rota numeric Unsafe/ASM/Object exatos. Metadata custom/generico/
+null/duplicado/incompleto recusa qualificacao. Hook da referencia atribui OTHER a
+perfil nao suportado apos chamada ORIGINAL retornar; nao muda comportamento/bytes
+ou suprime falha do Kryo. Sem disk I/O/EDT wait/mod callback/persistent schema novo.
+
+14checks com fixtures de metadata GERADAS proprias passaram.232financeiros
+ORIGINAIS em `Temp/opencode/ledger-profile-original-04835af8fe874bee99a916b53d162339/runtime-test.log`,
+incluindo12novos checks sobre serializers DESCARTAVEIS (nao o selecionado pelo
+writer):default/regions/transients/tipo/runtime/null/duplicata/falta/restauracao.
+Writer real/captura3UUIDs/15argumentos/referencia/save-reload/reopen duravel e
+historico bloqueado preservados. Fixture de OUTRA copia privada/hash-conferida.
+
+Perfil e somente amostra APOS retorno, nao verificacao durante toda chamada,
+offset/accessIndex/alias/UnsafeInput/global reflection coverage ou sandbox.
+Rotulos persistentes antigos nao tem versao desse perfil e NAO sao reinterpretados.
+Captura persistente continua sem inclusao/autoridade e APPLIED/UNKNOWN bloqueados.
+Proximo objetivo:aliases/ownership no conjunto de clubes; depois manifesto
+versionado para novos coverage facts. Sem instalacao/save pessoal/mod novo/release/
+tag/novo teste humano;STATUS.md inalterado. Contrato:
+`roadmap/LEDGER-SERIALIZER-PROFILE.md`.
+
 ## Inventario offline de superficies de mutacao — 21/10/2026
 
 MutationSurfaceInventory analisa arquivos explicitamente selecionados sem carregar
