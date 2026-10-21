@@ -9,6 +9,8 @@ FinanceSerializationEvidence.Operation tem Optional<FinanceReferenceTableEvidenc
 Ausente significa NAO REGISTRADO;presente version1carrega Summary escalar imutavel:
 resolucao,newMarkers,existingMarkers,contentReturns,usesOutsideFieldCall,resets,
 fieldCalls,supportedResolver. MISSING capturado difere de ausencia historica.
+resets conta entradas de epoca;em UNAVAILABLE pode incluir reset incompleto,
+nao deve ser reinterpretado como contagem de conclusoes normais.
 Nao persiste IDs runtime,objetos,paths,campos financeiros ou identidade de clubes.
 
 Witness store le schemas1/2/3/4.1continua execution-only;2sintetiza manifest0;
