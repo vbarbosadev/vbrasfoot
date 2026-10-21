@@ -134,21 +134,26 @@ final class LegacyFinanceAdapter {
             HookProbe.observeFinancialSerialization(prepared.operationId(), prepared.intent(), this, executionMutationEnd);
         }
         @Override public FinanceSerializationTracker.Sample sample(Object serializedPrimary) throws Exception {
+            return sampleFact(serializedPrimary).sample();
+        }
+        @Override public FinanceSerializationTracker.SampleFact sampleFact(Object serializedPrimary) throws Exception {
             requireEdt(); Object target = club.get(), originalLedger = ledger.get(); var current = roots();
-            if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null) return FinanceSerializationTracker.Sample.TARGET_UNAVAILABLE;
-            if (serializedPrimary != primary.get() || current.primary() != primary.get() || current.secondary() != secondary.get()) return FinanceSerializationTracker.Sample.ROOT_MISMATCH;
-            if (CareerBridge.call(target, "kL") != originalLedger) return FinanceSerializationTracker.Sample.LEDGER_MISMATCH;
-            if (ledgerMembership(target, originalLedger, current) != FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST)
-                return FinanceSerializationTracker.Sample.LEDGER_MISMATCH;
+            if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null) return FinanceSerializationTracker.SampleFact.unavailable(FinanceSerializationTracker.Sample.TARGET_UNAVAILABLE);
+            if (serializedPrimary != primary.get() || current.primary() != primary.get() || current.secondary() != secondary.get()) return FinanceSerializationTracker.SampleFact.unavailable(FinanceSerializationTracker.Sample.ROOT_MISMATCH);
+            if (CareerBridge.call(target, "kL") != originalLedger) return FinanceSerializationTracker.SampleFact.unavailable(FinanceSerializationTracker.Sample.LEDGER_MISMATCH);
+            var membership = ledgerMembership(target, originalLedger, current);
+            if (membership != FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST)
+                return new FinanceSerializationTracker.SampleFact(FinanceSerializationTracker.Sample.LEDGER_MISMATCH, Optional.of(membership));
             var clubs = (List<?>) CareerBridge.call(current.primary(), "P");
             var humans = (List<?>) CareerBridge.call(current.primary(), "aN");
             if (clubs == null || humans == null || clubs.size() > 100000 || humans.size() > 64
                     || request == null || request.club().index() >= clubs.size() || clubs.get(request.club().index()) != target
                     || clubs.stream().filter(value -> value == target).count() != 1 || humans.stream().filter(value -> value == target).count() != 1
                     || !Objects.equals(request.club().name(), CareerBridge.call(target, "getNome")) || !Boolean.TRUE.equals(CareerBridge.call(target, "jZ")))
-                return FinanceSerializationTracker.Sample.ROOT_MISMATCH;
+                return new FinanceSerializationTracker.SampleFact(FinanceSerializationTracker.Sample.ROOT_MISMATCH, Optional.of(membership));
             // Original writer may reassign numeric club IDs: never fabricate a persistent new locator from it.
-            return snapshot(target).equals(after) ? FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE : FinanceSerializationTracker.Sample.STATE_MISMATCH;
+            return new FinanceSerializationTracker.SampleFact(snapshot(target).equals(after) ? FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE : FinanceSerializationTracker.Sample.STATE_MISMATCH,
+                    Optional.of(membership));
         }
         @Override public FinanceSerializationTracker.Argument emitted(java.lang.reflect.Field field, Object receiver, long value) {
             requireEdt();

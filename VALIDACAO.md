@@ -1,5 +1,40 @@
 # Validacao — 16/10/2026
 
+## Manifesto versionado de qualificacoes financeiras — 21/10/2026
+
+Manifest0legacy exige fatos ausentes;manifest1registra membershipBefore/After nas
+fronteiras reais e serializerAfterReference apos a chamada original retornar.
+Mesmo sampler do adapter devolve sample+membership,sem varredura duplicada;hook
+passa perfil real uma unica vez e atribui somente ao target relevante.Referencia
+duplicada/erro/invalidation nao preservam perfil positivo orfao.Ausencia/negativo
+sao separados e status desconhecidos recusados.Somente enums/Optionals imutaveis,
+sem nova retencao forte de grafo/valores/paths/runtime ou file I/O na EDT.
+
+Witness store le1/2/3.Leitura1/2NAO migra;2decodifica fatos legacy AUSENTES.Novos
+manifests escrevem3mantendo observacoes antigas0IGUAIS e previous records;arm/
+complete preservam3.Nao permitir codec2descartar fatos ou schema3sem manifesto.
+Guard antigo1/2recusa3,sem fallback.CAS/coleta explicita/inventario existentes,
+sem worker automatico Main/schema original de save/EXE/recibo/contrato novo.
+
+33checks de manifesto,63de persistencia(incluindo2->3misto e3fases de falha),
+28root capture/29numeric-reference/23gap-review/69witness/42writer-report/
+18membership/14profile/31mutation/29dispatcher em saida isolada
+`Temp/opencode/qualification-manifest-reviewed-ec40413436304065af095f50a768e8f9`.
+42writer inclui check novo de report compilado apos execucao inicial original.
+239financeiros ORIGINAIS em `runtime-test.log` da mesma fixture:3UUIDs manifest1
+membershipBefore/After UNIQUE_IN_CLUB_LIST e perfil real SUPPORTED_SAMPLED_LAYOUT
+persistidos/reabertos3sem runtime objects;writer/argumentos/contratos/recibos/
+save-reload/historico bloqueado preservados.Copia de outra copia privada,hashes
+de EXE/input conferidos.Nao e aceite de contexto de Main/UI/standalone.
+
+Revisao retira SOMENTE gaps de fatos ausentes registrados na propria operacao e
+mostra negativos separadamente;before negativo+after ausente mantem os2gaps.
+Mesmo positivos mantêm3lacunas:mutacao exclusiva,tabela refs/aliases e multi-root
+recovery.OperationInclusionProven=false/writeAuthority=false,sem nova lease,
+reanchor/retry de APPLIED/UNKNOWN.Falhas sao excecoes controladas,nao power-loss.
+Sem instalacao/save pessoal/mod novo/release/tag/teste humano/STATUS.md modificado.
+Contrato:`roadmap/VERSIONED-FINANCIAL-QUALIFICATIONS.md`.
+
 ## Lacunas explicitas das observacoes persistidas — 21/10/2026
 
 FinanceSerializationReview e funcao pura bounded/imutavel que explica por par

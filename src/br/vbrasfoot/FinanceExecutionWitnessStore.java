@@ -139,7 +139,7 @@ final class FinanceExecutionWitnessStore {
         var values = new ArrayList<>(current.serializations()); values.add(observation);
         captured.revalidate();
         if (!requests.equals(contracts.read(source)) || !history.equals(journal.read(source))) throw new Failure(Reason.CONFLICT, "Source histories changed before observation commit");
-        var committed = store.write(key, source, 2, expectedToken, encode(current.witnesses(), values));
+        var committed = store.write(key, source, schema(values), expectedToken, encode(current.witnesses(), values));
         try {
             captured.revalidate();
             if (!requests.equals(contracts.read(source)) || !history.equals(journal.read(source)) || !read(source).token().equals(committed.token()))
@@ -155,7 +155,7 @@ final class FinanceExecutionWitnessStore {
     }
     private static Snapshot decode(View view) throws IOException {
         if (view.value().isEmpty()) return new Snapshot(view.token(), List.of()); var value = view.value().orElseThrow();
-        if (value.schema() != 1 && value.schema() != 2) throw new Failure(Reason.CORRUPT, "Unknown execution witness schema");
+        if (value.schema() != 1 && value.schema() != 2 && value.schema() != 3) throw new Failure(Reason.CORRUPT, "Unknown execution witness schema");
         try (var in = new DataInputStream(new ByteArrayInputStream(value.payload()))) {
             if (in.readInt() != MAGIC || in.readInt() != value.schema()) throw new IOException("Unknown execution witness format");
             int count = in.readInt(); if (count < 1 || count > MAX_WITNESSES) throw new IOException("Invalid witness count");
@@ -167,7 +167,8 @@ final class FinanceExecutionWitnessStore {
                         && intent.operation() != CareerCommandGate.Operation.FINANCE_DEBIT) throw new IOException("Invalid/duplicate witness identity or operation");
                 values.add(new Witness(id, intent, context, generation, state));
             }
-            var observations = value.schema() == 1 ? List.<FinanceSerializationEvidence.Observation>of() : FinanceSerializationEvidence.read(in);
+            var observations = value.schema() == 1 ? List.<FinanceSerializationEvidence.Observation>of() : FinanceSerializationEvidence.read(in, value.schema());
+            if (value.schema() == 3 && schema(observations) != 3) throw new IOException("Schema3 without versioned qualification observations");
             for (var observation : observations) for (var item : observation.operations()) {
                 var witness = values.stream().filter(entry -> entry.operationId().equals(item.capture().operationId()) && entry.intent().equals(item.capture().intent())).findFirst();
                 if (witness.isEmpty() || witness.orElseThrow().state() == State.NO_EFFECT_CONFIRMED
@@ -177,7 +178,10 @@ final class FinanceExecutionWitnessStore {
             if (in.available() != 0) throw new IOException("Trailing witness bytes"); return new Snapshot(view.token(), values, observations);
         } catch (IOException | IllegalArgumentException invalid) { throw new Failure(Reason.CORRUPT, "Invalid execution witness", invalid); }
     }
-    private static int schema(List<FinanceSerializationEvidence.Observation> observations) { return observations.isEmpty() ? 1 : 2; }
+    private static int schema(List<FinanceSerializationEvidence.Observation> observations) {
+        return observations.isEmpty() ? 1 : observations.stream().flatMap(value -> value.operations().stream())
+                .anyMatch(value -> value.capture().qualifications().version() > 0) ? 3 : 2;
+    }
     private static byte[] encode(List<Witness> values, List<FinanceSerializationEvidence.Observation> observations) throws IOException {
         var bytes = new ByteArrayOutputStream();
         try (var out = new DataOutputStream(bytes)) {
@@ -186,7 +190,7 @@ final class FinanceExecutionWitnessStore {
                 uuid(out, value.operationId()); out.writeUTF(value.intent().key()); out.writeUTF(value.intent().operation().name()); out.writeUTF(value.intent().payloadDigest());
                 uuid(out, value.context()); out.writeLong(value.generation()); out.writeUTF(value.state().name());
             }
-            if (!observations.isEmpty()) FinanceSerializationEvidence.write(out, observations);
+            if (!observations.isEmpty()) FinanceSerializationEvidence.write(out, observations, schema(observations));
         } return bytes.toByteArray();
     }
     private static UUID uuid(DataInputStream in) throws IOException { return new UUID(in.readLong(), in.readLong()); }

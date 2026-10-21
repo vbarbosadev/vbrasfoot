@@ -68,6 +68,29 @@ public final class FinanceSerializationTrackerSelfTest {
         var duplicate = new FinanceSerializationTracker(); duplicate.observe(operation, intent("once"), target, checkpoint); duplicate.observe(operation, intent("changed"), target, checkpoint);
         var duplicated = edt(() -> duplicate.finish(duplicate.begin(primary, checkpoint), primary));
         check(duplicated.capacityExceeded() && duplicated.operations().get(0).intent().equals(intent("once")), "ambiguous duplicate cannot overwrite original operation observation");
+        var samples = new AtomicInteger();
+        var membership = new AtomicReference<>(FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST);
+        FinanceSerializationTracker.Target qualifiedTarget = new FinanceSerializationTracker.Target() {
+            public FinanceSerializationTracker.Sample sample(Object root) { throw new AssertionError("Legacy callback must not trigger a second membership scan"); }
+            public FinanceSerializationTracker.SampleFact sampleFact(Object root) {
+                samples.incrementAndGet();
+                return new FinanceSerializationTracker.SampleFact(membership.get() == FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST
+                        ? FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE : FinanceSerializationTracker.Sample.LEDGER_MISMATCH, Optional.of(membership.get()));
+            }
+        };
+        var qualified = new FinanceSerializationTracker(); qualified.observe(UUID.randomUUID(), intent("qualified"), qualifiedTarget, checkpoint);
+        var qualifiedWindow = edt(() -> qualified.begin(primary, checkpoint)); membership.set(FinanceLedgerMembership.Status.SHARED_LEDGER);
+        var qualifiedCapture = edt(() -> qualified.finish(qualifiedWindow, primary)).operations().get(0);
+        check(samples.get() == 2, "membership factual samples captured once before and once after, no duplicate scan");
+        check(qualifiedCapture.qualifications().version() == 1
+                && qualifiedCapture.qualifications().membershipBefore().orElseThrow() == FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST
+                && qualifiedCapture.qualifications().membershipAfter().orElseThrow() == FinanceLedgerMembership.Status.SHARED_LEDGER,
+                "versioned manifest preserves independent before/after membership facts including negative after");
+        check(qualifiedCapture.after() == FinanceSerializationTracker.Sample.LEDGER_MISMATCH && qualifiedCapture.qualifications().serializerAfterReference().isEmpty(),
+                "root sample and absent profile are not upgraded by before membership success");
+        var invalidatedQualification = edt(() -> qualified.begin(primary, checkpoint)); qualified.invalidate();
+        check(!edt(() -> qualified.finish(invalidatedQualification, primary)).validWindow(), "qualification facts cannot resurrect invalidated window");
+        java.lang.ref.Reference.reachabilityFence(qualifiedTarget);
         java.lang.ref.Reference.reachabilityFence(target); java.lang.ref.Reference.reachabilityFence(throwsTarget);
         System.out.println("PASS: " + checks + " operation serializer capture checks; own samplers only, no field-level serialization or inclusion proof.");
     }

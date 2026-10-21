@@ -99,6 +99,28 @@ public final class FinanceFieldEmissionSelfTest {
             edt(() -> { tracker.referenced(custom, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.OTHER); return null; });
             check(edt(() -> tracker.finish(custom, primary)).operations().get(0).edge().status() == FinanceSerializationTracker.Reference.UNSUPPORTED_SERIALIZER,
                     "matching argument with custom serializer not supported");
+            var profiled = edt(() -> tracker.begin(primary, null));
+            edt(() -> { tracker.referenced(profiled, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER,
+                    Optional.of(LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT)); return null; });
+            check(edt(() -> tracker.finish(profiled, primary)).operations().get(0).qualifications().serializerAfterReference().orElseThrow()
+                    == LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT, "manifest records exact supplied post-reference profile only for relevant target");
+            var badProfile = edt(() -> tracker.begin(primary, null));
+            edt(() -> { tracker.referenced(badProfile, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.OTHER,
+                    Optional.of(LedgerSerializerProfile.Status.MEMORY_REGIONS)); return null; });
+            check(edt(() -> tracker.finish(badProfile, primary)).operations().get(0).qualifications().serializerAfterReference().orElseThrow()
+                    == LedgerSerializerProfile.Status.MEMORY_REGIONS, "negative region profile retained, not rewritten as absent or supported");
+            var duplicateProfile = edt(() -> tracker.begin(primary, null));
+            edt(() -> { for (int i = 0; i < 2; i++) tracker.referenced(duplicateProfile, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER,
+                    Optional.of(LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT)); return null; });
+            var duplicatedProfile = edt(() -> tracker.finish(duplicateProfile, primary)).operations().get(0);
+            check(duplicatedProfile.edge().status() == FinanceSerializationTracker.Reference.AMBIGUOUS && duplicatedProfile.qualifications().serializerAfterReference().isEmpty(),
+                    "duplicate reference invalidates unique-profile attribution even if supplied status equals");
+            var failedProfile = edt(() -> tracker.begin(primary, null));
+            edt(() -> { tracker.referenced(failedProfile, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER,
+                    Optional.of(LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT)); return null; });
+            tracker.referenceFailed(failedProfile);
+            check(edt(() -> tracker.finish(failedProfile, primary)).operations().get(0).qualifications().serializerAfterReference().isEmpty(),
+                    "failed reference attribution removes earlier positive profile, never retains orphan qualification");
             var offEdtEdge = edt(() -> tracker.begin(primary, null));
             tracker.referenced(offEdtEdge, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER);
             check(edt(() -> tracker.finish(offEdtEdge, primary)).operations().get(0).edge().status() == FinanceSerializationTracker.Reference.UNAVAILABLE, "off-EDT reference unavailable");

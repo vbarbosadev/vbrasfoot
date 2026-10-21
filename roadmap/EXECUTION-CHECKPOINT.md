@@ -19,6 +19,10 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
  238financeiros originais/159I/O/SDK isolado aprovados. Fontes em
  feat/explain-persisted-financial-evidence-gaps. Confirmar mergeCommit e CI de main
  na PR antes de iniciar alteracao posterior;nao presumir merge pela branch local.
+- Incremento seguinte implementado em feat/version-financial-qualification-manifests:
+ manifest0legacy/1sampled e witness schema1/2/3,mistura sem requalificacao retroativa.
+33manifest/63persistencia/28root/29numeric-reference e239financeiros originais;
+ver PR correspondente/CI antes de presumir integracao.Main base12937276e27763aac55a1cf1f34105761c1b9393.
 
 ## Evidencias reutilizaveis
 
@@ -32,9 +36,9 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
 - build/serialization-gap-sdk-test.log:SDK isolado/hashes/allowlist/authoring
  negativos aprovados,fixture Temp/opencode/vbrasfoot-sdk-author-25afb8dec3714e31a8cd894236499174.
 
-## Proxima acao concreta apos integrar a revisao
+## Manifesto implementado (aguardar integracao/CI da branch correspondente)
 
-Implementar manifest versionado de qualificacoes NOVAS nas observacoes:
+Foi implementado o manifest versionado de qualificacoes NOVAS nas observacoes:
 1. Definir facts separados para membership BEFORE/AFTER e perfil AFTER do
    serializer. Registrar UNAVAILABLE/ausencia e instante/escopo, nao so positivo.
 2. Obter membership no MESMO sampler/EDT sem nova varredura duplicada;obter perfil
@@ -43,8 +47,27 @@ Implementar manifest versionado de qualificacoes NOVAS nas observacoes:
    migracao em leitura). Observacoes antigas preservam facts AUSENTES.
 4. Testar mistura de histories,corrupt version/route/status,capacity,revogacao,
    falha antes/depois de HEAD e reopen. Nunca copiar fatos live para UUID antigo.
-5. Integrar facts no report de gaps sem remover exclusividade/tabela de refs/
+5. Facts integrados no report de gaps sem remover exclusividade/tabela de refs/
    multi-root unproven. Fixture original privada+PR+CI17/21+main,seguir proximo.
+
+Evidencia adicional:Temp/opencode/qualification-manifest-reviewed-ec40413436304065af095f50a768e8f9/runtime-test.log.
+Wrappers build/qualification-manifest-original-io.log e
+build/qualification-manifest-sdk-test.log:consultar conclusao notificada/PR antes
+de declarar aprovados.Nao sao power-loss ou aceite Main/UI/standalone.
+
+## Proxima acao concreta apos integrar o manifesto
+
+Qualificar a semantica da tabela de referencias do Kryo para o ledger:
+1. Inspecionar a rota original writeObject/referenceOrNull para distinguir
+   conteudo serializado de referencia preexistente,sem presumir pelos15argumentos.
+2. Correlacionar a aresta nx observada ao mesmo objeto/registro da tabela e ao
+   stream exato;IDs runtime nao viram persistent club identity entre encarnacoes.
+3. Testar alias fora de P(),referencia preexistente,reset/autoReset,dedup e falha
+   antes/depois da emissao,em dados proprios e copia privada;sem alterar bytes.
+4. Se nao houver prova suficiente,registrar status ambiguo/indisponivel,manter
+   gap e seguir tarefa independente de recuperacao/read-only.Apenas fatos NOVOS
+   podem entrar em formato versionado,nunca reanotar schema1/2ou manifest0.
+5. PR/CI/main e checkpoint,seguindo proximo objetivo viavel sem novo continue.
 
 ## Objetivos seguintes e dependencias
 

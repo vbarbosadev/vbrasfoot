@@ -20,6 +20,23 @@ final class FinanceSerializationEvidence {
             if (capture.intent().operation() != CareerCommandGate.Operation.FINANCE_CREDIT && capture.intent().operation() != CareerCommandGate.Operation.FINANCE_DEBIT)
                 throw new IllegalArgumentException("Financial operation required");
             validate(capture.fields(), capture.edge());
+            validate(capture);
+        }
+    }
+    private static void validate(FinanceSerializationTracker.Operation capture) {
+        var facts = capture.qualifications();
+        if (facts.version() == 0) return;
+        if (capture.before() == Sample.MATCHED_EXPECTED_STATE && facts.membershipBefore().isPresent()
+                && facts.membershipBefore().orElseThrow() != FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST
+                || capture.after() == Sample.MATCHED_EXPECTED_STATE && facts.membershipAfter().isPresent()
+                && facts.membershipAfter().orElseThrow() != FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST)
+            throw new IllegalArgumentException("Matched root sample contradicts membership observation");
+        if (facts.serializerAfterReference().isPresent()) {
+            var profile = facts.serializerAfterReference().orElseThrow();
+            if (capture.edge().observed() != 1 || capture.edge().status() == Reference.MISSING || capture.edge().status() == Reference.UNAVAILABLE || capture.edge().status() == Reference.AMBIGUOUS
+                    || capture.edge().status() == Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED && profile != LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT
+                    || capture.edge().status() == Reference.UNSUPPORTED_SERIALIZER && profile == LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT)
+                throw new IllegalArgumentException("Reference observation contradicts sampled serializer profile");
         }
     }
     record Observation(UUID id, String session, long generation, long writerRevision, SaveRevision output,
@@ -58,6 +75,10 @@ final class FinanceSerializationEvidence {
             throw new IllegalArgumentException("Inconsistent numeric/reference observation");
     }
     static void write(DataOutputStream out, List<Observation> observations) throws IOException {
+        write(out, observations, 3);
+    }
+    static void write(DataOutputStream out, List<Observation> observations, int format) throws IOException {
+        if (format != 2 && format != 3) throw new IOException("Unknown serialization observation format");
         out.writeInt(observations.size());
         for (var value : observations) {
             uuid(out, value.id()); out.writeUTF(value.session()); out.writeLong(value.generation()); out.writeLong(value.writerRevision());
@@ -69,10 +90,16 @@ final class FinanceSerializationEvidence {
                 out.writeUTF(item.execution().name()); out.writeUTF(item.receipt().name()); out.writeUTF(op.before().name()); out.writeUTF(op.after().name()); out.writeUTF(op.executionToSerializer().name());
                 out.writeUTF(op.fields().status().name()); out.writeInt(op.fields().observed()); routes(out, op.fields().routes());
                 out.writeUTF(op.edge().status().name()); out.writeInt(op.edge().observed()); routes(out, op.edge().routes());
+                if (format == 3) op.qualifications().write(out);
+                else if (op.qualifications().version() != 0) throw new IOException("Cannot drop qualification manifest into legacy observation format");
             }
         }
     }
     static List<Observation> read(DataInputStream in) throws IOException {
+        return read(in, 3);
+    }
+    static List<Observation> read(DataInputStream in, int format) throws IOException {
+        if (format != 2 && format != 3) throw new IOException("Unknown serialization observation format");
         int count = bounded(in.readInt(), 1, MAX_OBSERVATIONS); var values = new ArrayList<Observation>(); var ids = new HashSet<UUID>();
         for (int i = 0; i < count; i++) {
             UUID id = uuid(in); String session = in.readUTF(); long generation = in.readLong(), revision = in.readLong();
@@ -86,7 +113,8 @@ final class FinanceSerializationEvidence {
                 var before = Sample.valueOf(in.readUTF()); var after = Sample.valueOf(in.readUTF()); var continuity = Continuity.valueOf(in.readUTF());
                 var fields = new Fields(Emission.valueOf(in.readUTF()), in.readInt(), routes(in, NUMERIC));
                 var edge = new Edge(Reference.valueOf(in.readUTF()), in.readInt(), routes(in, REFERENCES));
-                operations.add(new Operation(new FinanceSerializationTracker.Operation(operation, intent, before, after, continuity, fields, edge), state, receipt));
+                var facts = format == 3 ? FinanceQualificationManifest.read(in) : FinanceQualificationManifest.legacy();
+                operations.add(new Operation(new FinanceSerializationTracker.Operation(operation, intent, before, after, continuity, fields, edge, facts), state, receipt));
             }
             if (!ids.add(id)) throw new IOException("Duplicate writer observation");
             values.add(new Observation(id, session, generation, revision, output, execution, request, journal, capacity, window, operations));

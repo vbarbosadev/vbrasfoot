@@ -132,7 +132,12 @@ final class ProbeSession implements AutoCloseable {
                  output.setProperty(prefix + "numericRoutes", String.join(",", new java.util.TreeSet<>(operation.fields().routes())));
                  output.setProperty(prefix + "ledgerReference", operation.edge().status().name());
                  output.setProperty(prefix + "ledgerReferenceObserved", Integer.toString(operation.edge().observed()));
-                 output.setProperty(prefix + "ledgerReferenceRoutes", String.join(",", new java.util.TreeSet<>(operation.edge().routes())));
+                  output.setProperty(prefix + "ledgerReferenceRoutes", String.join(",", new java.util.TreeSet<>(operation.edge().routes())));
+                  var facts = operation.qualifications();
+                  output.setProperty(prefix + "qualification.version", Integer.toString(facts.version()));
+                  output.setProperty(prefix + "qualification.membershipBefore", facts.membershipBefore().map(Enum::name).orElse("NOT_RECORDED"));
+                  output.setProperty(prefix + "qualification.membershipAfter", facts.membershipAfter().map(Enum::name).orElse("NOT_RECORDED"));
+                  output.setProperty(prefix + "qualification.serializerAfterReference", facts.serializerAfterReference().map(Enum::name).orElse("NOT_RECORDED"));
              }
          });
           output.setProperty("finance.coverage", "Selected direct writes plus fingerprinted original Kryo int/long/object setter sites; excludes other reflection/Unsafe/decoder/custom/native/arbitrary writes; not operation inclusion");
