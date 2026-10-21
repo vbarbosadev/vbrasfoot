@@ -10,6 +10,13 @@ em crash/power-loss.14checks aprovados em
 Temp/opencode/no-effect-revision-constraints-10a65ae11c4243bbafaf048d6fc30d6a;
 metadata Temp/opencode/no-effect-revision-14988502853373416773.
 
+Build completo/suite sintetica aprovados em build/no-effect-revision-build.log.
+SDK ZIP isolado/hashes/allowlist/SDK-only authoring/corrupcao recusada aprovados
+em build/no-effect-revision-sdk-test.log,fixture
+Temp/opencode/vbrasfoot-sdk-author-b1a2bc4874fc4feba5870b58d3ab74d0.
+Nenhuma mudanca de instrumentacao/rotas do jogo neste incremento;nao repetimos
+os testes humanos ou atribuimos os160I/O/280financeiros anteriores a este teste.
+
 Observacoes executadas:
 1. Aceitar revisao da associacao preserva todos os3historicos financeiros antigos.
 2. reanchorNoEffects do diario funciona no escopo estreito existente,preserva
