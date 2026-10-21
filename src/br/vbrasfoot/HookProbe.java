@@ -110,10 +110,11 @@ public final class HookProbe {
             }
             var base = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer$CachedField", false, loader);
             var field = (java.lang.reflect.Field) base.getMethod("getField").invoke(cachedField);
+            var profile = LedgerSerializerProfile.inspect(serializer, value, loader);
             var kind = serializer == null ? FinanceSerializationTracker.SerializerKind.NONE
-                    : LedgerSerializerProfile.inspect(serializer, value, loader) == LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT
+                    : profile == LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT
                     ? FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER : FinanceSerializationTracker.SerializerKind.OTHER;
-            frame.serializationTracker.referenced(frame.serializationWindow, field, receiver, value, route, kind);
+            frame.serializationTracker.referenced(frame.serializationWindow, field, receiver, value, route, kind, java.util.Optional.of(profile));
         } catch (Throwable ignored) {
             try { if (frame != null && frame.serializationTracker != null) frame.serializationTracker.referenceFailed(frame.serializationWindow); }
             catch (Throwable alsoIgnored) { /* Diagnostic failure must not escape into the original serializer. */ }

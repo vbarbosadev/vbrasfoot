@@ -16,8 +16,13 @@ final class FinanceSerializationTracker implements AutoCloseable {
     enum Emission { MISSING, PARTIAL, EXPECTED_NUMERIC_ARGUMENTS_OBSERVED, VALUE_MISMATCH, AMBIGUOUS, UNAVAILABLE }
     enum Reference { MISSING, EXPECTED_LEDGER_ARGUMENT_OBSERVED, REFERENCE_MISMATCH, AMBIGUOUS, UNAVAILABLE, UNSUPPORTED_SERIALIZER }
     enum SerializerKind { FIELD_SERIALIZER, NONE, OTHER }
+    record SampleFact(Sample sample, Optional<FinanceLedgerMembership.Status> membership) {
+        SampleFact { Objects.requireNonNull(sample); Objects.requireNonNull(membership); }
+        static SampleFact unavailable(Sample sample) { return new SampleFact(sample, Optional.empty()); }
+    }
     interface Target {
         Sample sample(Object serializedPrimary) throws Exception;
+        default SampleFact sampleFact(Object serializedPrimary) throws Exception { return SampleFact.unavailable(sample(serializedPrimary)); }
         default Argument emitted(java.lang.reflect.Field field, Object receiver, long value) throws Exception { return Argument.IRRELEVANT; }
         default Argument referenced(java.lang.reflect.Field field, Object receiver, Object value) throws Exception { return Argument.IRRELEVANT; }
     }
@@ -28,7 +33,13 @@ final class FinanceSerializationTracker implements AutoCloseable {
         Edge { routes = Set.copyOf(routes); }
         static Edge missing() { return new Edge(Reference.MISSING, 0, Set.of()); }
     }
-    record Operation(UUID operationId, CareerCommandJournal.Intent intent, Sample before, Sample after, Continuity executionToSerializer, Fields fields, Edge edge) { }
+    record Operation(UUID operationId, CareerCommandJournal.Intent intent, Sample before, Sample after, Continuity executionToSerializer, Fields fields, Edge edge,
+                     FinanceQualificationManifest qualifications) {
+        Operation { Objects.requireNonNull(qualifications); }
+        Operation(UUID id, CareerCommandJournal.Intent intent, Sample before, Sample after, Continuity continuity, Fields fields, Edge edge) {
+            this(id, intent, before, after, continuity, fields, edge, FinanceQualificationManifest.legacy());
+        }
+    }
     record Capture(boolean validWindow, boolean capacityExceeded, List<Operation> operations) {
         Capture { operations = List.copyOf(operations); }
         static Capture unavailable() { return new Capture(false, false, List.of()); }
@@ -46,12 +57,14 @@ final class FinanceSerializationTracker implements AutoCloseable {
         private final List<Set<String>> routes = new ArrayList<>();
         private final boolean[] mismatched, ambiguous, failed;
         private final Edge[] edges;
+        private final List<Optional<LedgerSerializerProfile.Status>> profiles;
         private boolean consumed;
         private Window(UUID tracker, long revision, boolean exceeded, Object primary, List<Entry> entries, List<Operation> before) {
             this.tracker = tracker; this.revision = revision; this.exceeded = exceeded; this.primary = new WeakReference<>(primary);
             this.entries = entries; this.before = before;
             mismatched = new boolean[entries.size()]; ambiguous = new boolean[entries.size()]; failed = new boolean[entries.size()];
             edges = new Edge[entries.size()]; Arrays.fill(edges, Edge.missing());
+            profiles = new ArrayList<>(Collections.nCopies(entries.size(), Optional.empty()));
             for (int i = 0; i < entries.size(); i++) { emitted.add(new HashSet<>()); routes.add(new HashSet<>()); }
         }
     }
@@ -76,8 +89,12 @@ final class FinanceSerializationTracker implements AutoCloseable {
             selected = List.copyOf(entries.values()); expected = revision; overflow = exceeded;
         }
         var operations = new ArrayList<Operation>();
-        for (var entry : selected) operations.add(new Operation(entry.operationId(), entry.intent(), sample(entry, primary), Sample.TARGET_UNAVAILABLE,
-                continuity(entry.executionEnd(), serializationStart), new Fields(Emission.MISSING, 0, Set.of()), Edge.missing()));
+        for (var entry : selected) {
+            var fact = sample(entry, primary);
+            operations.add(new Operation(entry.operationId(), entry.intent(), fact.sample(), Sample.TARGET_UNAVAILABLE,
+                    continuity(entry.executionEnd(), serializationStart), new Fields(Emission.MISSING, 0, Set.of()), Edge.missing(),
+                    FinanceQualificationManifest.sampled(fact.membership(), Optional.empty(), Optional.empty())));
+        }
         return new Window(id, expected, overflow, primary, selected, List.copyOf(operations));
     }
     Capture finish(Window window, Object primary) {
@@ -90,7 +107,9 @@ final class FinanceSerializationTracker implements AutoCloseable {
         var operations = new ArrayList<Operation>();
         for (int i = 0; i < window.entries.size(); i++) {
             var before = window.before.get(i);
-            operations.add(new Operation(before.operationId(), before.intent(), before.before(), sample(window.entries.get(i), primary), before.executionToSerializer(), fields(window, i), window.edges[i]));
+            var after = sample(window.entries.get(i), primary);
+            operations.add(new Operation(before.operationId(), before.intent(), before.before(), after.sample(), before.executionToSerializer(), fields(window, i), window.edges[i],
+                    FinanceQualificationManifest.sampled(before.qualifications().membershipBefore(), after.membership(), window.profiles.get(i))));
         }
         synchronized (this) { if (closed || revision != window.revision) return Capture.unavailable(); }
         return new Capture(true, window.exceeded, operations);
@@ -125,6 +144,10 @@ final class FinanceSerializationTracker implements AutoCloseable {
         if (!closed && window != null && id.equals(window.tracker) && !window.consumed && revision == window.revision) Arrays.fill(window.failed, true);
     }
     void referenced(Window window, java.lang.reflect.Field field, Object receiver, Object value, String route, SerializerKind serializer) {
+        referenced(window, field, receiver, value, route, serializer, Optional.empty());
+    }
+    void referenced(Window window, java.lang.reflect.Field field, Object receiver, Object value, String route, SerializerKind serializer,
+                    Optional<LedgerSerializerProfile.Status> profile) {
         if (window == null || !id.equals(window.tracker)) return;
         for (int i = 0; i < window.entries.size(); i++) {
             synchronized (this) { if (closed || window.consumed || revision != window.revision) return; }
@@ -143,12 +166,17 @@ final class FinanceSerializationTracker implements AutoCloseable {
                         : prior.observed() > 0 ? Reference.AMBIGUOUS : result != Argument.MATCHED ? Reference.REFERENCE_MISMATCH
                         : serializer != SerializerKind.FIELD_SERIALIZER ? Reference.UNSUPPORTED_SERIALIZER : Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED;
                 window.edges[i] = new Edge(status, Math.min(2, prior.observed() + (result == null ? 0 : 1)), routes);
+                window.profiles.set(i, result != null && validField && supported && prior.observed() == 0 && prior.status() != Reference.UNAVAILABLE
+                        && profile != null ? profile : Optional.empty());
             }
         }
     }
     synchronized void referenceFailed(Window window) {
         if (closed || window == null || !id.equals(window.tracker) || window.consumed || revision != window.revision) return;
-        for (int i = 0; i < window.edges.length; i++) window.edges[i] = new Edge(Reference.UNAVAILABLE, window.edges[i].observed(), window.edges[i].routes());
+        for (int i = 0; i < window.edges.length; i++) {
+            window.edges[i] = new Edge(Reference.UNAVAILABLE, window.edges[i].observed(), window.edges[i].routes());
+            window.profiles.set(i, Optional.empty());
+        }
     }
     private static Fields fields(Window window, int i) {
         int count = window.emitted.get(i).size();
@@ -157,11 +185,11 @@ final class FinanceSerializationTracker implements AutoCloseable {
                 : count == 0 ? Emission.MISSING : Emission.PARTIAL;
         return new Fields(status, count, window.routes.get(i));
     }
-    private static Sample sample(Entry entry, Object primary) {
-        if (!SwingUtilities.isEventDispatchThread()) return Sample.WRONG_THREAD;
-        var target = entry.target().get(); if (target == null) return Sample.TARGET_UNAVAILABLE;
-        try { var result = target.sample(primary); return result == null ? Sample.READ_FAILED : result; }
-        catch (Throwable failure) { return Sample.READ_FAILED; }
+    private static SampleFact sample(Entry entry, Object primary) {
+        if (!SwingUtilities.isEventDispatchThread()) return SampleFact.unavailable(Sample.WRONG_THREAD);
+        var target = entry.target().get(); if (target == null) return SampleFact.unavailable(Sample.TARGET_UNAVAILABLE);
+        try { var result = target.sampleFact(primary); return result == null ? SampleFact.unavailable(Sample.READ_FAILED) : result; }
+        catch (Throwable failure) { return SampleFact.unavailable(Sample.READ_FAILED); }
     }
     private static Continuity continuity(FinanceMutationTracker.Snapshot execution, FinanceMutationTracker.Snapshot serialization) {
         if (execution == null || serialization == null || !execution.tracker().equals(serialization.tracker())

@@ -1,5 +1,9 @@
 # Revisao das lacunas de observacoes persistidas
 
+Incremento posterior:[manifesto versionado](VERSIONED-FINANCIAL-QUALIFICATIONS.md)
+registra fatos NOVOS em schema3e ajusta gaps por fato presente/negativo.A descricao
+de5obrigacoes ausentes abaixo continua valida para historicos1/2,sem retroatividade.
+
 FinanceSerializationReview e funcao PURA: recebe snapshot de execucao e revisao
 observada, sem consultar runtime, EDT, arquivo ou estado global. Enumera por par
 UUID do writer/UUID da operacao os requisitos ainda nao demonstrados. Limites

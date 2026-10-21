@@ -135,6 +135,11 @@ public final class WrittenSaveProvenanceSelfTest {
                 && properties.getProperty("finance.operation.0.numericFieldsObserved").equals("0"), "report never promotes root-only matched sample to observed numeric arguments");
         check(properties.getProperty("finance.operation.0.ledgerReference").equals("MISSING")
                 && properties.getProperty("finance.operation.0.ledgerReferenceObserved").equals("0"), "report never infers ledger argument from matched root samples");
+        check(properties.getProperty("finance.operation.0.qualification.version").equals("1")
+                && properties.getProperty("finance.operation.0.qualification.membershipBefore").equals("NOT_RECORDED")
+                && properties.getProperty("finance.operation.0.qualification.membershipAfter").equals("NOT_RECORDED")
+                && properties.getProperty("finance.operation.0.qualification.serializerAfterReference").equals("NOT_RECORDED"),
+                "new report identifies manifest1 but never invents unavailable sampler/profile facts");
         check(!Files.readString(report.resolveSibling("written-save-provenance.properties")).contains("private-request-key"), "exported report does not disclose private operation key/payload or target values");
         System.out.println("PASS: " + checks + " written-save stream checks; owned fixture " + root + "; no financial operation inclusion inferred.");
     }

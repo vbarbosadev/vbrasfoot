@@ -58,6 +58,28 @@ public final class FinanceSerializationEvidenceSelfTest {
         FinanceExecutionWitnessStore.Snapshot record(WrittenSaveVerifier.Captured capture) throws Exception {
             return witnesses.observeSerialization(source, witnesses.read(source).token(), capture, requests, journal);
         }
+        FinanceExecutionWitnessStore.Snapshot seedLegacyObservation() throws Exception {
+            // Own fixture encoder for previous format, never production downgrade or migration.
+            var before = witnesses.read(source); var witness = before.witnesses().get(0);
+            var operation = new FinanceSerializationTracker.Operation(witness.operationId(), witness.intent(), FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE,
+                    FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE, FinanceSerializationTracker.Continuity.NO_OBSERVED_DIRECT_WRITE,
+                    new FinanceSerializationTracker.Fields(FinanceSerializationTracker.Emission.EXPECTED_NUMERIC_ARGUMENTS_OBSERVED, 15, Set.of("UnsafeLongField", "UnsafeIntField")),
+                    new FinanceSerializationTracker.Edge(FinanceSerializationTracker.Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED, 1, Set.of("writeObject")));
+            var observation = new FinanceSerializationEvidence.Observation(UUID.randomUUID(), UUID.randomUUID().toString(), 1, 1, source, before.token(), requests.read(source).token(),
+                    journal.read(source).token(), false, FinanceMutationAssessment.Status.NO_OBSERVED_DIRECT_WRITE,
+                    List.of(new FinanceSerializationEvidence.Operation(operation, witness.state(), CareerCommandJournal.State.APPLIED)));
+            var bytes = new ByteArrayOutputStream();
+            try (var out = new DataOutputStream(bytes)) {
+                out.writeInt(0x56424645); out.writeInt(2); out.writeInt(before.witnesses().size());
+                for (var value : before.witnesses()) {
+                    out.writeLong(value.operationId().getMostSignificantBits()); out.writeLong(value.operationId().getLeastSignificantBits());
+                    out.writeUTF(value.intent().key()); out.writeUTF(value.intent().operation().name()); out.writeUTF(value.intent().payloadDigest());
+                    out.writeLong(value.context().getMostSignificantBits()); out.writeLong(value.context().getLeastSignificantBits()); out.writeLong(value.generation()); out.writeUTF(value.state().name());
+                }
+                FinanceSerializationEvidence.write(out, List.of(observation), 2);
+            }
+            storage.write(key, source, 2, before.token(), bytes.toByteArray()); return witnesses.read(source);
+        }
         public void close() throws Exception { captureGuard.close(); lifecycleGuard.close(); gate.close(); java.lang.ref.Reference.reachabilityFence(target); }
     }
     public static void main(String[] args) throws Exception {
@@ -72,7 +94,7 @@ public final class FinanceSerializationEvidenceSelfTest {
             CareerBridge.onEdt(() -> { try { f.record(capture); } catch (Throwable failure) { onEdt.set(failure); } return null; });
             check(onEdt.get() instanceof Failure failure && failure.reason() == Reason.WRONG_THREAD, "collector refuses all metadata I/O on EDT");
             check(committed.witnesses().equals(legacy.witnesses()), "append never rewrites execution states/UUIDs");
-            check(f.storage.read(f.key, f.source).value().orElseThrow().schema() == 2, "observation writes explicit schema2");
+            check(f.storage.read(f.key, f.source).value().orElseThrow().schema() == 3, "new live observation writes explicit schema3 even when qualified facts are unavailable");
             check(f.storage.readPrevious(f.key, f.source, committed.token()).schema() == 1, "legacy committed record preserved as previous, no in-place rewrite");
             check(observation.id().equals(capture.binding().observationId()) && observation.output().equals(capture.binding().bytes()), "capture nonce bound to exact output hash/size");
             check(observation.executionToken().equals(legacy.token()) && observation.requestToken().equals(requests.token()) && observation.journalToken().equals(history.token()), "all three source history tokens persisted");
@@ -82,16 +104,16 @@ public final class FinanceSerializationEvidenceSelfTest {
             check(!observation.operationInclusionProven() && !observation.writeAuthority(), "durable observation never becomes inclusion/authority");
             check(f.record(capture).equals(committed), "same live writer read-only confirmation is idempotent");
             rejects(Reason.CONFLICT, () -> f.witnesses.observeSerialization(f.source, legacy.token(), capture, f.requests, f.journal));
-            check(new FinanceExecutionWitnessStore(new CareerSidecarStore(f.root.resolve("execution")), f.key).read(f.source).equals(committed), "restart decodes exact immutable schema2 without objects");
+            check(new FinanceExecutionWitnessStore(new CareerSidecarStore(f.root.resolve("execution")), f.key).read(f.source).equals(committed), "restart decodes exact immutable schema3 without objects");
             check(f.journal.read(f.source).equals(history) && f.requests.read(f.source).equals(requests), "contracts/raw receipts never changed");
             check(f.storage.inventoryBinding(f.key.career(), f.key.binding()).tokens().get(f.key.mod()).equals(committed.token()), "existing execution inventory observes new HEAD, no unreviewed parallel root");
             byte[] payload = f.storage.read(f.key, f.source).value().orElseThrow().payload();
             for (String mode : List.of("schema", "format", "trailing", "truncated")) {
                 var bad = new CareerSidecarStore(f.root.resolve("bad-" + mode)); byte[] bytes = payload.clone();
-                if (mode.equals("format")) bytes[7] = 3;
+                if (mode.equals("format")) bytes[7] = 4;
                 if (mode.equals("trailing")) bytes = Arrays.copyOf(bytes, bytes.length + 1);
                 if (mode.equals("truncated")) bytes = Arrays.copyOf(bytes, bytes.length - 1);
-                bad.write(f.key, f.source, mode.equals("schema") ? 3 : 2, EMPTY, bytes);
+                bad.write(f.key, f.source, mode.equals("schema") ? 4 : 3, EMPTY, bytes);
                 rejects(Reason.CORRUPT, () -> new FinanceExecutionWitnessStore(bad, f.key).read(f.source));
             }
             var duplicateBytes = new ByteArrayOutputStream();
@@ -124,8 +146,8 @@ public final class FinanceSerializationEvidenceSelfTest {
             var armLater = f.witnesses.arm(contextLater, f.journal.executionPermit(preparedLater.lease().orElseThrow(), preparedLater.snapshot().token()), committed.token());
             var doneLater = f.witnesses.complete(armLater.lease(), FinanceExecutionWitnessStore.State.MEMORY_APPLIED, armLater.snapshot().token());
             f.journal.complete(preparedLater.lease().orElseThrow(), CareerCommandJournal.State.APPLIED, preparedLater.snapshot().token());
-            check(doneLater.serializations().equals(committed.serializations()) && f.storage.read(f.key, f.source).value().orElseThrow().schema() == 2,
-                    "later arm/complete preserves all observations and cannot downgrade schema2");
+            check(doneLater.serializations().equals(committed.serializations()) && f.storage.read(f.key, f.source).value().orElseThrow().schema() == 3,
+                    "later arm/complete preserves all observations and cannot downgrade schema3");
             check(doneLater.witnesses().size() == 2, "subsequent artificial witness keeps original execution history");
             for (int i = 1; i < FinanceSerializationEvidence.MAX_OBSERVATIONS; i++) f.record(f.save());
             var full = f.witnesses.read(f.source); var extra = f.save();
@@ -134,6 +156,21 @@ public final class FinanceSerializationEvidenceSelfTest {
             HookProbe.rootAssigned();
             boolean stale = false; try { f.record(extra); } catch (WrittenSaveVerifier.Failure expected) { stale = true; }
             check(stale && f.witnesses.read(f.source).equals(full), "root/reload invalidation refuses stale opaque capture without changing disk");
+        }
+        try (var f = new Fixture(root.resolve("legacy-mixed"), stage -> { })) {
+            var old = f.seedLegacyObservation();
+            check(f.storage.read(f.key, f.source).value().orElseThrow().schema() == 2 && old.serializations().get(0).operations().get(0).capture().qualifications().version() == 0,
+                    "previous schema2 reads without qualification facts or silent migration");
+            var repeated = f.witnesses.read(f.source);
+            check(repeated.equals(old) && f.storage.read(f.key, f.source).value().orElseThrow().schema() == 2, "repeated legacy read preserves original HEAD/schema");
+            var mixed = f.record(f.save());
+            check(f.storage.read(f.key, f.source).value().orElseThrow().schema() == 3 && mixed.serializations().size() == 2 && mixed.serializations().get(0).equals(old.serializations().get(0)),
+                    "new live append upgrades container to3 while old observation payload/facts remain identical");
+            check(mixed.serializations().get(1).operations().get(0).capture().qualifications().version() == 1, "new observation has explicit current manifest even with absent metadata");
+            check(f.storage.readPrevious(f.key, f.source, mixed.token()).schema() == 2, "old schema2 remains previous committed record, never rewritten in place");
+            check(new FinanceExecutionWitnessStore(new CareerSidecarStore(f.root.resolve("execution")), f.key).read(f.source).equals(mixed), "mixed qualification versions reopen unchanged after restart");
+            check(FinanceSerializationReview.inspect(mixed, f.source).stream().allMatch(value -> value.blocksInclusion() && value.gaps().contains(FinanceSerializationReview.Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED)),
+                    "neither old ideal facts nor new missing facts receive borrowed live qualifications");
         }
         try (var f = new Fixture(root.resolve("precommit-file"), stage -> { })) {
             var capture = f.save(); var before = f.witnesses.read(f.source); Files.write(f.file, new byte[]{9, 8, 7, 6});
@@ -148,11 +185,14 @@ public final class FinanceSerializationEvidenceSelfTest {
         for (Stage point : Stage.values()) {
             var enabled = new AtomicBoolean();
             try (var f = new Fixture(root.resolve("fault-" + point), stage -> { if (enabled.get() && stage == point) throw new IOException("Owned observation interruption"); })) {
-                var before = f.witnesses.read(f.source); var capture = f.save(); enabled.set(true);
+                var before = f.seedLegacyObservation(); var capture = f.save(); enabled.set(true);
                 boolean failed = false; try { f.record(capture); } catch (IOException expected) { failed = true; }
                 check(failed, "controlled observation interruption surfaced " + point);
                 var reopened = new FinanceExecutionWitnessStore(new CareerSidecarStore(f.root.resolve("execution")), f.key).read(f.source);
-                check(reopened.serializations().size() == (point == Stage.HEAD_COMMITTED ? 1 : 0), "only committed HEAD exposes observation, no orphan promotion " + point);
+                check(reopened.serializations().size() == (point == Stage.HEAD_COMMITTED ? 2 : 1), "only committed HEAD exposes new manifest, no orphan promotion " + point);
+                check(reopened.serializations().get(0).equals(before.serializations().get(0)), "schema2 history preserved during interrupted schema3 append " + point);
+                check(new CareerSidecarStore(f.root.resolve("execution")).read(f.key, f.source).value().orElseThrow().schema() == (point == Stage.HEAD_COMMITTED ? 3 : 2),
+                        "only committed HEAD changes legacy container format during interruption " + point);
                 check(reopened.witnesses().equals(before.witnesses()), "interruption never erases/changes execution evidence " + point);
                 check(f.journal.prepare(f.source, f.journal.read(f.source).token(), f.proof.intent()).lease().isEmpty(), "interruption never replays effect " + point);
             }

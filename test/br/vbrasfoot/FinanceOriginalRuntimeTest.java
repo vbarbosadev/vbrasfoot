@@ -586,12 +586,18 @@ public final class FinanceOriginalRuntimeTest {
                         check(journal.read(revision).equals(originalJournal) && requestStore.read(revision).equals(originalContracts),
                                 "durable writer observation never modifies receipt, contract, anchor or payload");
                         check(new FinanceExecutionWitnessStore(new CareerSidecarStore(home.resolve("finance-execution-witnesses")), key).read(revision).equals(persistedWriter),
-                                "reopened schema2 reconstructs exact original writer evidence without runtime objects");
+                                "reopened schema3 reconstructs exact original writer evidence and qualified samples without runtime objects");
                         var persistedGaps = FinanceSerializationReview.inspect(persistedWriter, bindingWritten.bytes());
                         check(persistedGaps.size() == 3 && persistedGaps.stream().allMatch(value -> value.blocksInclusion() && !value.writeAuthority()
-                                        && value.gaps().contains(FinanceSerializationReview.Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED)
-                                        && value.gaps().contains(FinanceSerializationReview.Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED)),
-                                "persisted original UUIDs never borrow live sampled profile or membership checks absent from schema2");
+                                        && !value.gaps().contains(FinanceSerializationReview.Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED)
+                                        && !value.gaps().contains(FinanceSerializationReview.Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED)
+                                        && value.gaps().contains(FinanceSerializationReview.Gap.MUTATION_EXCLUSIVITY_UNPROVEN)),
+                                "schema3 original UUIDs record sampled profile/membership without claiming mutation exclusivity or inclusion");
+                        check(persistedWriter.serializations().get(0).operations().stream().allMatch(value -> value.capture().qualifications().version() == 1
+                                        && value.capture().qualifications().membershipBefore().orElseThrow() == FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST
+                                        && value.capture().qualifications().membershipAfter().orElseThrow() == FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST
+                                        && value.capture().qualifications().serializerAfterReference().orElseThrow() == LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT),
+                                "each exact original witnessed UUID persists before/after membership and actual reference serializer profile in manifest1");
                         check(persistedGaps.stream().filter(value -> !value.operation().equals(finalOperation)).allMatch(value -> value.gaps().contains(FinanceSerializationReview.Gap.NUMERIC_ARGUMENT_MISMATCH)),
                                 "original earlier-operation emitted value divergence remains explicit in read-only recovery report");
                         java.lang.ref.Reference.reachabilityFence(credit); java.lang.ref.Reference.reachabilityFence(debit); java.lang.ref.Reference.reachabilityFence(finalSerializerPlan);

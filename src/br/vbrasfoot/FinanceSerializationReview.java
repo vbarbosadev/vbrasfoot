@@ -10,6 +10,7 @@ final class FinanceSerializationReview {
         NUMERIC_ARGUMENT_MISMATCH, NUMERIC_ARGUMENTS_AMBIGUOUS, LEDGER_REFERENCE_INCOMPLETE,
         LEDGER_REFERENCE_MISMATCH, LEDGER_REFERENCE_AMBIGUOUS, UNSUPPORTED_LEDGER_SERIALIZER,
         LIVE_SERIALIZER_PROFILE_NOT_RECORDED, CLUB_MEMBERSHIP_CHECK_NOT_RECORDED,
+        SAMPLED_SERIALIZER_PROFILE_UNSUPPORTED, CLUB_MEMBERSHIP_NOT_QUALIFIED,
         MUTATION_EXCLUSIVITY_UNPROVEN, REFERENCE_TABLE_AND_ALIASES_UNPROVEN, MULTI_ROOT_RECOVERY_UNPROVEN }
     record Operation(UUID writerObservation, UUID operation, Set<Gap> gaps) {
         Operation { Objects.requireNonNull(writerObservation); Objects.requireNonNull(operation); gaps = Set.copyOf(gaps); }
@@ -26,12 +27,24 @@ final class FinanceSerializationReview {
             for (var entry : writer.operations()) {
                 var gaps = EnumSet.of(Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED, Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED,
                         Gap.MUTATION_EXCLUSIVITY_UNPROVEN, Gap.REFERENCE_TABLE_AND_ALIASES_UNPROVEN, Gap.MULTI_ROOT_RECOVERY_UNPROVEN);
-                // No field in schemas1/2 proves these obligations; do not read current runtime or reinterpret old labels.
+                // Only versioned facts recorded in THIS capture, never current runtime or inferred legacy labels.
                 if (!writer.output().equals(observedSave)) gaps.add(Gap.OUTPUT_REVISION_DIFFERS);
                 if (writer.capacityExceeded()) gaps.add(Gap.PARTIAL_OPERATION_INVENTORY);
                 if (entry.execution() != FinanceExecutionWitnessStore.State.MEMORY_APPLIED) gaps.add(Gap.EXECUTION_UNCERTAIN);
                 if (entry.receipt() != CareerCommandJournal.State.APPLIED) gaps.add(Gap.RECEIPT_UNCERTAIN);
                 var op = entry.capture();
+                var facts = op.qualifications();
+                if (facts.version() == 1) {
+                    if (facts.membershipBefore().isPresent() && facts.membershipAfter().isPresent()) {
+                        gaps.remove(Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED);
+                    }
+                    if (facts.membershipBefore().filter(value -> value != FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST).isPresent()
+                            || facts.membershipAfter().filter(value -> value != FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST).isPresent()) gaps.add(Gap.CLUB_MEMBERSHIP_NOT_QUALIFIED);
+                    if (facts.serializerAfterReference().isPresent()) {
+                        gaps.remove(Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED);
+                        if (facts.serializerAfterReference().orElseThrow() != LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT) gaps.add(Gap.SAMPLED_SERIALIZER_PROFILE_UNSUPPORTED);
+                    }
+                }
                 if (op.before() != FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE || op.after() != FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE)
                     gaps.add(Gap.ROOT_SAMPLES_NOT_MATCHED);
                 switch (op.executionToSerializer()) {
