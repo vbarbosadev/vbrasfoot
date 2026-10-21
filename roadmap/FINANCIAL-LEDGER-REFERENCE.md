@@ -81,6 +81,11 @@ privada, EXE/input hash-conferidos; nenhuma escrita em instalacao/save pessoal.
 
 ## Proximos elos ainda nao provados
 
+Incremento posterior: [observacoes persistentes por UUID](DURABLE-SERIALIZER-OBSERVATIONS.md)
+grava a captura por coleta interna explicita no historico de execucao, sem promover
+observacao a inclusao. A limitacao de captura em memoria abaixo descreve este
+incremento; power-loss/causalidade/recovery multi-root continuam sem qualificacao.
+
 Kryo.writeObject pode serializar conteudo ou emitir referencia a objeto anterior;
 este incremento NAO observa/resolve a tabela de referencias, ranges ou bytes do
 objeto. Nao prova ownership exclusivo do ledger nem ausencia de aliases no grafo.

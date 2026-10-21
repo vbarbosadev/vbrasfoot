@@ -337,6 +337,20 @@ public final class FinanceOriginalRuntimeTest {
                         check(!lastCapture.edge().routes().isEmpty(), "original ledger reference route observed separately from numeric values");
                         System.out.println("Observed original numeric routes: " + new TreeSet<>(lastCapture.fields().routes()) + "; fields=" + lastCapture.fields().observed() + "; operation inclusion remains unproven.");
                         System.out.println("Observed original ledger reference routes: " + new TreeSet<>(lastCapture.edge().routes()) + "; operation inclusion remains unproven.");
+                        var originalJournal = journal.read(revision); var originalContracts = requestStore.read(revision);
+                        var capturedWriter = new WrittenSaveVerifier(runtime).capture(observer.observe(game.resolve("sav"), "finance-output.s22"));
+                        var persistedWriter = witnessStore.observeSerialization(revision, witnessStore.read(revision).token(), capturedWriter, requestStore, journal);
+                        check(persistedWriter.serializations().size() == 1 && persistedWriter.serializations().get(0).operations().size() == 3,
+                                "durable observation links all three exact witnessed UUIDs to original writer capture");
+                        check(persistedWriter.serializations().get(0).output().equals(bindingWritten.bytes())
+                                        && !persistedWriter.serializations().get(0).operationInclusionProven() && !persistedWriter.serializations().get(0).writeAuthority(),
+                                "committed observed numeric/reference arguments retain exact stream bytes without claiming inclusion or authority");
+                        check(witnessStore.observeSerialization(revision, persistedWriter.token(), capturedWriter, requestStore, journal).equals(persistedWriter),
+                                "same live writer capture confirms read-only without duplicate observation or effect retry");
+                        check(journal.read(revision).equals(originalJournal) && requestStore.read(revision).equals(originalContracts),
+                                "durable writer observation never modifies receipt, contract, anchor or payload");
+                        check(new FinanceExecutionWitnessStore(new CareerSidecarStore(home.resolve("finance-execution-witnesses")), key).read(revision).equals(persistedWriter),
+                                "reopened schema2 reconstructs exact original writer evidence without runtime objects");
                         java.lang.ref.Reference.reachabilityFence(credit); java.lang.ref.Reference.reachabilityFence(debit); java.lang.ref.Reference.reachabilityFence(finalSerializerPlan);
                     }
                     check(CareerBridge.onEdt(() -> (boolean) load.invoke(null, "finance-output", false)), "original loader reloads private financially modified save");

@@ -16,6 +16,21 @@ final class WrittenSaveVerifier {
         Reason reason() { return reason; }
     }
     record Verified(String session, long generation, long evidenceRevision, Path destination, CareerSidecarStore.SaveRevision bytes) { }
+    /** Not reconstructible from a path/hash/report or after restarting the process. Weak roots remain in Binding only. */
+    static final class Captured {
+        private final WrittenSaveVerifier owner;
+        private final SaveFileObserver.Observation observed;
+        private final WrittenSaveProvenance.Binding binding;
+        private Captured(WrittenSaveVerifier owner, SaveFileObserver.Observation observed, WrittenSaveProvenance.Binding binding) {
+            this.owner = owner; this.observed = observed; this.binding = binding;
+        }
+        WrittenSaveProvenance.Binding binding() { return binding; }
+        void revalidate() throws IOException, InterruptedException {
+            owner.verify(observed);
+            if (HookProbe.writtenSaveProvenance().binding().orElse(null) != binding)
+                throw new Failure(Reason.STALE_ROOTS, "Original writer observation no longer current");
+        }
+    }
     private final SaveFileObserver observer;
     private final CareerCommandDispatcher.RootsSource roots;
     private final long timeoutNanos;
@@ -51,5 +66,13 @@ final class WrittenSaveVerifier {
         observer.verify(observed);
         if (HookProbe.writtenSaveProvenance().binding().orElse(null) != binding) throw new Failure(Reason.STALE_ROOTS, "Save evidence changed during verification");
         return new Verified(binding.session(), binding.generation(), binding.revision(), binding.destination(), binding.bytes());
+    }
+    Captured capture(SaveFileObserver.Observation observed) throws IOException, InterruptedException {
+        var verified = verify(observed);
+        var binding = HookProbe.writtenSaveProvenance().binding().orElseThrow(() -> new Failure(Reason.NO_PROVENANCE, "Writer capture disappeared"));
+        if (!binding.session().equals(verified.session()) || binding.generation() != verified.generation() || binding.revision() != verified.evidenceRevision()
+                || !binding.bytes().equals(verified.bytes()) || !binding.destination().equals(verified.destination()))
+            throw new Failure(Reason.STALE_ROOTS, "Writer changed while capturing evidence");
+        return new Captured(this, observed, binding);
     }
 }

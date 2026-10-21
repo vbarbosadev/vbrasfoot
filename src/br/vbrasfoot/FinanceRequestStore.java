@@ -17,6 +17,7 @@ final class FinanceRequestStore {
     private final CareerSidecarStore store;
     private final Key key;
     FinanceRequestStore(CareerSidecarStore store, Key key) { this.store = Objects.requireNonNull(store); this.key = Objects.requireNonNull(key); }
+    boolean matchesKey(Key expected) { return key.equals(expected); }
     boolean matches(CareerCommandGate.Context context, String owner) {
         return context != null && key.career().equals(context.career()) && key.binding().equals(context.binding()) && key.mod().equals(owner);
     }

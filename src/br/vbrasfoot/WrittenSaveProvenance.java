@@ -8,6 +8,7 @@ import java.util.*;
 final class WrittenSaveProvenance {
     enum Status { EMPTY, INVALIDATED, REJECTED, STREAM_BOUND }
     static final class Binding {
+        private final UUID observationId = UUID.randomUUID();
         private final CareerLifecycle.Ticket ticket;
         private final long revision;
         private final Path destination;
@@ -30,6 +31,7 @@ final class WrittenSaveProvenance {
         Optional<FinanceMutationTracker.Snapshot> financeAfter() { return Optional.ofNullable(financeAfter); }
         boolean noObservedFinanceWriteDuringSerialization() { return financeAfter != null && financeAfter.stableSince(financeBefore); }
         FinanceSerializationTracker.Capture operationCapture() { return operationCapture; }
+        UUID observationId() { return observationId; }
         boolean matches(Object primary, Object secondary) { return primary != null && secondary != null && this.primary.get() == primary && this.secondary.get() == secondary; }
     }
     record Snapshot(Status status, long revision, Optional<Binding> binding) { }

@@ -1,5 +1,51 @@
 # Validacao — 16/10/2026
 
+## Observacoes persistentes de serializer por UUID — 20/10/2026
+
+FinanceExecutionWitnessStore le schema1/2; abrir1nao migra. Coleta interna EXPLICITA
+off-EDT de Captured opaco do WrittenSaveVerifier grava2no MESMO root de witnesses,
+preservando ancora/origem e todos os witnesses/records anteriores. Arm/complete
+posteriores preservam observacoes2, sem downgrade. Inventario/HEAD/review existentes
+incluem append e owners desativados; painel mostra contagem sem prova de inclusao.
+Main nao recebe owner/handler nem novo worker automatico. Nenhuma mudanca em EXE/
+recursos/schema original ou contratos/diarios. Collector nao roda dentro do hook.
+
+Nonce novo por writer, UUID/intent exatos contra witness+recibo BRUTO+contrato e
+tokens dos3históricos, sessao/generation/revision, output SHA256/tamanho, estados/
+amostras/continuity/counts/rotas sao persistidos. Sem valores financeiros/nomes/
+save path/Field/Output/serializer/roots/plan/runtime no payload. Mismatch/missing/
+partial/unavailable/ambiguous sao mantidos; no-effect contraditorio e recusado.
+Revalidacao de arquivo/roots antes/depois e CAS de HEAD, sem transacao multi-root.
+Mesmo nonce confirma SOMENTE leitura, nunca lease/retry. Limite8x32 e quotas do
+sidecar, sem eviccao/orphan deletion/compaction. Output/save-as/restores permanecem
+com ancora antiga explicita. operationInclusionProven=false/writeAuthority=false.
+
+Evidencia final isolada:
+-50checks novos de observacao duravel,69witness/41writer/24root/25numeric-reference/
+ 29dispatcher em `Temp/opencode/durable-serializer-reviewed-38e236ad89c742eb81f78b4e74c82545`.
+ Incluem schema1sem migracao/schema2/restart/immutability/CAS/tokens/nonce,
+ negative coverage, inventario existente, contradicao no-effect, versoes/corrupcao/
+ duplicatas/status/truncamento/trailing, quota sem eviccao, arm/complete sem
+ downgrade, off-EDT, arquivo alterado antes/depois de commit/root stale e falhas
+ RECORD_WRITTEN/HEAD_STAGED/HEAD_COMMITTED sem orphan promotion/retry de efeito.
+-127checks financeiros ORIGINAIS em
+ `Temp/opencode/durable-serializer-original-0563bae890224a8f8dbae9a4c5bccd16/final-runtime-test.log`.
+ Captura real3UUIDs/15argumentos numericos/referencia persiste com hash/size exatos,
+ reabre2sem runtime objects e sem alterar contratos/recibos. Save/reload e bloqueio
+ de historico preservados. Fixture de OUTRA copia privada, EXE/input conferidos.
+
+Interrupcoes sao EXCECOES controladas, nao power-loss/directory fsync/crash real;
+alteracao apos commit retorna OUTCOME_UNKNOWN mantendo observacao historica.
+Loaders antigos1devem recusar2(conforme decoder anterior), nunca downgrade.
+Locks/checagens/checksums nao sao sandbox ou isolamento universal. Falta cobertura
+causal nao-direta/referencias-aliases-custom/coordenacao e recovery multi-root/
+protocolo revisoes-restores-copia-save-as. Crash antes de coleta deixa witness
+anterior bloqueado, nao fabrica observacao. Persistencia nao limpa UNKNOWN do gate
+nem habilita public writes. UI/standalone/calendario/mercado seguem pendentes.
+Sem instalacao/save pessoal alterado/processo pessoal encerrado/caracteristica
+visual do comparator modificada/mod novo/release/tag/novo teste humano. STATUS.md
+inalterado. Contrato: `roadmap/DURABLE-SERIALIZER-OBSERVATIONS.md`.
+
 ## Argumento original de referencia clube/ledger — 20/10/2026
 
 FinanceReferenceTransformer fingerprinta ObjectField do Kryo4.0.2 e inventario
