@@ -72,6 +72,14 @@ final class CareerAssociationPanel {
         }
         text.append("MEMORY_APPLIED_SAVE_UNPROVEN confirma execucao observada, NAO inclusao no save nem permissao de repetir.\n");
         text.append("UNKNOWN/ARMED, conflitos, registros sem diario ou ancoras antigas continuam bloqueados.\n");
+        review.association().ifPresent(association -> {
+            text.append("\nRecuperacao entre roots de metadados (somente leitura; sem snapshot atomico):\n");
+            for (var row : FinanceMultiRootRecoveryReview.inspect(association.save(), decoded.bytes(), review.journals(), review.requests(), review.executions())) {
+                text.append(row.owner()).append(" / roots com HEAD: ").append(row.anchors().size())
+                        .append(" / bloqueios: ").append(new TreeSet<>(row.gaps())).append('\n');
+            }
+            text.append("Roots: diario, contratos e evidencias. Nao sao as duas roots Kryo do jogo. Nenhuma reancoragem coordenada ou replay autorizado.\n");
+        });
         text.append("Quarentena conserva todos os comprovantes e converte PREPARED em UNKNOWN; nao resolve efeitos.\n");
         text.append("Reconciliacao NO_EFFECT exige prova duravel exata; conserva recibo bruto UNKNOWN e acrescenta auditoria, sem repetir a chave.\n");
         for (var row : review.journals()) row.recovery().ifPresent(value -> {

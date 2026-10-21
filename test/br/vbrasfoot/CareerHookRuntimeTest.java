@@ -178,7 +178,11 @@ public final class CareerHookRuntimeTest {
                 var disabledReview = coordinator.review(Optional.of(fixtureHandle));
                 check(disabledReview.journals().size() == 2 && disabledReview.journals().stream().anyMatch(row -> !row.configured()
                         && row.owner().equals(disabledKey.mod()) && row.recovery().orElseThrow().status() == CareerCommandJournal.RecoveryStatus.UNCERTAIN),
-                        "original decoder-linked review discovers disabled synthetic journal without executing any mod or financial handler");
+                         "original decoder-linked review discovers disabled synthetic journal without executing any mod or financial handler");
+                 String multiRootReport = CareerAssociationPanel.report(disabledReview);
+                 check(multiRootReport.contains("Recuperacao entre roots de metadados") && multiRootReport.contains("HISTORICAL_OR_UNCERTAIN_RECEIPTS")
+                         && multiRootReport.contains("COORDINATED_COMMIT_UNPROVEN") && multiRootReport.contains("Nao sao as duas roots Kryo"),
+                         "original decoded fixture reports multi-root uncertainty without conflating game roots or granting reanchor authority");
                 coordinator.confirm(disabledReview, CareerAssociationCoordinator.Action.QUARANTINE_PENDING, Optional.of(disabledKey.mod()));
                 check(disabledJournal.read(sourceObservation.revision()).receipts().equals(disabledPending.snapshot().receipts()),
                         "explicit disabled-journal quarantine preserves all uncertain receipts on original-load fixture");
