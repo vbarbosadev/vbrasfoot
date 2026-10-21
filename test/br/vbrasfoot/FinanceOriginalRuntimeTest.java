@@ -104,8 +104,166 @@ public final class FinanceOriginalRuntimeTest {
                         refused = failure.getCause().getClass().getName().equals("com.esotericsoftware.kryo.KryoException");
                     }
                     check(refused, "transformed " + route.getSimpleName() + " preserves output overflow failure");
+                    Class<?> inputClass = Class.forName("com.esotericsoftware.kryo.io.Input", true, runtime);
+                    var read = route.getMethod("read", inputClass, Object.class); read.setAccessible(true);
+                    var copy = route.getMethod("copy", Object.class, Object.class); copy.setAccessible(true);
+                    var beforeIndirect = HookProbe.financeMutationSnapshot(runtime);
+                    NumericFixture decoded = new NumericFixture(), copied = new NumericFixture();
+                    field.set(decoded, wide ? (Object) Long.valueOf(0) : Integer.valueOf(0));
+                    field.set(copied, wide ? (Object) Long.valueOf(0) : Integer.valueOf(0));
+                    Object input = inputClass.getConstructor(byte[].class).newInstance((Object) actual.toByteArray());
+                    read.invoke(cached, input, decoded);
+                    check(field.get(decoded).equals(value), "original " + route.getSimpleName() + " read preserves exact fixed/varint value");
+                    copy.invoke(cached, fixture, copied);
+                    check(field.get(copied).equals(value), "original " + route.getSimpleName() + " copy preserves exact value");
+                    boolean inputRefused = false;
+                    try { read.invoke(cached, inputClass.getConstructor(byte[].class).newInstance((Object) new byte[0]), decoded); }
+                    catch (java.lang.reflect.InvocationTargetException failure) { inputRefused = failure.getCause().getClass().getName().equals("com.esotericsoftware.kryo.KryoException"); }
+                    check(inputRefused && HookProbe.financeMutationSnapshot(runtime).kryoStarted() == beforeIndirect.kryoStarted(),
+                            "unrelated own field/truncated input does not invent selected financial writes: " + route.getSimpleName());
                 }
             }
+        }
+    }
+    private static void relevantKryoMutations(LegacyRuntime runtime, LegacyFinanceAdapter adapter, Object club) throws Exception {
+        Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime);
+        Class<?> fieldsClass = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", true, runtime);
+        Class<?> base = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer$CachedField", true, runtime);
+        Class<?> outputClass = Class.forName("com.esotericsoftware.kryo.io.Output", true, runtime), inputClass = Class.forName("com.esotericsoftware.kryo.io.Input", true, runtime);
+        var fieldSlot = base.getDeclaredField("field"); fieldSlot.setAccessible(true);
+        var varints = base.getDeclaredField("varIntsEnabled"); varints.setAccessible(true);
+        Object ledger = CareerBridge.onEdt(() -> CareerBridge.call(club, "kL")); var expected = CareerBridge.onEdt(() -> adapter.snapshot(club));
+        for (String fieldName : List.of("nb", "dK", "dL")) {
+            Object receiver = fieldName.equals("nb") ? club : ledger;
+            var field = receiver.getClass().getDeclaredField(fieldName); field.setAccessible(true); boolean wide = field.getType() == long.class;
+            Object value = CareerBridge.onEdt(() -> field.get(receiver));
+            Object kryo = kryoClass.getConstructor().newInstance(), serializer = fieldsClass.getConstructor(kryoClass, Class.class).newInstance(kryo, receiver.getClass());
+            for (String family : List.of("UnsafeCacheFields$Unsafe", "ObjectField$Object")) {
+                Class<?> route = Class.forName("com.esotericsoftware.kryo.serializers." + family + (wide ? "LongField" : "IntField"), true, runtime);
+                var ctor = family.startsWith("Unsafe") ? route.getDeclaredConstructor(java.lang.reflect.Field.class) : route.getDeclaredConstructor(fieldsClass); ctor.setAccessible(true);
+                Object cached = family.startsWith("Unsafe") ? ctor.newInstance(field) : ctor.newInstance(serializer);
+                fieldSlot.set(cached, field); varints.setBoolean(cached, true);
+                var bytes = new java.io.ByteArrayOutputStream(); Object output = outputClass.getConstructor(java.io.OutputStream.class).newInstance(bytes);
+                outputClass.getMethod(wide ? "writeLong" : "writeInt", wide ? long.class : int.class, boolean.class).invoke(output, value, false);
+                outputClass.getMethod("close").invoke(output);
+                Object input = inputClass.getConstructor(byte[].class).newInstance((Object) bytes.toByteArray());
+                var read = route.getMethod("read", inputClass, Object.class); read.setAccessible(true);
+                var copy = route.getMethod("copy", Object.class, Object.class); copy.setAccessible(true);
+                var beforeRead = HookProbe.financeMutationSnapshot(runtime);
+                CareerBridge.onEdt(() -> { read.invoke(cached, input, receiver); return null; });
+                var afterRead = HookProbe.financeMutationSnapshot(runtime);
+                check(afterRead.healthy() && afterRead.kryoStarted() == beforeRead.kryoStarted() + 1 && afterRead.kryoCompleted() == beforeRead.kryoCompleted() + 1
+                        && !afterRead.stableSince(beforeRead), "actual same-value " + route.getSimpleName() + " read invalidates financial checkpoint for " + fieldName);
+                var beforeCopy = HookProbe.financeMutationSnapshot(runtime);
+                CareerBridge.onEdt(() -> { copy.invoke(cached, receiver, receiver); return null; });
+                var afterCopy = HookProbe.financeMutationSnapshot(runtime);
+                check(afterCopy.healthy() && afterCopy.kryoStarted() == beforeCopy.kryoStarted() + 1 && afterCopy.kryoCompleted() == beforeCopy.kryoCompleted() + 1
+                        && !afterCopy.stableSince(beforeCopy), "actual same-value " + route.getSimpleName() + " copy invalidates financial checkpoint for " + fieldName);
+                check(CareerBridge.onEdt(() -> adapter.snapshot(club)).equals(expected) && CareerBridge.onEdt(() -> CareerBridge.call(club, "kL")) == ledger,
+                        "selected decoder/copy test leaves complete original balance/ledger and reference unchanged");
+                var beforeTruncated = HookProbe.financeMutationSnapshot(runtime);
+                boolean truncated = CareerBridge.onEdt(() -> {
+                    try { read.invoke(cached, inputClass.getConstructor(byte[].class).newInstance((Object) new byte[0]), receiver); }
+                    catch (java.lang.reflect.InvocationTargetException failure) { return failure.getCause().getClass().getName().equals("com.esotericsoftware.kryo.KryoException"); }
+                    return false;
+                });
+                check(truncated && HookProbe.financeMutationSnapshot(runtime).kryoStarted() == beforeTruncated.kryoStarted()
+                        && CareerBridge.onEdt(() -> adapter.snapshot(club)).equals(expected), "truncated input fails before original selected setter, without invented mutation");
+            }
+        }
+        Object kryo = kryoClass.getConstructor().newInstance(), serializer = fieldsClass.getConstructor(kryoClass, Class.class).newInstance(kryo, club.getClass());
+        Object originalCached = fieldsClass.getMethod("getField", String.class).invoke(serializer, "nx");
+        Class<?> objectClass = Class.forName("com.esotericsoftware.kryo.serializers.ObjectField", true, runtime);
+        var ctor = objectClass.getDeclaredConstructor(fieldsClass); ctor.setAccessible(true); Object reflective = ctor.newInstance(serializer);
+        var nx = club.getClass().getDeclaredField("nx"); nx.setAccessible(true); fieldSlot.set(reflective, nx);
+        for (Object cached : List.of(originalCached, reflective)) {
+            var setter = cached.getClass().getMethod("setField", Object.class, Object.class); setter.setAccessible(true);
+            var before = HookProbe.financeMutationSnapshot(runtime);
+            CareerBridge.onEdt(() -> { setter.invoke(cached, club, ledger); return null; });
+            var after = HookProbe.financeMutationSnapshot(runtime);
+            check(after.healthy() && after.kryoStarted() == before.kryoStarted() + 1 && after.kryoCompleted() == before.kryoCompleted() + 1 && !after.stableSince(before),
+                    "actual same-reference setter invalidates checkpoint: " + cached.getClass().getSimpleName());
+        }
+        check(CareerBridge.onEdt(() -> adapter.snapshot(club)).equals(expected) && CareerBridge.onEdt(() -> CareerBridge.call(club, "kL")) == ledger,
+                "all actual non-direct mutation probes preserve original financial values and ledger identity");
+    }
+    private static void externalReflectionBoundary(LegacyRuntime runtime, LegacyFinanceAdapter adapter, Object club) throws Exception {
+        var field = club.getClass().getDeclaredField("nb"); field.setAccessible(true);
+        var value = CareerBridge.onEdt(() -> adapter.snapshot(club)); var before = HookProbe.financeMutationSnapshot(runtime);
+        CareerBridge.onEdt(() -> { field.setLong(club, value.balance()); return null; });
+        check(HookProbe.financeMutationSnapshot(runtime).stableSince(before) && CareerBridge.onEdt(() -> adapter.snapshot(club)).equals(value),
+                "explicit residual gap: arbitrary Field.setLong outside fingerprinted Kryo sites is NOT observed even for equal-value balance write; no universal coverage");
+    }
+    private static void interruptedSelectedSetter(LegacyRuntime runtime, LegacyFinanceAdapter adapter, Object club) throws Exception {
+        Object ledger = CareerBridge.onEdt(() -> CareerBridge.call(club, "kL")); var expected = CareerBridge.onEdt(() -> adapter.snapshot(club));
+        Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime), fieldsClass = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", true, runtime);
+        Class<?> base = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer$CachedField", true, runtime);
+        Class<?> route = Class.forName("com.esotericsoftware.kryo.serializers.ObjectField$ObjectIntField", true, runtime);
+        Class<?> inputClass = Class.forName("com.esotericsoftware.kryo.io.Input", true, runtime);
+        var ctor = route.getDeclaredConstructor(fieldsClass); ctor.setAccessible(true);
+        Object cached = ctor.newInstance(fieldsClass.getConstructor(kryoClass, Class.class).newInstance(kryoClass.getConstructor().newInstance(), ledger.getClass()));
+        var field = ledger.getClass().getDeclaredField("dL"); // Deliberately inaccessible; do not change the original class or value.
+        var fieldSlot = base.getDeclaredField("field"); fieldSlot.setAccessible(true); fieldSlot.set(cached, field);
+        var varints = base.getDeclaredField("varIntsEnabled"); varints.setAccessible(true); varints.setBoolean(cached, false);
+        var read = route.getMethod("read", inputClass, Object.class); read.setAccessible(true);
+        var before = HookProbe.financeMutationSnapshot(runtime);
+        boolean rejected = CareerBridge.onEdt(() -> {
+            try { read.invoke(cached, inputClass.getConstructor(byte[].class).newInstance((Object) new byte[]{0, 0, 0, 0}), ledger); }
+            catch (java.lang.reflect.InvocationTargetException failure) { return failure.getCause().getClass().getName().equals("com.esotericsoftware.kryo.KryoException"); }
+            return false;
+        });
+        var after = HookProbe.financeMutationSnapshot(runtime);
+        check(rejected && after.kryoStarted() == before.kryoStarted() + 1 && after.kryoCompleted() == before.kryoCompleted()
+                && after.active() > 0 && !after.stableSince(after), "selected setter failure preserves original exception and undrained observation; never manufacture clean coverage");
+        check(CareerBridge.onEdt(() -> adapter.snapshot(club)).equals(expected), "controlled inaccessible-setter failure does not change original financial values");
+    }
+    private static void mutationRouteFingerprints(LegacyRuntime runtime) throws Exception {
+        for (String name : FinanceMutationTracker.KRYO_CLASSES) {
+            Class.forName(name, true, runtime); byte[] changed;
+            try (var input = runtime.getResourceAsStream(name.replace('.', '/') + ".class")) { changed = input.readAllBytes(); }
+            changed[changed.length - 1] ^= 1; boolean refused = false;
+            try { Class.forName("br.vbrasfoot.hooks.KryoFinanceMutationTransformer").getMethod("transform", String.class, byte[].class).invoke(null, name, changed); }
+            catch (java.lang.reflect.InvocationTargetException failure) { refused = failure.getCause() instanceof java.io.IOException; }
+            check(refused, "changed non-direct mutation fingerprint refused: " + name);
+        }
+        check(HookProbe.financeMutationSnapshot(runtime).kryoClassesObserved().size() == 9, "all nine selected original decoder route classes defined with verified hooks, not universal Java coverage");
+    }
+    private static void objectMutationRoutes(LegacyRuntime runtime) throws Exception {
+        Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime);
+        Class<?> fieldsClass = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", true, runtime);
+        Class<?> base = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer$CachedField", true, runtime);
+        Class<?> accessClass = Class.forName("com.esotericsoftware.reflectasm.FieldAccess", true, runtime);
+        Class<?> outputClass = Class.forName("com.esotericsoftware.kryo.io.Output", true, runtime), inputClass = Class.forName("com.esotericsoftware.kryo.io.Input", true, runtime);
+        var fieldSlot = base.getDeclaredField("field"); fieldSlot.setAccessible(true);
+        var accessSlot = base.getDeclaredField("access"); accessSlot.setAccessible(true);
+        var indexSlot = base.getDeclaredField("accessIndex"); indexSlot.setAccessible(true);
+        var offsetSlot = base.getDeclaredField("offset"); offsetSlot.setAccessible(true);
+        var serializerAccess = fieldsClass.getDeclaredField("access"); serializerAccess.setAccessible(true);
+        Object access = accessClass.getMethod("get", Class.class).invoke(null, NumericFixture.class);
+        int index = (int) accessClass.getMethod("getIndex", String.class).invoke(access, "nx");
+        for (String simple : List.of("ObjectField", "ObjectField-fast", "UnsafeCacheFields$UnsafeObjectField", "AsmCacheFields$AsmObjectField")) {
+            Object kryo = kryoClass.getConstructor().newInstance();
+            Object serializer = fieldsClass.getConstructor(kryoClass, Class.class).newInstance(kryo, NumericFixture.class);
+            Object original = fieldsClass.getMethod("getField", String.class).invoke(serializer, "nx");
+            Class<?> route = Class.forName("com.esotericsoftware.kryo.serializers." + simple.replace("-fast", ""), true, runtime);
+            var ctor = route.getDeclaredConstructor(fieldsClass); ctor.setAccessible(true); Object cached = ctor.newInstance(serializer);
+            fieldSlot.set(cached, NumericFixture.class.getField("nx")); accessSlot.set(cached, access);
+            indexSlot.setInt(cached, simple.equals("ObjectField") ? -1 : index); offsetSlot.setLong(cached, offsetSlot.getLong(original)); serializerAccess.set(serializer, access);
+            base.getMethod("setClass", Class.class).invoke(cached, NumericLedger.class);
+            var setter = route.getMethod("setField", Object.class, Object.class); setter.setAccessible(true);
+            var copy = route.getMethod("copy", Object.class, Object.class); copy.setAccessible(true);
+            var write = route.getMethod("write", outputClass, Object.class); write.setAccessible(true);
+            var read = route.getMethod("read", inputClass, Object.class); read.setAccessible(true);
+            var source = new NumericFixture(); var destination = new NumericFixture(); var before = HookProbe.financeMutationSnapshot(runtime);
+            setter.invoke(cached, destination, source.nx);
+            check(destination.nx == source.nx, "original object setter preserves exact argument: " + simple);
+            copy.invoke(cached, source, destination);
+            check(destination.nx != source.nx && destination.nx.sum == source.nx.sum, "original object copy preserves cloned value: " + simple);
+            var bytes = new java.io.ByteArrayOutputStream(); Object output = outputClass.getConstructor(java.io.OutputStream.class).newInstance(bytes);
+            write.invoke(cached, output, source); outputClass.getMethod("close").invoke(output);
+            read.invoke(cached, inputClass.getConstructor(byte[].class).newInstance((Object) bytes.toByteArray()), destination);
+            check(destination.nx != null && destination.nx.sum == source.nx.sum, "original object read dispatches matching setter: " + simple);
+            check(HookProbe.financeMutationSnapshot(runtime).kryoStarted() == before.kryoStarted(), "unrelated own object slots do not count as selected financial writes: " + simple);
         }
     }
     public static void main(String[] args) throws Exception {
@@ -123,6 +281,8 @@ public final class FinanceOriginalRuntimeTest {
              AutoCloseable serializationGuard = probeWriter ? HookProbe.attachFinancialSerialization(new FinanceSerializationTracker()) : () -> { }) {
             current.setContextClassLoader(runtime);
             if (probeWriter) numericRoutes(runtime);
+            if (probeWriter) mutationRouteFingerprints(runtime);
+            if (probeWriter) objectMutationRoutes(runtime);
             if (probeWriter) try (var plain = LegacyRuntime.prepare(Profile.verify(game), home.resolve("reference-plain"), false)) { referenceRoutes(runtime, plain); }
             Class.forName("best.M", true, runtime).getConstructor(boolean.class).newInstance(true);
             Class<?> state = Class.forName("c.a", false, runtime);
@@ -136,6 +296,13 @@ public final class FinanceOriginalRuntimeTest {
                 var adapter = new LegacyFinanceAdapter(runtime);
                 var roots = CareerBridge.onEdt(adapter::roots);
                 Object human = CareerBridge.onEdt(() -> ((List<?>) CareerBridge.call(roots.primary(), "aN")).get(0));
+                if (probeWriter) {
+                    var decodedMutations = HookProbe.financeMutationSnapshot(runtime);
+                    check(decodedMutations.healthy() && decodedMutations.kryoStarted() > 0 && decodedMutations.kryoStarted() == decodedMutations.kryoCompleted(),
+                            "original initial decoder observed selected non-direct financial setters, no outstanding mutation");
+                    relevantKryoMutations(runtime, adapter, human);
+                    externalReflectionBoundary(runtime, adapter, human);
+                }
                 var before = CareerBridge.onEdt(() -> adapter.snapshot(human));
                 int clubCount = new CareerBridge(runtime).snapshot().clubs().size();
                 var observer = new SaveFileObserver(); var sourceObservation = observer.observe(game.resolve("sav"), "input.s22");
@@ -418,6 +585,7 @@ public final class FinanceOriginalRuntimeTest {
                         check(retry.kind() == Kind.RECORDED_ONLY && CareerBridge.onEdt(() -> adapter.snapshot(inputHuman)).equals(before),
                                 "reopened journal and fresh gate never replay historical APPLIED request on restored input graph");
                     }
+                    if (probeWriter) interruptedSelectedSetter(runtime, adapter, inputHuman);
                 }
                 check(Profile.digest(game.resolve("sav/input.s22")).equals(inputHash), "private input save untouched");
             } finally { CareerBridge.onEdt(() -> { frame.dispose(); return null; }); }

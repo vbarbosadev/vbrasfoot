@@ -61,6 +61,7 @@ public final class HookProbe {
     }
     private HookProbe() { }
     static void financeInstrumented(Class<?> type) { financeMutations.instrumented(type.getName(), type.getClassLoader()); }
+    static void financeKryoInstrumented(Class<?> type) { financeMutations.kryoInstrumented(type.getName(), type.getClassLoader()); }
     static FinanceMutationTracker.Snapshot financeMutationSnapshot(ClassLoader runtime) { return financeMutations.snapshot(runtime); }
     static AutoCloseable attachFinancialSerialization(FinanceSerializationTracker tracker) {
         java.util.Objects.requireNonNull(tracker);
@@ -123,6 +124,25 @@ public final class HookProbe {
     }
     public static void financeMutationFinished() {
         try { financeMutations.end(); } catch (Throwable ignored) { try { financeMutations.failed(); } catch (Throwable alsoIgnored) { } }
+    }
+    public static boolean financeKryoMutationStarting(Object cachedField, Object receiver) {
+        try {
+            if (receiver == null || !(receiver.getClass().getName().equals("best.ah") || receiver.getClass().getName().equals("best.C"))) return false;
+            var loader = receiver.getClass().getClassLoader();
+            if (cachedField == null || cachedField.getClass().getClassLoader() != loader) { financeMutations.failed(); return false; }
+            var base = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer$CachedField", false, loader);
+            var field = (java.lang.reflect.Field) base.getMethod("getField").invoke(cachedField);
+            if (field == null) { financeMutations.failed(); return false; }
+            boolean watched = field.getDeclaringClass().getName().equals("best.ah")
+                    ? field.getName().equals("nb") && field.getType() == long.class || field.getName().equals("nx") && field.getType().getName().equals("best.C")
+                    : field.getDeclaringClass().getName().equals("best.C") && FinanceDelta.FIELDS.contains(field.getName()) && (field.getType() == int.class || field.getType() == long.class);
+            if (!watched) return false;
+            if (field.getDeclaringClass() != receiver.getClass()) { financeMutations.failed(); return false; }
+            financeMutations.beginKryo(); return true;
+        } catch (Throwable ignored) { try { financeMutations.failed(); } catch (Throwable alsoIgnored) { } return false; }
+    }
+    public static void financeKryoMutationFinished(boolean started) {
+        if (started) try { financeMutations.endKryo(); } catch (Throwable ignored) { try { financeMutations.failed(); } catch (Throwable alsoIgnored) { } }
     }
 
     static synchronized AutoCloseable attachIoInterlock(CareerIoInterlock interlock) {

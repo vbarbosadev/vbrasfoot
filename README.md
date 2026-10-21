@@ -101,6 +101,9 @@ decodifica referencias internas nem estabelece inclusao duravel.
 As [observacoes persistentes por UUID](roadmap/DURABLE-SERIALIZER-OBSERVATIONS.md)
 podem ser coletadas explicitamente no historico de execucao com os bytes do writer;
 permanecem sem prova de inclusao ou autoridade.
+O [tracker de mutacoes Kryo selecionadas](roadmap/KRYO-FINANCIAL-MUTATIONS.md)
+observa24sites de setters originais em read/copy/setField, sem confundir isso com
+cobertura global de reflexao/Unsafe ou prova de inclusao.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

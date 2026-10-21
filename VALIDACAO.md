@@ -1,5 +1,52 @@
 # Validacao — 16/10/2026
 
+## Escritas nao-diretas selecionadas no Kryo original — 21/10/2026
+
+KryoFinanceMutationTransformer compoe hooks body-only nos6cached numeric e
+ObjectField existentes, mais UnsafeObjectField/AsmObjectField. Java17/21,9SHA256
+originais e inventario EXATO18numeric read/copy+6object setField/copy. Probe opt-in,
+sem agent/novo JVM flag/schema/decoder alternativo/EXE/recursos/fallback. Classe
+registrada apos defineClass; registro tardio invalida checkpoint anterior.
+
+Callback imediatamente antes do setter original, apos calculo dos operandos;
+target original arg2 de read/copy ou arg1 de setField. Seleciona Field real,
+declaradora/tipo/receiver/classloader e somente nb/nx/14campos mapeados. Outros
+campos/objetos ignorados. Mesma revisao/counters/active dos42writes diretos, com
+contadores Kryo adicionais e inventario imutavel de ate9nomes por runtime. Sem
+Field/targets/valores/ClassLoader forte novo ou I/O/EDT wait/mod callback.
+
+End so apos retorno original. Escrita igual invalida; input falho antes do setter
+nao inventa escrita do pai; setter falho apos begin deixa active pendente, sem
+drain/saude falsa. Excecao original nao suprimida. Invalidation com active e sticky.
+Report mostra counts/classes/limites; labels legados DIRECT sao mantidos e nao
+significam cobertura universal. Schema2 antigo nao ganha coverage retroativa;
+capturas persistidas seguem sem inclusao/autoridade. Gate/contextos nao liberados.
+
+Evidencia final:
+-31tracker/50durable-observation/69witness/41writer/24root/25numeric-reference/
+ 29dispatcher em `Temp/opencode/kryo-mutation-reviewed-b3278930d2cb4a51a9776cbf50ffa1ef`.
+-220financeiros ORIGINAIS em
+ `Temp/opencode/kryo-mutation-original-5c0ecc05bfdb4308951ed39f5f9991c2/reviewed-runtime-test.log`:
+9fingerprints alterados recusados/9classes verificadas;6numeric read/copy fixo/
+varint/truncado em dados proprios;object setters/read/copy de reflexao/FieldAccess/
+Unsafe em dados proprios;decoder real e setters financeiros nb/dK/dL/nx com valor/
+referencia IGUAL mudam checkpoint sem mudar snapshot/ledger;input truncado antes
+do site nao escreve;setter privado inacessivel falha mantendo valores/active ao
+FINAL da fixture;writer/captura/reabertura duravel/save-reload/quarentena preservados.
+Fixture de OUTRA copia privada, EXE/input hash-conferidos, autoridades ARTIFICIAIS.
+
+Teste NEGATIVO explicito demonstra que Field.setLong externo ao Kryo com mesmo
+saldo NAO muda checkpoint. Logo NAO e cobertura global de reflexao/Unsafe, VM init,
+custom/native/JNI/VarHandles/injetados/gerados arbitrarios ou manipulacao hostil de
+CachedField metadata.24sites e9classes nao provam isolamento/ownership/aliases/
+referencias/transients/inclusao causal. APPLIED/UNKNOWN sem prova continuam
+bloqueados; observacoes persistentes nao sao novo lease/retry/reanchor. Restam
+cobertura pertinente/contrato de execucao justificavel/reconciliacao-revisoes-restore-
+copia-save-as/coordenacao multi-root/UI/standalone/calendario/negociacao/SDK publico.
+Sem instalacao/save pessoal alterado/processo pessoal encerrado/carreira/progresso/
+mod novo/release/tag/novo teste humano. STATUS.md e comparator inalterados.
+Contrato: `roadmap/KRYO-FINANCIAL-MUTATIONS.md`.
+
 ## Observacoes persistentes de serializer por UUID — 20/10/2026
 
 FinanceExecutionWitnessStore le schema1/2; abrir1nao migra. Coleta interna EXPLICITA

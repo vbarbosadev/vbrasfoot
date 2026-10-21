@@ -49,6 +49,27 @@ public final class FinanceMutationTrackerSelfTest {
         check(!provenance.snapshot().binding().orElseThrow().noObservedFinanceWriteDuringSerialization(), "legacy byte provenance without mutation checkpoints never manufactures clean finance coverage");
         check(FinanceMutationAssessment.assess(java.util.Optional.empty(), provenance.snapshot().binding().orElseThrow()).executionToSerializer()
                 == FinanceMutationAssessment.Status.UNAVAILABLE, "missing execution checkpoint is explicitly unavailable");
-        System.out.println("PASS: " + checks + " financial mutation tracker checks; selected direct writes only, not save inclusion.");
+        var kryo = new FinanceMutationTracker(); kryo.instrumented("best.ah", loader); kryo.instrumented("best.C", loader);
+        var directOnly = kryo.snapshot(loader);
+        for (String name : FinanceMutationTracker.KRYO_CLASSES) kryo.kryoInstrumented(name, loader);
+        var loaded = kryo.snapshot(loader);
+        check(loaded.kryoClassesObserved().size() == 9 && !loaded.stableSince(directOnly), "loading selected decoder routes changes coverage checkpoint conservatively");
+        boolean immutable = false; try { loaded.kryoClassesObserved().clear(); } catch (UnsupportedOperationException expected) { immutable = true; }
+        check(immutable, "bounded loaded decoder class inventory is immutable");
+        kryo.beginKryo(); var inKryo = kryo.snapshot(loader);
+        check(inKryo.kryoStarted() == 1 && inKryo.active() == 1 && !inKryo.stableSince(loaded), "selected indirect setter starts before mutation");
+        kryo.endKryo(); var afterKryo = kryo.snapshot(loader);
+        check(afterKryo.kryoCompleted() == 1 && afterKryo.active() == 0 && !afterKryo.stableSince(loaded) && afterKryo.stableSince(afterKryo), "equal-value decoder/copy mutation invalidates shared checkpoint and drains normally");
+        check(kryo.snapshot(new ClassLoader() { }).kryoClassesObserved().isEmpty(), "another runtime cannot borrow decoder route inventory");
+        var badKryo = new FinanceMutationTracker(); badKryo.kryoInstrumented("unknown", loader);
+        check(!badKryo.snapshot(loader).healthy(), "unknown decoder route fails closed");
+        var mixedKryo = new FinanceMutationTracker(); mixedKryo.instrumented("best.ah", loader);
+        mixedKryo.kryoInstrumented(FinanceMutationTracker.KRYO_CLASSES.iterator().next(), new ClassLoader() { });
+        check(!mixedKryo.snapshot(loader).healthy(), "decoder route from another runtime cannot qualify");
+        var failedKryo = new FinanceMutationTracker(); failedKryo.instrumented("best.ah", loader); failedKryo.instrumented("best.C", loader); failedKryo.beginKryo();
+        check(!failedKryo.snapshot(loader).stableSince(failedKryo.snapshot(loader)), "setter exception without return leaves active coverage unavailable, never falsely drained");
+        failedKryo.invalidate(); failedKryo.endKryo();
+        check(!failedKryo.snapshot(loader).healthy(), "reset cannot manufacture health after interrupted decoder mutation");
+        System.out.println("PASS: " + checks + " financial mutation tracker checks; selected direct/original Kryo sites only, not save inclusion.");
     }
 }

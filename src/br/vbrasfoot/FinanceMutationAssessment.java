@@ -2,7 +2,7 @@ package br.vbrasfoot;
 
 import java.util.*;
 
-/** Direct-write checkpoint comparison only. No claim about uninstrumented writes, financial causality or save inclusion. */
+/** Selected-write checkpoint comparison. Legacy DIRECT label is retained; never universal mutation/causal coverage. */
 final class FinanceMutationAssessment {
     enum Status { UNAVAILABLE, OBSERVED_INTERFERENCE, NO_OBSERVED_DIRECT_WRITE }
     record Report(Status executionToSerializer, Status serializerWindow) { }
