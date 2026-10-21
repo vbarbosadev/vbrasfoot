@@ -1,5 +1,31 @@
 # Validacao — 16/10/2026
 
+## Identidade do ledger na lista atual de clubes — 21/10/2026
+
+FinanceLedgerMembership faz varredura COMPLETA bounded na EDT com target/type/
+identity/ledger exatos, sem nome/ID/equals/saldo. Limite16384clubes e250ms de
+budget cooperativo, snapshot transitorio/revalidacao de tamanho/ordem/identidades;
+null/foreign/duplicata/troca/alias/read failure/budget recusam. Nao interrompe
+getter bloqueado e NAO e sandbox. Adapter requireHumanClub restringe request/
+prepare/apply e amostras de serializer (alias -> LEDGER_MISMATCH), sem owner/gate/
+handler novo/schema/persistencia/lease/retry ou rollback.
+
+18checks proprios passaram.236financeiros ORIGINAIS em
+`Temp/opencode/ledger-membership-original-f283031b9c7f4f8a891a043ec3fc760c/bounded-runtime-test.log`:
+lista real8395clubes passa, alias privado nx detectado, prepare recusado antes de
+lancamento, finally restaura referencias/snapshots dos2clubes antes do pipeline
+normal. Writer/captura/persistencia/reopen/save-reload/gate bloqueado preservados.
+As2tentativas iniciais recusaram BUDGET_EXCEEDED com limite4096sem criar historicos/
+efeitos; teto revisado16384mantem budget fixo. Reuso somente antes de haver
+finance-output/history, sem apagar dados para retentar. EXE/input privado conferidos.
+
+UNIQUE_IN_CLUB_LIST nao e ownership do grafo todo, alias fora de P(), tabela de
+referencias/arquivo ou inclusao causal. Sem cobertura global reflexiva/Unsafe/
+mutacoes externas ou responsividade UI qualificada. Históricos antigos nao ganham
+essa verificacao. APPLIED/UNKNOWN sem prova bloqueados. Sem instalacao/save pessoal/
+mod novo/release/tag/novo teste humano;STATUS.md inalterado. Contrato:
+`roadmap/FINANCIAL-LEDGER-MEMBERSHIP.md`.
+
 ## Perfil amostrado de serializer do ledger — 21/10/2026
 
 LedgerSerializerProfile exige na EDT:best.C/FieldSerializer/getType/runtime exatos,

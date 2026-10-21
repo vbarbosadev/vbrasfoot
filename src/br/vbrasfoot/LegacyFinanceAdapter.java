@@ -81,6 +81,14 @@ final class LegacyFinanceAdapter {
         if (!((List<?>) CareerBridge.call(roots.primary(), "P")).stream().anyMatch(value -> value == club)
                 || !((List<?>) CareerBridge.call(roots.primary(), "aN")).stream().anyMatch(value -> value == club)
                 || !Boolean.TRUE.equals(CareerBridge.call(club, "jZ"))) throw new IllegalStateException("Exact current human club required");
+        if (ledgerMembership(club, CareerBridge.call(club, "kL"), roots) != FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST)
+            throw new IllegalStateException("Financial ledger must be uniquely referenced in the bounded current club list");
+    }
+    FinanceLedgerMembership.Status ledgerMembership(Object club, Object ledger, CareerCommandDispatcher.Roots roots) throws Exception {
+        requireEdt();
+        if (roots == null || roots.primary() == null || ledger == null || ledger.getClass() != ledgerClass) return FinanceLedgerMembership.Status.INVALID_CLUB_LIST;
+        var getter = clubClass.getMethod("kL");
+        return FinanceLedgerMembership.inspect((List<?>) CareerBridge.call(roots.primary(), "P"), clubClass, club, ledger, value -> getter.invoke(value));
     }
     private static void requireEdt() { if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Original financial access requires EDT"); }
     final class Plan implements CareerCommandDispatcher.Handler, FinanceSerializationTracker.Target {
@@ -130,6 +138,8 @@ final class LegacyFinanceAdapter {
             if (target == null || originalLedger == null || primary.get() == null || secondary.get() == null) return FinanceSerializationTracker.Sample.TARGET_UNAVAILABLE;
             if (serializedPrimary != primary.get() || current.primary() != primary.get() || current.secondary() != secondary.get()) return FinanceSerializationTracker.Sample.ROOT_MISMATCH;
             if (CareerBridge.call(target, "kL") != originalLedger) return FinanceSerializationTracker.Sample.LEDGER_MISMATCH;
+            if (ledgerMembership(target, originalLedger, current) != FinanceLedgerMembership.Status.UNIQUE_IN_CLUB_LIST)
+                return FinanceSerializationTracker.Sample.LEDGER_MISMATCH;
             var clubs = (List<?>) CareerBridge.call(current.primary(), "P");
             var humans = (List<?>) CareerBridge.call(current.primary(), "aN");
             if (clubs == null || humans == null || clubs.size() > 100000 || humans.size() > 64
