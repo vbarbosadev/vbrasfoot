@@ -98,6 +98,9 @@ sem promover essa evidencia em memoria a inclusao duravel ou autoridade.
 A [captura do argumento clube→ledger](roadmap/FINANCIAL-LEDGER-REFERENCE.md)
 verifica a identidade entregue ao Kryo e o serializer escolhido; ainda nao
 decodifica referencias internas nem estabelece inclusao duravel.
+As [observacoes persistentes por UUID](roadmap/DURABLE-SERIALIZER-OBSERVATIONS.md)
+podem ser coletadas explicitamente no historico de execucao com os bytes do writer;
+permanecem sem prova de inclusao ou autoridade.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

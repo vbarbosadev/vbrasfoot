@@ -58,6 +58,7 @@ final class CareerAssociationPanel {
             text.append(execution.owner()).append(execution.configured() ? " [configurado]: " : " [existente, nao selecionado]: ");
             execution.recovery().ifPresentOrElse(recovery -> {
                 text.append("registros: ").append(recovery.snapshot().witnesses().size()).append(" / mudanca de revisao: ").append(recovery.revisionChanged());
+                text.append(" / observacoes de writer: ").append(recovery.snapshot().serializations().size()).append(" (sem prova de inclusao)");
                 if (recovery.revisionChanged()) text.append("\n  Ancora de execucao SHA256: ").append(recovery.recordedSave().sha256())
                         .append(" / bytes: ").append(recovery.recordedSave().size());
                 for (var operation : execution.operations()) text.append("\n  ").append(operation.intent().key()).append(" / UUID: ")

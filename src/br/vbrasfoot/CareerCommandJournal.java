@@ -80,6 +80,7 @@ final class CareerCommandJournal {
     private final CareerSidecarStore.Key key;
     /** Store root must be dedicated to command journals, not mod contract payloads. */
     CareerCommandJournal(CareerSidecarStore store, CareerSidecarStore.Key key) { this.store = Objects.requireNonNull(store); this.key = Objects.requireNonNull(key); }
+    boolean matchesKey(CareerSidecarStore.Key expected) { return key.equals(expected); }
     boolean matches(CareerCommandGate.Context context, String owner) {
         return context != null && key.career().equals(context.career()) && key.binding().equals(context.binding()) && key.mod().equals(owner);
     }
