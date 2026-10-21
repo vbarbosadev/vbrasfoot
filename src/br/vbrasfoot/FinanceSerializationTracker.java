@@ -42,9 +42,19 @@ final class FinanceSerializationTracker implements AutoCloseable {
             this(id, intent, before, after, continuity, fields, edge, FinanceQualificationManifest.legacy());
         }
     }
-    record ReferenceTrace(UUID operationId, KryoLedgerReferenceTrace.Summary summary) { }
+    record ReferenceTrace(UUID operationId, KryoLedgerReferenceTrace.Summary summary) {
+        ReferenceTrace { Objects.requireNonNull(operationId); Objects.requireNonNull(summary); }
+    }
     record Capture(boolean validWindow, boolean capacityExceeded, List<Operation> operations, List<ReferenceTrace> referenceTraces) {
-        Capture { operations = List.copyOf(operations); referenceTraces = List.copyOf(referenceTraces); }
+        Capture {
+            operations = List.copyOf(operations); referenceTraces = List.copyOf(referenceTraces);
+            if (!referenceTraces.isEmpty()) {
+                var ids = new HashSet<UUID>(); for (var entry : referenceTraces) if (!ids.add(entry.operationId())) throw new IllegalArgumentException("Duplicate reference trace UUID");
+                if (operations.size() > MAX_OPERATIONS || ids.size() != operations.size()
+                        || !ids.equals(operations.stream().map(Operation::operationId).collect(java.util.stream.Collectors.toSet())))
+                    throw new IllegalArgumentException("Reference traces must match exact bounded operation inventory");
+            }
+        }
         Capture(boolean valid, boolean exceeded, List<Operation> operations) { this(valid, exceeded, operations, List.of()); }
         static Capture unavailable() { return new Capture(false, false, List.of()); }
     }

@@ -29,8 +29,16 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
   18scalar/37numeric-reference/28root/43writer/33manifest/63persistencia/
   23gaps/69witness/29dispatcher. Ver KRYO-LEDGER-REFERENCE-TRACE.md.
   Captura somente memoria/report;schemas1/2/3 nao armazenam esses facts.
-  PR70 aberta;159I/O originais e SDK isolado finais aprovados (ver documento).
-  Aguardar CI/integracao deste incremento antes de presumir main atualizado.
+  PR70 integrada pelo head exato a945c3133db6c9763a94907aabb0b2880711e33f,
+  main78e499eafbe7e10f6eb323c462a3a0db6ecc0179;CI17/21 da PR39585653372 e
+  push39585647938 aprovados.159I/O originais/SDK isolado finais aprovados.
+  CI de main39586313483 em andamento;nao presumir seu resultado.
+- Incremento seguinte iniciado em feat/persist-kryo-ledger-reference-facts
+  (rebaseado sobre main78e499e apos integracao exata da PR70):
+  schema4/envelope1 separado,ausencia em1/2/3 preservada,43fact checks/
+  89durable/280financeiros originais aprovados. Ver
+  PERSISTED-LEDGER-REFERENCE-FACTS.md para paths e limites.159I/O originais e SDK
+  isolado aprovados.PR71 aberta;CI/integracao ainda pendentes.
 
 ## Evidencias reutilizaveis
 

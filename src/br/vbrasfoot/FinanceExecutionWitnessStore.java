@@ -122,7 +122,9 @@ final class FinanceExecutionWitnessStore {
             if (!execution.intent().equals(operation.intent()) || !contract || receipt.isEmpty() || execution.state() == State.NO_EFFECT_CONFIRMED
                     || receipt.orElseThrow().state() == CareerCommandJournal.State.NO_EFFECT_CONFIRMED)
                 throw new Failure(Reason.RECONCILIATION_REQUIRED, "Writer UUID/intent must match exact contract, raw receipt and execution witness");
-            selected.add(new FinanceSerializationEvidence.Operation(operation, execution.state(), receipt.orElseThrow().state()));
+            var table = capture.referenceTraces().stream().filter(value -> value.operationId().equals(operation.operationId())).findFirst()
+                    .map(value -> new FinanceReferenceTableEvidence(1, value.summary()));
+            selected.add(new FinanceSerializationEvidence.Operation(operation, execution.state(), receipt.orElseThrow().state(), table));
         }
         if (selected.isEmpty()) throw new Failure(Reason.RECONCILIATION_REQUIRED, "No witnessed operation for this exact namespace");
         var prior = current.serializations().stream().filter(value -> value.id().equals(binding.observationId())).findFirst();
@@ -155,7 +157,7 @@ final class FinanceExecutionWitnessStore {
     }
     private static Snapshot decode(View view) throws IOException {
         if (view.value().isEmpty()) return new Snapshot(view.token(), List.of()); var value = view.value().orElseThrow();
-        if (value.schema() != 1 && value.schema() != 2 && value.schema() != 3) throw new Failure(Reason.CORRUPT, "Unknown execution witness schema");
+        if (value.schema() != 1 && value.schema() != 2 && value.schema() != 3 && value.schema() != 4) throw new Failure(Reason.CORRUPT, "Unknown execution witness schema");
         try (var in = new DataInputStream(new ByteArrayInputStream(value.payload()))) {
             if (in.readInt() != MAGIC || in.readInt() != value.schema()) throw new IOException("Unknown execution witness format");
             int count = in.readInt(); if (count < 1 || count > MAX_WITNESSES) throw new IOException("Invalid witness count");
@@ -168,7 +170,7 @@ final class FinanceExecutionWitnessStore {
                 values.add(new Witness(id, intent, context, generation, state));
             }
             var observations = value.schema() == 1 ? List.<FinanceSerializationEvidence.Observation>of() : FinanceSerializationEvidence.read(in, value.schema());
-            if (value.schema() == 3 && schema(observations) != 3) throw new IOException("Schema3 without versioned qualification observations");
+            if (value.schema() >= 3 && schema(observations) != value.schema()) throw new IOException("Schema lacks its declared versioned observations");
             for (var observation : observations) for (var item : observation.operations()) {
                 var witness = values.stream().filter(entry -> entry.operationId().equals(item.capture().operationId()) && entry.intent().equals(item.capture().intent())).findFirst();
                 if (witness.isEmpty() || witness.orElseThrow().state() == State.NO_EFFECT_CONFIRMED
@@ -179,8 +181,9 @@ final class FinanceExecutionWitnessStore {
         } catch (IOException | IllegalArgumentException invalid) { throw new Failure(Reason.CORRUPT, "Invalid execution witness", invalid); }
     }
     private static int schema(List<FinanceSerializationEvidence.Observation> observations) {
-        return observations.isEmpty() ? 1 : observations.stream().flatMap(value -> value.operations().stream())
-                .anyMatch(value -> value.capture().qualifications().version() > 0) ? 3 : 2;
+        if (observations.isEmpty()) return 1;
+        if (observations.stream().flatMap(value -> value.operations().stream()).anyMatch(value -> value.referenceTable().isPresent())) return 4;
+        return observations.stream().flatMap(value -> value.operations().stream()).anyMatch(value -> value.capture().qualifications().version() > 0) ? 3 : 2;
     }
     private static byte[] encode(List<Witness> values, List<FinanceSerializationEvidence.Observation> observations) throws IOException {
         var bytes = new ByteArrayOutputStream();

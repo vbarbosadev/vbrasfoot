@@ -30,7 +30,7 @@ public final class FinanceSerializationReviewSelfTest {
     public static void main(String[] args) {
         var ideal = review(Emission.EXPECTED_NUMERIC_ARGUMENTS_OBSERVED, Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED,
                 Continuity.NO_OBSERVED_DIRECT_WRITE, FinanceMutationAssessment.Status.NO_OBSERVED_DIRECT_WRITE, true, false, true, true);
-        check(ideal.gaps().equals(Set.of(Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED, Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED,
+        check(ideal.gaps().equals(Set.of(Gap.REFERENCE_TABLE_NOT_RECORDED, Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED, Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED,
                 Gap.MUTATION_EXCLUSIVITY_UNPROVEN, Gap.REFERENCE_TABLE_AND_ALIASES_UNPROVEN, Gap.MULTI_ROOT_RECOVERY_UNPROVEN)), "ideal legacy captured facts never borrow newer live qualification or claim causal inclusion");
         boolean immutable = false; try { ideal.gaps().clear(); } catch (UnsupportedOperationException expected) { immutable = true; }
         check(immutable, "published gap set immutable");

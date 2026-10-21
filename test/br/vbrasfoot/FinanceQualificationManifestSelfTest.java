@@ -48,8 +48,8 @@ public final class FinanceQualificationManifestSelfTest {
                 Optional.of(LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT));
         var observation = observation(qualified, Sample.MATCHED_EXPECTED_STATE, Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED);
         var report = review(observation);
-        check(report.gaps().equals(Set.of(FinanceSerializationReview.Gap.MUTATION_EXCLUSIVITY_UNPROVEN, FinanceSerializationReview.Gap.REFERENCE_TABLE_AND_ALIASES_UNPROVEN,
-                FinanceSerializationReview.Gap.MULTI_ROOT_RECOVERY_UNPROVEN)) && report.blocksInclusion() && !report.writeAuthority(), "positive sampled manifest removes only sampled-fact gaps, never causal obligations");
+         check(report.gaps().equals(Set.of(FinanceSerializationReview.Gap.MUTATION_EXCLUSIVITY_UNPROVEN, FinanceSerializationReview.Gap.REFERENCE_TABLE_AND_ALIASES_UNPROVEN,
+                 FinanceSerializationReview.Gap.MULTI_ROOT_RECOVERY_UNPROVEN, FinanceSerializationReview.Gap.REFERENCE_TABLE_NOT_RECORDED)) && report.blocksInclusion() && !report.writeAuthority(), "positive sampled manifest removes only sampled-fact gaps, never causal obligations");
         var legacy = observation(FinanceQualificationManifest.legacy(), Sample.MATCHED_EXPECTED_STATE, Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED);
         check(review(legacy).gaps().containsAll(Set.of(FinanceSerializationReview.Gap.LIVE_SERIALIZER_PROFILE_NOT_RECORDED, FinanceSerializationReview.Gap.CLUB_MEMBERSHIP_CHECK_NOT_RECORDED)),
                 "same apparent positive legacy values never borrow new facts");

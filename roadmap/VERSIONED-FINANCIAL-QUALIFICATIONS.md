@@ -1,5 +1,9 @@
 # Manifesto versionado de qualificacoes financeiras amostradas
 
+Contrato historico de manifest0/1 e schemas1/2/3. A extensao schema4 em
+PERSISTED-LEDGER-REFERENCE-FACTS.md preserva esses fatos sem requalificacao e
+acrescenta envelopes separados de referencia somente para novas observacoes.
+
 FinanceQualificationManifest separa fatos NOVOS de ausencia historica. Nao e
 manifesto de exclusividade/sandbox, prova de bytes individuais ou inclusao causal.
 

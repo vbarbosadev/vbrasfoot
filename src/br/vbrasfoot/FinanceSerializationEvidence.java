@@ -10,8 +10,13 @@ final class FinanceSerializationEvidence {
     static final int MAX_OBSERVATIONS = 8;
     private static final Set<String> NUMERIC = Set.of("UnsafeIntField", "UnsafeLongField", "AsmIntField", "AsmLongField", "ObjectIntField", "ObjectLongField");
     private static final Set<String> REFERENCES = Set.of("writeObject", "writeObjectOrNull", "writeClass(null)");
-    record Operation(FinanceSerializationTracker.Operation capture, FinanceExecutionWitnessStore.State execution, CareerCommandJournal.State receipt) {
+    record Operation(FinanceSerializationTracker.Operation capture, FinanceExecutionWitnessStore.State execution, CareerCommandJournal.State receipt,
+                     Optional<FinanceReferenceTableEvidence> referenceTable) {
+        Operation(FinanceSerializationTracker.Operation capture, FinanceExecutionWitnessStore.State execution, CareerCommandJournal.State receipt) {
+            this(capture, execution, receipt, Optional.empty());
+        }
         Operation {
+            Objects.requireNonNull(referenceTable);
             Objects.requireNonNull(capture); Objects.requireNonNull(execution); Objects.requireNonNull(receipt);
             Objects.requireNonNull(capture.operationId()); Objects.requireNonNull(capture.intent());
             Objects.requireNonNull(capture.before()); Objects.requireNonNull(capture.after()); Objects.requireNonNull(capture.executionToSerializer());
@@ -21,6 +26,17 @@ final class FinanceSerializationEvidence {
                 throw new IllegalArgumentException("Financial operation required");
             validate(capture.fields(), capture.edge());
             validate(capture);
+            if (referenceTable.isPresent()) {
+                var summary = referenceTable.orElseThrow().summary();
+                switch (summary.fieldResolution()) {
+                    case NEW_CONTENT_RETURNED, PRIOR_CONTENT_REFERENCE, PRIOR_REFERENCE_UNPROVEN, UNTRACKED_CONTENT_RETURNED -> {
+                        if (capture.edge().observed() != 1 || capture.edge().status() != Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED
+                                && capture.edge().status() != Reference.UNSUPPORTED_SERIALIZER)
+                            throw new IllegalArgumentException("Reference-table field encoding contradicts field-call observation");
+                    }
+                    default -> { }
+                }
+            }
         }
     }
     private static void validate(FinanceSerializationTracker.Operation capture) {
@@ -75,10 +91,10 @@ final class FinanceSerializationEvidence {
             throw new IllegalArgumentException("Inconsistent numeric/reference observation");
     }
     static void write(DataOutputStream out, List<Observation> observations) throws IOException {
-        write(out, observations, 3);
+        write(out, observations, 4);
     }
     static void write(DataOutputStream out, List<Observation> observations, int format) throws IOException {
-        if (format != 2 && format != 3) throw new IOException("Unknown serialization observation format");
+        if (format != 2 && format != 3 && format != 4) throw new IOException("Unknown serialization observation format");
         out.writeInt(observations.size());
         for (var value : observations) {
             uuid(out, value.id()); out.writeUTF(value.session()); out.writeLong(value.generation()); out.writeLong(value.writerRevision());
@@ -90,16 +106,19 @@ final class FinanceSerializationEvidence {
                 out.writeUTF(item.execution().name()); out.writeUTF(item.receipt().name()); out.writeUTF(op.before().name()); out.writeUTF(op.after().name()); out.writeUTF(op.executionToSerializer().name());
                 out.writeUTF(op.fields().status().name()); out.writeInt(op.fields().observed()); routes(out, op.fields().routes());
                 out.writeUTF(op.edge().status().name()); out.writeInt(op.edge().observed()); routes(out, op.edge().routes());
-                if (format == 3) op.qualifications().write(out);
+                if (format >= 3) op.qualifications().write(out);
                 else if (op.qualifications().version() != 0) throw new IOException("Cannot drop qualification manifest into legacy observation format");
+                if (format == 4) {
+                    out.writeBoolean(item.referenceTable().isPresent()); if (item.referenceTable().isPresent()) item.referenceTable().orElseThrow().write(out);
+                } else if (item.referenceTable().isPresent()) throw new IOException("Cannot drop reference-table facts into legacy observation format");
             }
         }
     }
     static List<Observation> read(DataInputStream in) throws IOException {
-        return read(in, 3);
+        return read(in, 4);
     }
     static List<Observation> read(DataInputStream in, int format) throws IOException {
-        if (format != 2 && format != 3) throw new IOException("Unknown serialization observation format");
+        if (format != 2 && format != 3 && format != 4) throw new IOException("Unknown serialization observation format");
         int count = bounded(in.readInt(), 1, MAX_OBSERVATIONS); var values = new ArrayList<Observation>(); var ids = new HashSet<UUID>();
         for (int i = 0; i < count; i++) {
             UUID id = uuid(in); String session = in.readUTF(); long generation = in.readLong(), revision = in.readLong();
@@ -113,8 +132,13 @@ final class FinanceSerializationEvidence {
                 var before = Sample.valueOf(in.readUTF()); var after = Sample.valueOf(in.readUTF()); var continuity = Continuity.valueOf(in.readUTF());
                 var fields = new Fields(Emission.valueOf(in.readUTF()), in.readInt(), routes(in, NUMERIC));
                 var edge = new Edge(Reference.valueOf(in.readUTF()), in.readInt(), routes(in, REFERENCES));
-                var facts = format == 3 ? FinanceQualificationManifest.read(in) : FinanceQualificationManifest.legacy();
-                operations.add(new Operation(new FinanceSerializationTracker.Operation(operation, intent, before, after, continuity, fields, edge, facts), state, receipt));
+                var facts = format >= 3 ? FinanceQualificationManifest.read(in) : FinanceQualificationManifest.legacy();
+                Optional<FinanceReferenceTableEvidence> table = Optional.empty();
+                if (format == 4) {
+                    int present = in.readUnsignedByte(); if (present > 1) throw new IOException("Invalid reference-table presence marker");
+                    if (present == 1) table = Optional.of(FinanceReferenceTableEvidence.read(in));
+                }
+                operations.add(new Operation(new FinanceSerializationTracker.Operation(operation, intent, before, after, continuity, fields, edge, facts), state, receipt, table));
             }
             if (!ids.add(id)) throw new IOException("Duplicate writer observation");
             values.add(new Observation(id, session, generation, revision, output, execution, request, journal, capacity, window, operations));
