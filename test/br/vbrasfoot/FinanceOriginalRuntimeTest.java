@@ -12,6 +12,7 @@ public final class FinanceOriginalRuntimeTest {
     private static void check(boolean value, String label) { if (!value) throw new AssertionError(label); checks++; }
     public static final class NumericFixture { public int number = Integer.MIN_VALUE + 17; public long wide = Long.MIN_VALUE + 19; public NumericLedger nx = new NumericLedger(); }
     public static final class NumericLedger { public long sum = 19; }
+    public static final class ReferenceGraphFixture { public Object aBefore, bClub, zAfter; }
     private record ReferenceBytes(byte[] bytes, String failure) { }
     private static ReferenceBytes referenceBytes(LegacyRuntime runtime, String mode, boolean nullLedger, boolean overflow) throws Exception {
         Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime);
@@ -216,6 +217,108 @@ public final class FinanceOriginalRuntimeTest {
         check(rejected && after.kryoStarted() == before.kryoStarted() + 1 && after.kryoCompleted() == before.kryoCompleted()
                 && after.active() > 0 && !after.stableSince(after), "selected setter failure preserves original exception and undrained observation; never manufacture clean coverage");
         check(CareerBridge.onEdt(() -> adapter.snapshot(club)).equals(expected), "controlled inaccessible-setter failure does not change original financial values");
+    }
+    private static void referenceTableCases(LegacyRuntime runtime, LegacyFinanceAdapter adapter, Object club, Path game, Path home) throws Exception {
+        Class<?> kryoClass = Class.forName("com.esotericsoftware.kryo.Kryo", true, runtime), outputClass = Class.forName("com.esotericsoftware.kryo.io.Output", true, runtime);
+        Object ledger = CareerBridge.onEdt(() -> CareerBridge.call(club, "kL")); var before = CareerBridge.onEdt(() -> adapter.snapshot(club));
+        byte[] changed; try (var input = runtime.getResourceAsStream("com/esotericsoftware/kryo/Kryo.class")) { changed = input.readAllBytes(); }
+        changed[changed.length - 1] ^= 1; boolean fingerprintRefused = false;
+        try { Class.forName("br.vbrasfoot.hooks.KryoReferenceTableTransformer").getMethod("transform", byte[].class).invoke(null, (Object) changed); }
+        catch (java.lang.reflect.InvocationTargetException failure) { fingerprintRefused = failure.getCause() instanceof java.io.IOException; }
+        check(fingerprintRefused, "changed original Kryo table/body/reset fingerprint refused");
+        UUID diagnostic = UUID.randomUUID();
+        FinanceSerializationTracker.Target target = new FinanceSerializationTracker.Target() {
+            public FinanceSerializationTracker.Sample sample(Object primary) { return FinanceSerializationTracker.Sample.MATCHED_EXPECTED_STATE; }
+            public boolean tracksLedger(Object candidate) { return candidate == ledger; }
+            public FinanceSerializationTracker.Argument referenced(java.lang.reflect.Field field, Object receiver, Object value) {
+                return receiver == club && field.getName().equals("nx") && value == ledger ? FinanceSerializationTracker.Argument.MATCHED : FinanceSerializationTracker.Argument.IRRELEVANT;
+            }
+        };
+        // Artificial diagnostic registration only, never witness/receipt/command authority or operation inclusion.
+        HookProbe.observeFinancialSerialization(diagnostic, new CareerCommandJournal.Intent("owned-table-case", CareerCommandGate.Operation.FINANCE_CREDIT, "f".repeat(64)), target, null);
+        try (var plain = LegacyRuntime.prepare(Profile.verify(game), home.resolve("table-plain"), false)) {
+            Class<?> plainKryo = Class.forName("com.esotericsoftware.kryo.Kryo", true, plain), plainOutput = Class.forName("com.esotericsoftware.kryo.io.Output", true, plain);
+            for (String mode : List.of("new", "alias-before", "alias-after", "root-reset", "root-no-reset", "references-disabled", "unobserved-prior", "custom-resolver")) {
+                Object kryo = kryoClass.getConstructor().newInstance(); Object reference = plainKryo.getConstructor().newInstance();
+                boolean autoReset = !mode.equals("root-no-reset") && !mode.equals("unobserved-prior");
+                kryoClass.getMethod("setAutoReset", boolean.class).invoke(kryo, autoReset); plainKryo.getMethod("setAutoReset", boolean.class).invoke(reference, autoReset);
+                if (mode.equals("references-disabled")) {
+                    kryoClass.getMethod("setReferences", boolean.class).invoke(kryo, false); plainKryo.getMethod("setReferences", boolean.class).invoke(reference, false);
+                }
+                if (mode.equals("custom-resolver")) {
+                    Class<?> resolverType = Class.forName("com.esotericsoftware.kryo.ReferenceResolver", true, runtime);
+                    Object delegate = kryoClass.getMethod("getReferenceResolver").invoke(kryo);
+                    Object proxy = java.lang.reflect.Proxy.newProxyInstance(runtime, new Class<?>[]{resolverType}, (object, method, arguments) -> method.invoke(delegate, arguments));
+                    kryoClass.getMethod("setReferenceResolver", resolverType).invoke(kryo, proxy);
+                }
+                if (mode.equals("unobserved-prior")) {
+                    Object prior = outputClass.getConstructor(java.io.OutputStream.class).newInstance(new java.io.ByteArrayOutputStream());
+                    kryoClass.getMethod("writeClassAndObject", outputClass, Object.class).invoke(kryo, prior, ledger); outputClass.getMethod("close").invoke(prior);
+                    Object priorReference = plainOutput.getConstructor(java.io.OutputStream.class).newInstance(new java.io.ByteArrayOutputStream());
+                    plainKryo.getMethod("writeClassAndObject", plainOutput, Object.class).invoke(reference, priorReference, ledger); plainOutput.getMethod("close").invoke(priorReference);
+                }
+                var graph = new ReferenceGraphFixture(); graph.bClub = club;
+                if (mode.equals("alias-before")) graph.aBefore = ledger;
+                if (mode.equals("alias-before") || mode.equals("alias-after") || mode.equals("references-disabled")) graph.zAfter = ledger;
+                Object second = mode.equals("root-reset") || mode.equals("root-no-reset") ? ledger : "end";
+                Path file = game.resolve("sav/table-" + mode + ".s22");
+                var sink = Files.newOutputStream(file);
+                CareerBridge.onEdt(() -> {
+                    HookProbe.enterSave("table-" + mode); HookProbe.saveDestination(file.resolveSibling("table.info").toString()); HookProbe.saveDestination(file.toString());
+                    Object output = outputClass.getConstructor(java.io.OutputStream.class).newInstance(HookProbe.traceSaveOutput(sink));
+                    try {
+                        for (Object root : List.of(graph, second)) {
+                            HookProbe.saveRootContext(kryo, output); HookProbe.saveRootSerializing(root);
+                            kryoClass.getMethod("writeClassAndObject", outputClass, Object.class).invoke(kryo, output, root); HookProbe.saveRootSerialized();
+                        }
+                        outputClass.getMethod("close").invoke(output); HookProbe.metadataClosed(); HookProbe.primaryClosed(); HookProbe.backupCopied(); HookProbe.exitSave();
+                    } catch (Throwable failure) { HookProbe.abortSave(failure); throw failure; }
+                    return null;
+                });
+                var binding = HookProbe.writtenSaveProvenance().binding().orElseThrow();
+                var summary = binding.operationCapture().referenceTraces().stream().filter(value -> value.operationId().equals(diagnostic)).findFirst().orElseThrow().summary();
+                var expected = switch (mode) {
+                    case "alias-before" -> KryoLedgerReferenceTrace.Resolution.PRIOR_CONTENT_REFERENCE;
+                    case "unobserved-prior" -> KryoLedgerReferenceTrace.Resolution.PRIOR_REFERENCE_UNPROVEN;
+                    case "references-disabled" -> KryoLedgerReferenceTrace.Resolution.UNTRACKED_CONTENT_RETURNED;
+                    case "custom-resolver" -> KryoLedgerReferenceTrace.Resolution.UNAVAILABLE;
+                    default -> KryoLedgerReferenceTrace.Resolution.NEW_CONTENT_RETURNED;
+                };
+                check(summary.fieldResolution() == expected, "original marker/body table resolution for owned graph " + mode + ": " + summary);
+                if (mode.equals("alias-before") || mode.equals("alias-after")) check(summary.existingMarkers() > 0 && summary.usesOutsideFieldCall() > 0,
+                        "original graph alias OUTSIDE P() detected as additional ledger use: " + mode);
+                if (mode.equals("root-reset")) check(summary.newMarkers() == 2 && summary.contentReturns() == 2 && summary.resets() == 2,
+                        "original autoReset emits ledger body again in next root with fresh epoch, not prior-ID proof");
+                if (mode.equals("root-no-reset")) check(summary.newMarkers() == 1 && summary.existingMarkers() == 1 && summary.contentReturns() == 1 && summary.resets() == 0,
+                        "original autoReset=false shares resolver between roots without inventing another body");
+                var bytes = new java.io.ByteArrayOutputStream(); Object output = plainOutput.getConstructor(java.io.OutputStream.class).newInstance(bytes);
+                for (Object root : List.of(graph, second)) plainKryo.getMethod("writeClassAndObject", plainOutput, Object.class).invoke(reference, output, root);
+                plainOutput.getMethod("close").invoke(output);
+                check(Arrays.equals(Files.readAllBytes(file), bytes.toByteArray()), "all transformed marker/body/reset hooks preserve original bytes vs uninstrumented runtime: " + mode);
+                check(binding.bytes().sha256().equals(Profile.digest(file)), "table diagnostics remain bound to exact traced output bytes: " + mode);
+                if (!mode.equals("unobserved-prior")) {
+                    Object reader = plainKryo.getConstructor().newInstance(); plainKryo.getMethod("setClassLoader", ClassLoader.class).invoke(reader, runtime);
+                    plainKryo.getMethod("setAutoReset", boolean.class).invoke(reader, autoReset);
+                    plainKryo.getMethod("setReferences", boolean.class).invoke(reader, !mode.equals("references-disabled"));
+                    Class<?> inputClass = Class.forName("com.esotericsoftware.kryo.io.Input", true, plain);
+                    Object input = inputClass.getConstructor(byte[].class).newInstance((Object) bytes.toByteArray());
+                    var decoded = (ReferenceGraphFixture) plainKryo.getMethod("readClassAndObject", inputClass).invoke(reader, input);
+                    Object decodedSecond = plainKryo.getMethod("readClassAndObject", inputClass).invoke(reader, input);
+                    Object decodedLedger = decoded.bClub.getClass().getMethod("kL").invoke(decoded.bClub);
+                    if (mode.equals("alias-before")) check(decoded.aBefore == decodedLedger && decoded.zAfter == decodedLedger,
+                            "original decoder preserves both owned aliases OUTSIDE P() as exact ledger identity");
+                    else if (mode.equals("alias-after")) check(decoded.zAfter == decodedLedger, "original decoder preserves trailing owned ledger alias outside club list");
+                    else if (mode.equals("root-no-reset")) check(decodedSecond == decodedLedger, "no-reset original decoder resolves same ledger across roots");
+                    else if (mode.equals("root-reset")) check(decodedSecond != decodedLedger && decodedSecond.getClass() == decodedLedger.getClass(), "autoReset original decoder has distinct ledger incarnation in next root");
+                    else if (mode.equals("references-disabled")) check(decoded.zAfter != decodedLedger && decoded.zAfter.getClass() == decodedLedger.getClass(), "disabled reference original decoder recreates alias value as another object, not identity proof");
+                    else check(decodedLedger != null, "owned reference graph roundtrips through original decoder: " + mode);
+                    inputClass.getMethod("close").invoke(input);
+                }
+            }
+        }
+        check(CareerBridge.onEdt(() -> adapter.snapshot(club)).equals(before) && CareerBridge.onEdt(() -> CareerBridge.call(club, "kL")) == ledger,
+                "owned alias graphs do not mutate original club ledger identity or financial values");
+        java.lang.ref.Reference.reachabilityFence(target);
     }
     private static void mutationRouteFingerprints(LegacyRuntime runtime) throws Exception {
         for (String name : FinanceMutationTracker.KRYO_CLASSES) {
@@ -571,6 +674,11 @@ public final class FinanceOriginalRuntimeTest {
                         check(operationCapture.operations().stream().allMatch(value -> value.edge().status() == FinanceSerializationTracker.Reference.EXPECTED_LEDGER_ARGUMENT_OBSERVED
                                         && value.edge().observed() == 1), "all witnessed plans identify same exact original ledger argument after original Kryo reference write returned: " + lastCapture.edge());
                         check(!lastCapture.edge().routes().isEmpty(), "original ledger reference route observed separately from numeric values");
+                        check(operationCapture.referenceTraces().size() == 3, "original writer captures separate bounded reference trace per witnessed UUID");
+                        check(operationCapture.referenceTraces().stream().allMatch(value -> value.summary().fieldResolution() == KryoLedgerReferenceTrace.Resolution.NEW_CONTENT_RETURNED
+                                        && value.summary().newMarkers() == 1 && value.summary().contentReturns() == 1 && value.summary().fieldCalls() == 1 && value.summary().supportedResolver()),
+                                "exact original nx call receives new ledger reference marker and completes content body in same writer table: " + operationCapture.referenceTraces());
+                        System.out.println("Observed original ledger table traces: " + operationCapture.referenceTraces());
                         System.out.println("Observed original numeric routes: " + new TreeSet<>(lastCapture.fields().routes()) + "; fields=" + lastCapture.fields().observed() + "; operation inclusion remains unproven.");
                         System.out.println("Observed original ledger reference routes: " + new TreeSet<>(lastCapture.edge().routes()) + "; operation inclusion remains unproven.");
                         var originalJournal = journal.read(revision); var originalContracts = requestStore.read(revision);
@@ -667,7 +775,10 @@ public final class FinanceOriginalRuntimeTest {
                         check(retry.kind() == Kind.RECORDED_ONLY && CareerBridge.onEdt(() -> adapter.snapshot(inputHuman)).equals(before),
                                 "reopened journal and fresh gate never replay historical APPLIED request on restored input graph");
                     }
-                    if (probeWriter) interruptedSelectedSetter(runtime, adapter, inputHuman);
+                    if (probeWriter) {
+                        referenceTableCases(runtime, adapter, inputHuman, game, home);
+                        interruptedSelectedSetter(runtime, adapter, inputHuman);
+                    }
                 }
                 check(Profile.digest(game.resolve("sav/input.s22")).equals(inputHash), "private input save untouched");
             } finally { CareerBridge.onEdt(() -> { frame.dispose(); return null; }); }

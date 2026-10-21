@@ -19,10 +19,18 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
  238financeiros originais/159I/O/SDK isolado aprovados. Fontes em
  feat/explain-persisted-financial-evidence-gaps. Confirmar mergeCommit e CI de main
  na PR antes de iniciar alteracao posterior;nao presumir merge pela branch local.
-- PR69 implementado em feat/version-financial-qualification-manifests:
+- PR69 integrado em main377a39028bf3ebf428bf9939a9b39d25781c6095;
+  CI de main39582749286 aprovado. Implementado em feat/version-financial-qualification-manifests:
  manifest0legacy/1sampled e witness schema1/2/3,mistura sem requalificacao retroativa.
 33manifest/63persistencia/28root/29numeric-reference e239financeiros originais;
-ver PR correspondente/CI antes de presumir integracao.Main base12937276e27763aac55a1cf1f34105761c1b9393.
+  integracao confirmada;nenhum fato antigo requalificado.
+- Incremento de referencias em feat/trace-original-kryo-ledger-references:
+  278financeiros originais/8grafos/bytes identicos/decoder alias aprovados;
+  18scalar/37numeric-reference/28root/43writer/33manifest/63persistencia/
+  23gaps/69witness/29dispatcher. Ver KRYO-LEDGER-REFERENCE-TRACE.md.
+  Captura somente memoria/report;schemas1/2/3 nao armazenam esses facts.
+  PR70 aberta;159I/O originais e SDK isolado finais aprovados (ver documento).
+  Aguardar CI/integracao deste incremento antes de presumir main atualizado.
 
 ## Evidencias reutilizaveis
 
@@ -36,7 +44,7 @@ ver PR correspondente/CI antes de presumir integracao.Main base12937276e27763aac
 - build/serialization-gap-sdk-test.log:SDK isolado/hashes/allowlist/authoring
  negativos aprovados,fixture Temp/opencode/vbrasfoot-sdk-author-25afb8dec3714e31a8cd894236499174.
 
-## Manifesto implementado (aguardar integracao/CI da branch correspondente)
+## Manifesto integrado (PR69)
 
 Foi implementado o manifest versionado de qualificacoes NOVAS nas observacoes:
 1. Definir facts separados para membership BEFORE/AFTER e perfil AFTER do
@@ -59,7 +67,7 @@ build/qualification-manifest-sdk-test.log,fixture
 Temp/opencode/vbrasfoot-sdk-author-bde9550bf4244312992163cf8abb7184.
 Nao sao power-loss ou aceite Main/UI/standalone.
 
-## Proxima acao concreta apos integrar o manifesto
+## Referencias implementadas (aguardar integracao/CI)
 
 Qualificar a semantica da tabela de referencias do Kryo para o ledger:
 1. Inspecionar a rota original writeObject/referenceOrNull para distinguir
@@ -72,6 +80,11 @@ Qualificar a semantica da tabela de referencias do Kryo para o ledger:
    gap e seguir tarefa independente de recuperacao/read-only.Apenas fatos NOVOS
    podem entrar em formato versionado,nunca reanotar schema1/2ou manifest0.
 5. PR/CI/main e checkpoint,seguindo proximo objetivo viavel sem novo continue.
+
+Proximo incremento apos integrar a trilha:versionar persistencia de novos resumos
+de referencia por UUID/revisao,ausencia explicita em histories antigas,validacao
+de contradicoes,interrupcoes/reopen e mistura. Nao remover gap de ownership ou
+inclusao causal apenas por persistir observacoes live.
 
 ## Objetivos seguintes e dependencias
 

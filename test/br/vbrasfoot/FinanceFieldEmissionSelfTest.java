@@ -34,6 +34,7 @@ public final class FinanceFieldEmissionSelfTest {
                     if (receiver != club || !field.getName().equals("nx")) return FinanceSerializationTracker.Argument.IRRELEVANT;
                     return value == ledger ? FinanceSerializationTracker.Argument.MATCHED : FinanceSerializationTracker.Argument.MISMATCH;
                 }
+                public boolean tracksLedger(Object value) { return value == ledger; }
             };
             var tracker = new FinanceSerializationTracker(); Object primary = new Object();
             tracker.observe(UUID.randomUUID(), new CareerCommandJournal.Intent("owned", CareerCommandGate.Operation.FINANCE_CREDIT, "a".repeat(64)), target, null);
@@ -133,8 +134,43 @@ public final class FinanceFieldEmissionSelfTest {
             var staleEdge = edt(() -> tracker.begin(primary, null)); tracker.invalidate();
             edt(() -> { tracker.referenced(staleEdge, edgeField, club, ledger, "writeObject", FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER); return null; });
             check(!edt(() -> tracker.finish(staleEdge, primary)).validWindow(), "invalidated reference window cannot recover by matching ledger");
+            FinanceMutationTracker.Snapshot checkpoint = null; // This fixture qualifies reference events only, not mutation continuity.
+            tracker.observe(UUID.randomUUID(), intentForTable(), target, checkpoint);
+            var scoped = edt(() -> tracker.begin(primary, checkpoint));
+            var scope = edt(() -> tracker.beginReferenceCall(scoped, edgeField, club, ledger));
+            edt(() -> {
+                tracker.referenceMarker(scoped, new Object(), 3, 8, 1, true); // Other identity cannot create our table definition.
+                tracker.referenceMarker(scoped, ledger, 3, 8, 1, true); tracker.referenceContent(scoped, ledger, true); tracker.endReferenceCall(scope); return null;
+            });
+            var scopedCapture = edt(() -> tracker.finish(scoped, primary)); var table = scopedCapture.referenceTraces().get(0).summary();
+            check(table.fieldResolution() == KryoLedgerReferenceTrace.Resolution.NEW_CONTENT_RETURNED && table.newMarkers() == 1 && table.contentReturns() == 1,
+                    "scoped table events correlate only exact weak ledger target and opaque original field call");
+            check(scopedCapture.referenceTraces().get(0).operationId().equals(scopedCapture.operations().get(0).operationId()), "table summary tied to exact operation UUID not runtime ID");
+            var unrelatedScope = edt(() -> tracker.begin(primary, checkpoint));
+            check(edt(() -> tracker.beginReferenceCall(unrelatedScope, edgeField, new Object(), ledger)) == null, "another club receiver cannot open our ledger field scope");
+            check(edt(() -> tracker.finish(unrelatedScope, primary)).referenceTraces().get(0).summary().fieldResolution() == KryoLedgerReferenceTrace.Resolution.MISSING,
+                    "unrelated field callback never invents a table trace");
+            var outside = edt(() -> tracker.begin(primary, checkpoint));
+            edt(() -> { tracker.referenceMarker(outside, ledger, 3, 9, 1, true); tracker.referenceContent(outside, ledger, true); return null; });
+            var outsideScope = edt(() -> tracker.beginReferenceCall(outside, edgeField, club, ledger));
+            edt(() -> { tracker.referenceMarker(outside, ledger, 2, 9, 11, true); tracker.endReferenceCall(outsideScope); return null; });
+            check(edt(() -> tracker.finish(outside, primary)).referenceTraces().get(0).summary().fieldResolution() == KryoLedgerReferenceTrace.Resolution.PRIOR_CONTENT_REFERENCE,
+                    "field scope may link earlier observed body without treating it as newly serialized");
+            var offThread = edt(() -> tracker.begin(primary, checkpoint)); tracker.referenceMarker(offThread, ledger, 3, 9, 1, true);
+            check(edt(() -> tracker.finish(offThread, primary)).referenceTraces().get(0).summary().fieldResolution() == KryoLedgerReferenceTrace.Resolution.UNAVAILABLE,
+                    "off-EDT table callback fails closed without consulting target");
+            var resetWindow = edt(() -> tracker.begin(primary, checkpoint));
+            edt(() -> { tracker.referenceMarker(resetWindow, ledger, 3, 1, 1, true); tracker.referenceContent(resetWindow, ledger, true); tracker.referenceReset(resetWindow); tracker.referenceResetCompleted(resetWindow); return null; });
+            var afterResetScope = edt(() -> tracker.beginReferenceCall(resetWindow, edgeField, club, ledger));
+            edt(() -> { tracker.referenceMarker(resetWindow, ledger, 2, 1, 3, true); tracker.endReferenceCall(afterResetScope); return null; });
+            check(edt(() -> tracker.finish(resetWindow, primary)).referenceTraces().get(0).summary().fieldResolution() == KryoLedgerReferenceTrace.Resolution.PRIOR_REFERENCE_UNPROVEN,
+                    "table IDs cannot borrow body evidence across reset epochs");
+            var revoked = edt(() -> tracker.begin(primary, checkpoint)); var revokedScope = edt(() -> tracker.beginReferenceCall(revoked, edgeField, club, ledger));
+            tracker.invalidate(); tracker.endReferenceCall(revokedScope);
+            check(!edt(() -> tracker.finish(revoked, primary)).validWindow(), "late field return cannot revive a revoked window");
             tracker.close(); java.lang.ref.Reference.reachabilityFence(target);
         }
         System.out.println("PASS: " + checks + " numeric/reference field emission checks; owned fixture " + root + "; no inclusion authority.");
     }
+    private static CareerCommandJournal.Intent intentForTable() { return new CareerCommandJournal.Intent("table-scoped", CareerCommandGate.Operation.FINANCE_CREDIT, "c".repeat(64)); }
 }

@@ -98,7 +98,13 @@ public final class CareerTransformer {
                         }
                         boolean serializedRoot = save && owner.equals("com/esotericsoftware/kryo/Kryo") && name.equals("writeClassAndObject")
                                 && desc.equals("(Lcom/esotericsoftware/kryo/io/Output;Ljava/lang/Object;)V");
-                        if (serializedRoot) { super.visitInsn(Opcodes.DUP); call("saveRootSerializing", "(Ljava/lang/Object;)V"); counts[13]++; }
+                         if (serializedRoot) {
+                             super.visitVarInsn(Opcodes.ASTORE, 22); super.visitVarInsn(Opcodes.ASTORE, 21); super.visitVarInsn(Opcodes.ASTORE, 20);
+                             super.visitVarInsn(Opcodes.ALOAD, 20); super.visitVarInsn(Opcodes.ALOAD, 21);
+                             call("saveRootContext", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+                             super.visitVarInsn(Opcodes.ALOAD, 22); call("saveRootSerializing", "(Ljava/lang/Object;)V");
+                             super.visitVarInsn(Opcodes.ALOAD, 20); super.visitVarInsn(Opcodes.ALOAD, 21); super.visitVarInsn(Opcodes.ALOAD, 22); counts[13]++;
+                         }
                         if (load && owner.equals("java/io/FileInputStream") && name.equals("<init>") && desc.equals("(Ljava/lang/String;)V")) {
                             super.visitInsn(Opcodes.DUP); call("loadSource", "(Ljava/lang/String;)V"); counts[9]++;
                         }

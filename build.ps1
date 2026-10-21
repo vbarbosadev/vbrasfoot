@@ -106,6 +106,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de lacunas das observacoes persistidas falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceQualificationManifestSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do manifesto versionado de qualificacoes falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.KryoLedgerReferenceTraceSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes da trilha de referencias Kryo falharam' }
     & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.FinanceMutationTransformerSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do transformer de mutacao financeira falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkValidatorJsonSelfTest

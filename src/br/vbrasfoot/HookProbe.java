@@ -45,6 +45,7 @@ public final class HookProbe {
         String name;
         boolean metadata, closed, backup, streamClosed, streamCloseFailed;
         Object output;
+        java.lang.ref.WeakReference<Object> referenceKryo;
         CareerLifecycle.SaveAttempt attempt;
         CareerLifecycle.Ticket ticket;
         long evidenceRevision;
@@ -98,6 +99,9 @@ public final class HookProbe {
     }
     /** Exact reference/serializer arguments, observed after ObjectField's original Kryo call returned. */
     public static void financeReferenceEmitted(Object cachedField, Object receiver, Object output, Object value, Object serializer, String route) {
+        financeReferenceEmitted(cachedField, receiver, output, value, serializer, route, null);
+    }
+    public static void financeReferenceEmitted(Object cachedField, Object receiver, Object output, Object value, Object serializer, String route, Object call) {
         Save frame = null;
         try {
             if (receiver == null || !receiver.getClass().getName().equals("best.ah")) return;
@@ -115,10 +119,84 @@ public final class HookProbe {
                     : profile == LedgerSerializerProfile.Status.SUPPORTED_SAMPLED_LAYOUT
                     ? FinanceSerializationTracker.SerializerKind.FIELD_SERIALIZER : FinanceSerializationTracker.SerializerKind.OTHER;
             frame.serializationTracker.referenced(frame.serializationWindow, field, receiver, value, route, kind, java.util.Optional.of(profile));
+            if (call instanceof FinanceSerializationTracker.ReferenceCall observed) frame.serializationTracker.endReferenceCall(observed);
         } catch (Throwable ignored) {
             try { if (frame != null && frame.serializationTracker != null) frame.serializationTracker.referenceFailed(frame.serializationWindow); }
             catch (Throwable alsoIgnored) { /* Diagnostic failure must not escape into the original serializer. */ }
         }
+    }
+    public static Object financeReferenceCalling(Object cachedField, Object receiver, Object output, Object value) {
+        Save frame = null;
+        try {
+            if (receiver == null || !receiver.getClass().getName().equals("best.ah")) return null;
+            frame = saves.get().peek(); if (frame == null) { saves.remove(); return null; }
+            if (frame.serializationTracker == null || frame.serializationWindow == null || frame.rootsStarted != frame.rootsFinished + 1) return null;
+            var loader = receiver.getClass().getClassLoader();
+            if (cachedField == null || cachedField.getClass().getClassLoader() != loader || output == null || output != frame.output || frame.trace == null
+                    || output.getClass().getMethod("getOutputStream").invoke(output) != frame.trace || frame.referenceKryo == null || frame.referenceKryo.get() == null) {
+                frame.serializationTracker.referenceTableFailed(frame.serializationWindow); return null;
+            }
+            var base = Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer$CachedField", false, loader);
+            var field = (java.lang.reflect.Field) base.getMethod("getField").invoke(cachedField);
+            return frame.serializationTracker.beginReferenceCall(frame.serializationWindow, field, receiver, value);
+        } catch (Throwable ignored) {
+            try { if (frame != null && frame.serializationTracker != null) frame.serializationTracker.referenceTableFailed(frame.serializationWindow); } catch (Throwable alsoIgnored) { }
+            return null;
+        }
+    }
+    public static void saveRootContext(Object kryo, Object output) {
+        try {
+            Save frame = saves.get().peek(); if (frame == null) { saves.remove(); return; }
+            if (kryo == null || output == null || !kryo.getClass().getName().equals("com.esotericsoftware.kryo.Kryo")
+                    || kryo.getClass().getClassLoader() != output.getClass().getClassLoader()
+                    || frame.trace == null || output.getClass().getMethod("getOutputStream").invoke(output) != frame.trace) { frame.sourceRejected = true; return; }
+            if (frame.referenceKryo == null) { frame.referenceKryo = new java.lang.ref.WeakReference<>(kryo); frame.output = output; }
+            else if (frame.referenceKryo.get() != kryo || frame.output != output) frame.sourceRejected = true;
+        } catch (Throwable ignored) { try { var frame = saves.get().peek(); if (frame != null) frame.sourceRejected = true; } catch (Throwable alsoIgnored) { } }
+    }
+    private static Save referenceFrame(Object kryo, Object output, Object ledger) throws Exception {
+        if (ledger == null || !ledger.getClass().getName().equals("best.C")) return null;
+        Save frame = saves.get().peek(); if (frame == null) { saves.remove(); return null; }
+        if (frame.serializationTracker == null || frame.serializationWindow == null || frame.rootsStarted != frame.rootsFinished + 1) return null;
+        var loader = ledger.getClass().getClassLoader();
+        if (frame.referenceKryo == null || frame.referenceKryo.get() != kryo || frame.output != output || kryo.getClass().getClassLoader() != loader
+                || output.getClass().getClassLoader() != loader || frame.trace == null || output.getClass().getMethod("getOutputStream").invoke(output) != frame.trace) {
+            frame.serializationTracker.referenceTableFailed(frame.serializationWindow); return null;
+        }
+        return frame;
+    }
+    public static void financeReferenceMarker(Object kryo, Object output, Object ledger, int kind, int referenceId, int marker) {
+        try {
+            var frame = referenceFrame(kryo, output, ledger); if (frame == null) return;
+            var loader = ledger.getClass().getClassLoader();
+            Object resolver = kryo.getClass().getMethod("getReferenceResolver").invoke(kryo);
+            boolean supported = resolver != null && resolver.getClass() == Class.forName("com.esotericsoftware.kryo.util.MapReferenceResolver", false, loader)
+                    && Boolean.TRUE.equals(kryo.getClass().getMethod("getReferences").invoke(kryo));
+            frame.serializationTracker.referenceMarker(frame.serializationWindow, ledger, kind, referenceId, marker, supported);
+        } catch (Throwable ignored) { failReferenceTable(); }
+    }
+    public static void financeLedgerContentReturned(Object kryo, Object output, Object ledger, Object serializer) {
+        try {
+            var frame = referenceFrame(kryo, output, ledger); if (frame == null) return;
+            boolean supported = serializer != null && serializer.getClass() == Class.forName("com.esotericsoftware.kryo.serializers.FieldSerializer", false, ledger.getClass().getClassLoader());
+            frame.serializationTracker.referenceContent(frame.serializationWindow, ledger, supported);
+        } catch (Throwable ignored) { failReferenceTable(); }
+    }
+    public static void financeReferenceTableReset(Object kryo) {
+        try {
+            var frame = saves.get().peek(); if (frame == null) { saves.remove(); return; }
+            if (frame.referenceKryo != null && frame.referenceKryo.get() == kryo && frame.serializationTracker != null) frame.serializationTracker.referenceReset(frame.serializationWindow);
+        } catch (Throwable ignored) { failReferenceTable(); }
+    }
+    public static void financeReferenceTableResetCompleted(Object kryo) {
+        try {
+            var frame = saves.get().peek(); if (frame == null) { saves.remove(); return; }
+            if (frame.referenceKryo != null && frame.referenceKryo.get() == kryo && frame.serializationTracker != null) frame.serializationTracker.referenceResetCompleted(frame.serializationWindow);
+        } catch (Throwable ignored) { failReferenceTable(); }
+    }
+    private static void failReferenceTable() {
+        try { var frame = saves.get().peek(); if (frame != null && frame.serializationTracker != null) frame.serializationTracker.referenceTableFailed(frame.serializationWindow); }
+        catch (Throwable alsoIgnored) { }
     }
     public static void financeMutationStarting() {
         try { financeMutations.begin(); } catch (Throwable ignored) { try { financeMutations.failed(); } catch (Throwable alsoIgnored) { } }
