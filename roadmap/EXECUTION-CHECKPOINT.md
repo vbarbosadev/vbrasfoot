@@ -55,6 +55,13 @@ contexto. Nao instalar builds/mods nem tocar saves/EXE pessoais.
   Ver NO-EFFECT-REVISION-RECOVERY-PROTOCOL.md antes de tentar migracao real.
   Nao ha transacao ou novo caminho de write;build completo e SDK isolado aprovados
   (ver documento para logs/fixture).Aguardar PR/CI/integracao deste incremento.
+- PR73 integrada pelo head7f0ff5010f9638f242ac72f109aca52a39ed650d,
+  main40e1ba29ab695a35e7bfdda04c7a0df1694d6ca9;CI17/21 push39588927676/
+  PR39588968915 e main39589542987 aprovados.
+- Incremento em feat/version-immutable-request-revision-envelopes:codec OFFLINE
+  format1byte-identico/format2origens+chain NAO VERIFICADA,sem conectar store real.
+  58checks envelope/14constraints/32multi-root/89durable/46coordinator aprovados;
+  build completo/SDK em andamento.Ver IMMUTABLE-REQUEST-REVISION-ENVELOPE.md.
 
 ## Evidencias reutilizaveis
 
