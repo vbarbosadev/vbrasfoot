@@ -104,6 +104,9 @@ permanecem sem prova de inclusao ou autoridade.
 O [tracker de mutacoes Kryo selecionadas](roadmap/KRYO-FINANCIAL-MUTATIONS.md)
 observa24sites de setters originais em read/copy/setField, sem confundir isso com
 cobertura global de reflexao/Unsafe ou prova de inclusao.
+O [inventario offline de superficies](roadmap/MUTATION-SURFACE-INVENTORY.md)
+identifica rotas restantes nos arquivos originais sem executar o jogo ou atribuir
+autoridade a uma busca estatica.
 
 Requer JDK 17+ com `java`, `javac` e `jar` no PATH. Nao exige Maven nem downloads.
 

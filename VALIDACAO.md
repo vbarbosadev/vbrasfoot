@@ -1,5 +1,30 @@
 # Validacao — 16/10/2026
 
+## Inventario offline de superficies de mutacao — 21/10/2026
+
+MutationSurfaceInventory analisa arquivos explicitamente selecionados sem carregar
+ou executar classes. SHA256 antes/depois, contagens e sites de bytecode com budgets
+fechados e recusa total de malformed/duplicata/quota; sem varrer instalacao/mods
+por conta propria.17testes de bytecode GERADO nunca carregado passaram. Sem novo
+schema/gate/lease ou alegacao de cobertura universal.
+
+Conjunto original da copia privada:1317classes/406713instrucoes sem erro de parse,
+em `Temp/opencode/surface-inventory-a2333b4910b54c2e8c2e8ecd0136d57a`.
+Jogo1038classes/337581instructions reencontra42PUTFIELD,0Field.set/Unsafe diretos;
+dispatch reflexivo do bootstrap/native NumberFormat permanecem candidatos, nao
+excluidos pelo nome. Kryo214classes/43057instructions tem19reflection setters,
+41Unsafe/23FieldAccess;reflectasm26/23673;objenesis37/1982;minlog2/420.
+268metodos read/write de subclasses imediatas Serializer/FieldSerializer no Kryo
+sao candidatos, NAO prova de custom/uso/perigo. Ausencia de site nao e exclusao
+de mecanismo dinamico/gerado/JDK/external mod. Nested jars analisados separadamente.
+
+Descoberta pertinente:UnsafeRegionField readSlow/copy e UnsafeInput/UnsafeMemoryInput
+usam writes em bloco fora dos24sites anteriores. Uso/configuracao/alcance financeiro
+ainda nao provados; proximo objetivo qualifica regioes. Nao mudar admission com
+base em busca negativa estatica. Sem escrita em instalacao/save pessoal, mod novo,
+release/tag ou novo teste humano; STATUS.md inalterado. Contrato e hashes:
+`roadmap/MUTATION-SURFACE-INVENTORY.md`.
+
 ## Escritas nao-diretas selecionadas no Kryo original — 21/10/2026
 
 KryoFinanceMutationTransformer compoe hooks body-only nos6cached numeric e

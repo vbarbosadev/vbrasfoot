@@ -31,9 +31,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar observador contra SDK publico' }
     & jar --create --file 'dist\career-observer.jar' -C $observer . -C 'examples\career-observer' vbrasfoot.mod.properties -C $PSScriptRoot LICENSE
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar observador experimental' }
-    $testSources = @(Get-ChildItem 'test' -Recurse -Filter '*.java' | ForEach-Object FullName)
+    $testSources = @(Get-ChildItem 'test' -Recurse -Filter '*.java' | Where-Object Name -ne 'MutationSurfaceInventorySelfTest.java' | ForEach-Object FullName)
     & javac --release 17 -encoding UTF-8 -cp $classes -d $tests @testSources
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar testes' }
+    & javac -source 17 -target 17 -Xlint:-options '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -encoding UTF-8 -cp $classes -d $tests 'test\br\vbrasfoot\hooks\MutationSurfaceInventorySelfTest.java'
+    if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar testes do inventario ASM' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ModSelectionSelfTest
@@ -88,6 +90,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes da reconciliacao com prova duravel NO_EFFECT falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceMutationTrackerSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes do tracker de mutacao financeira falharam' }
+    & java '-Djava.awt.headless=true' '--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED' -cp "$classes;$tests" br.vbrasfoot.hooks.MutationSurfaceInventorySelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de inventario estatico de mutacoes falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceSerializationTrackerSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da captura de operacoes no serializer falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceFieldEmissionSelfTest
