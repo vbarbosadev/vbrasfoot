@@ -36,6 +36,9 @@ Preserve `sav` e `vbrasfoot/data`. Teste primeiro numa cópia descartável.
 
 ## Criar e publicar
 
+**Com IA:** [prompt-base, skill e instalador Windows](ai/README.md). A instalação
+da skill é opcional: o agente também pode ler o SKILL.md diretamente.
+
 Leia [CONTRIBUTING.md](CONTRIBUTING.md) para SDK, branch `mod/nome`, testes e PR
 com base **mods**. Cada pasta mantém seu README de funcionamento; os comandos
 de build individuais antigos podem refletir o checkout do SDK: nesta branch use

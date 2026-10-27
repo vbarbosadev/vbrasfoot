@@ -1,5 +1,7 @@
 # Criar, testar e publicar mods
 
+Para agentes de IA, use o [prompt-base e a skill com instalador](https://github.com/vbarbosadev/vbrasfoot/blob/mods/ai/README.md).
+
 ## Criar
 
 1. Use JDK 17 ou 21 no Windows. Obtenha o SDK Beta por canal confiável e execute `verify.ps1`.

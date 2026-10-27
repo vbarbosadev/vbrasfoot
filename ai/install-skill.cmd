@@ -1,0 +1,6 @@
+@echo off
+setlocal
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install-skill.ps1" %*
+set "skill_exit=%errorlevel%"
+pause
+exit /b %skill_exit%
