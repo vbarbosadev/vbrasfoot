@@ -75,6 +75,16 @@ final class LegacyFinanceAdapter {
         if (index < 0 || matches != 1) throw new IllegalStateException("Ambiguous club ID/name; request refused");
         return new FinanceRequest.Club(index, id, name);
     }
+    Object humanClub(int id, String name) throws Exception {
+        requireEdt(); var current = roots();
+        if (current.primary() == null) throw new IllegalStateException("Carregue uma carreira existente");
+        var humans = (List<?>) CareerBridge.call(current.primary(), "aN");
+        if (humans == null || humans.size() != 1) throw new IllegalStateException("Exatamente um clube humano obrigatorio");
+        Object club = humans.get(0); requireHumanClub(club, current);
+        if (((Number) CareerBridge.call(club, "gD")).intValue() != id || !name.equals(CareerBridge.call(club, "getNome")))
+            throw new IllegalStateException("O clube humano mudou desde a selecao");
+        return club;
+    }
     private void requireHumanClub(Object club, CareerCommandDispatcher.Roots roots) throws Exception {
         if (roots.primary() == null || roots.secondary() == null || club == null || club.getClass() != clubClass)
             throw new IllegalStateException("No original career/club context");

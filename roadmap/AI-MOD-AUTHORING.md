@@ -1,5 +1,10 @@
 # Criar mods com IA — SDK experimental, sem inventar gameplay
 
+> Entrada atual: [prompt-base, skill e instalação](../ai/README.md).
+> A skill cobre o contrato Beta 0.16.0, inclusive empréstimos públicos e janela
+> piloto LOAN-only. As tabelas abaixo são históricas; confira as capacidades reais
+> do SDK instalado em vez de inferir disponibilidade a partir destas notas antigas.
+
 Use o SDK-only confiavel e [SDK-QUICKSTART.md](SDK-QUICKSTART.md). A IA nao precisa
 do EXE, saves, fontes ofuscadas ou checkout do loader para compilar/testar o mod.
 Nao envie dados privados nem bibliotecas proprietarias para um servico de IA.
@@ -22,7 +27,7 @@ Tem modelo/fakes e build API-only: bom ponto de partida para adaptar com IA.
 | Alterar transferencias, saldo, atributos, calendario ou regras de partida | Nao | P6 bloqueado; nao usar reflexao para escrever no legado |
 | Painel dentro da janela da carreira com tema local | Sim, loader0.6.0: ui.panel.embedded | Overlay proprio/Voltar; nao substitui tela nem pausa simulacao |
 | Eventos qualificados de I/O | Sim, loader0.8.0: events.career.io | ModContext.careerIoEvents, --probe-career-hooks; nao lifecycle completo/sidecars/durabilidade |
-| Inserir botoes em qualquer tela original | Nao | Nao ha injecao generica; use registro de painel/menu |
+| Inserir botoes/controles arbitrarios em telas originais | Nao | Nao ha injecao generica; use registro de painel/menu. O banner read-only aprovado fica limitado ao toolbar do clube (`ui.banner.club`). |
 
 Interfaces diferentes podem combinar os mesmos dados publicos; "modloader completo"
 nao significa acesso irrestrito a todo o jogo. Se a ideia exige capacidade ausente,

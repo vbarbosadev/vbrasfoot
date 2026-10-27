@@ -13,6 +13,17 @@ public interface GameAccess {
     default ScopedPlayerPage scopedPlayers(ClubRef club, int offset, int limit) {
         throw new UnsupportedOperationException("Consulta com escopo exige loader 0.3.0");
     }
+    /**
+     * Player snapshots paired with bounded, session-only handles. The handle identifies only the
+     * exact player object in the queried club list for this career scope; it is not persistent and
+     * does not prove unique membership elsewhere in the career graph or grant write authority.
+     * Never store it as a player or save identity. Requires a loader that implements this
+     * method; declare requiredCapabilities=query.player.references and game.read. Older
+     * implementations deliberately refuse to fabricate references.
+     */
+    default ScopedPlayersWithReferencesPage scopedPlayersWithReferences(ClubRef club, int offset, int limit) {
+        throw new UnsupportedOperationException("Referencias temporarias de jogadores indisponiveis neste loader");
+    }
     /** Read-only raw attributes. Requires query.player.details and game.read; no persistent player identity. */
     default ScopedPlayerDetailsPage scopedPlayerDetails(ClubRef club, int offset, int limit) {
         throw new UnsupportedOperationException("Detalhes de jogadores exigem query.player.details");
@@ -67,6 +78,25 @@ public interface GameAccess {
     }
     record ScopedPlayerPage(CareerScope scope, List<Player> items, int offset, int total) {
         public ScopedPlayerPage { java.util.Objects.requireNonNull(scope); items = List.copyOf(items); }
+    }
+    /** Opaque player-row handle; neither persistent identity nor proof of globally unique ownership. */
+    record PlayerRef(CareerScope scope, String token) {
+        public PlayerRef {
+            java.util.Objects.requireNonNull(scope);
+            if (token == null || token.isBlank()) throw new IllegalArgumentException("Invalid player reference");
+        }
+    }
+    record ScopedPlayerView(PlayerRef reference, Player player) {
+        public ScopedPlayerView { java.util.Objects.requireNonNull(reference); java.util.Objects.requireNonNull(player); }
+    }
+    record ScopedPlayersWithReferencesPage(CareerScope scope, ClubRef club, List<ScopedPlayerView> items, int offset, int total) {
+        public ScopedPlayersWithReferencesPage {
+            java.util.Objects.requireNonNull(scope); java.util.Objects.requireNonNull(club);
+            if (!scope.equals(club.scope())) throw new IllegalArgumentException("Scope mismatch");
+            items = List.copyOf(items);
+            if (offset < 0 || total < 0 || items.size() > Math.max(0, total - offset)) throw new IllegalArgumentException("Invalid page");
+            if (items.stream().anyMatch(item -> !scope.equals(item.reference().scope()))) throw new IllegalArgumentException("Player reference scope mismatch");
+        }
     }
 
     /** Bounded club query; override to avoid constructing a complete snapshot. */

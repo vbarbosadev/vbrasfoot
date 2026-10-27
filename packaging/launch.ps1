@@ -6,7 +6,10 @@ $java = Get-Command java -ErrorAction Stop
 Push-Location $gameRoot
 try {
     $probeArgs = @()
+    $gameArgs = @($args | Where-Object { $_ -ne '--pixel-perfect' })
+    $displayArgs = @()
+    if ($args -contains '--pixel-perfect') { $displayArgs = @('-Dsun.java2d.uiScale=1') }
     if ($args -contains '--probe-career-hooks') { $probeArgs = @('--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED') }
-    & $java.Source '--add-exports=java.desktop/sun.java2d=ALL-UNNAMED' @probeArgs '-Xmx1536m' -jar (Join-Path $PSScriptRoot 'vbrasfoot.jar') --home $installRoot --game-dir $gameRoot @args
+    & $java.Source '--add-exports=java.desktop/sun.java2d=ALL-UNNAMED' @probeArgs @displayArgs '-Xmx1536m' -jar (Join-Path $PSScriptRoot 'vbrasfoot.jar') --home $installRoot --game-dir $gameRoot @gameArgs
     exit $LASTEXITCODE
 } finally { Pop-Location }

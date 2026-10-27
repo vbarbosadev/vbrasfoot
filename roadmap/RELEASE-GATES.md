@@ -1,5 +1,9 @@
 # Marcos de release — reconciliacao 17/10/2026
 
+> Atualização 0.16.0: [SDK Beta atual](SDK-BETA-016.md). Há comandos públicos de empréstimo
+> e janela piloto LOAN-only. Isso não encerra os aceites integrais P3/P4/P6/P7 nem
+> transforma os marcos históricos abaixo em release pública aceita.
+
 Complementa [ROADMAP.md](ROADMAP.md), sem substituir os aceites P0-P7 nem criar
 gates de gameplay para leitura/interface. Escopo exclusivo: Brasfoot22-23 conhecido.
 Evidencias detalhadas: `../VALIDACAO.md` e guias/contratos desta pasta.
@@ -68,9 +72,12 @@ politica de retencao de sessoes/backups. Desinstalacao atual preserva dados.
 
 ## Politica de manutencao do SDK
 
-Base atual: API major 1, SDK/loader 0.9.3 experimental em desenvolvimento;
-validador JSON/guia IA sem ampliar capacidades de gameplay. Contexto foi integrado
-por #13; recovery0.4.5 instalado/confirmado na copia Documents. Sem release/tag.
+Base de desenvolvimento: API major 1, SDK/loader 0.11.0 experimental; loader
+instalado 0.9.3 permanece inalterado. Esta revisao adiciona sidecars de mod
+vinculados somente a associacao explicitamente selecionada; nao amplia
+capacidades de gameplay.
+Contexto foi integrado por #13; recovery0.4.5 instalado/confirmado na copia Documents.
+Sem release/tag.
 Manter minLoaderVersion/capacidades por recurso e perfil exato, recusando
 incompatibilidades com mensagem acionavel. Adicoes preservam assinaturas anteriores;
 default pode recusar capacidade em loader antigo. Nao prometer compatibilidade

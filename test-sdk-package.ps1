@@ -67,6 +67,10 @@ $description = Run-Validator 'sdk-description' @('--describe-sdk') | ConvertFrom
 if ($description.format -ne 1 -or $description.kind -ne 'sdk-description' -or $description.sandbox -ne $false -or $description.sdkVersion -ne $version) { throw 'Contrato machine-readable divergente' }
 if ($description.conditionalCapabilities -notcontains 'events.career.io' -or $description.featureMinimums.'events.career.io' -ne '0.8.0') { throw 'Contrato de eventos de I/O ausente' }
 if ($description.featureMinimums.'query.player.details' -ne '0.9.0' -or $description.readMethods.'query.player.details' -ne 'GameAccess.scopedPlayerDetails') { throw 'Contrato de detalhes de jogadores ausente' }
+if ($description.featureMinimums.'career.data.scoped' -ne '0.11.0' -or $description.dataFeatures.'career.data.scoped'.writesGameSave -ne $false) { throw 'Contrato de sidecars por associação ausente ou permissivo' }
+if ($description.conditionalCapabilities -notcontains 'game.sponsor.activate' -or $description.featureMinimums.'game.sponsor.activate' -ne '0.12.0' -or
+    $description.gameplayFeatures.'game.sponsor.activate'.owner -ne 'br.vbrasfoot.sponsor-manager' -or
+    $description.gameplayFeatures.'game.sponsor.activate'.saveInclusionGuaranteed -ne $false) { throw 'Contrato restrito de patrocinio ausente ou permissivo' }
 $jsonMod = Run-Validator 'template-json' @('--json',$mod) | ConvertFrom-Json
 if ($jsonMod.valid -ne $true -or $jsonMod.mod.id -ne 'br.sdk.fixture' -or $jsonMod.codeInitialized -ne $false -or $jsonMod.installedSetValidated -ne $false) { throw 'Validacao JSON do mod incorreta' }
 if ($jsonMod.mod.name -cne $quotedName) { throw 'JSON perdeu quotes/acentos do manifesto UTF8' }
@@ -99,7 +103,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Scout SDK-only fora do checkout falhou' }
 $scout = Join-Path $scoutProject 'dist\player-scout.jar'
 $scoutResult = Run-Validator 'scout-json' @('--json',$scout) | ConvertFrom-Json
 if ($scoutResult.valid -ne $true -or $scoutResult.mod.id -ne 'br.vbrasfoot.player-scout' -or $scoutResult.observationModeRequired -ne $false) { throw 'Scout nao validado' }
-foreach ($jarPath in @($mod,$observer,$comparator,$dashboard,$scout)) {
+$loanProject = Join-Path $fixture 'loan-window-project'
+Copy-Item -LiteralPath (Join-Path $sdk 'examples\loan-window-sdk') -Destination $loanProject -Recurse
+& (Join-Path $loanProject 'build.ps1') -Sdk $api
+if ($LASTEXITCODE -ne 0) { throw 'Exemplo de emprestimos SDK-only fora do checkout falhou' }
+$loanExample = Join-Path $loanProject 'dist\loan-window-example.jar'
+$loanJson = Run-Validator 'loan-window-json' @('--json',$loanExample) | ConvertFrom-Json
+if ($loanJson.valid -ne $true -or $loanJson.observationModeRequired -ne $true) { throw 'Exemplo gameplay nao validado/sem exigencia de hooks' }
+foreach ($jarPath in @($mod,$observer,$comparator,$dashboard,$scout,$loanExample)) {
     $jar = [IO.Compression.ZipFile]::OpenRead($jarPath)
     try {
         foreach ($entry in $jar.Entries) {

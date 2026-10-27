@@ -1,4 +1,7 @@
-# Distribuicao do SDK-only — 0.9.3 experimental
+# Distribuicao do SDK-only — 0.11.0 experimental
+
+> A geração usa agora Sdk.VERSION (0.16.0). Inclui o contrato SDK-BETA-016 e exemplo
+> loan-window-sdk. Não confundir pacote gerado/testado com publicação pública aceita.
 
 Incremento de P5 para autores: API, validador target-free, contratos/guias, Javadocs,
 template e observador SDK-only com testes. Sem loader completo, jogo, saves, logs,
@@ -7,8 +10,8 @@ bibliotecas originais, credenciais, JRE ou downloads durante build/test.
 ## Gerar e verificar (mantenedor)
 
 ```powershell
-.\release-sdk.ps1 -Output .\dist\sdk-0.9.3-reviewed
-.\test-sdk-package.ps1 -Archive .\dist\sdk-0.9.3-reviewed.zip
+.\release-sdk.ps1 -Output .\dist\sdk-0.11.0-reviewed
+.\test-sdk-package.ps1 -Archive .\dist\sdk-0.11.0-reviewed.zip
 ```
 
 Requer checkout/JDK 17 ou 21 apenas para **gerar**, nao para consumidor compilar um

@@ -1,0 +1,46 @@
+VBrasfoot - SOMENTE PATROCINIOS 0.5.0 - Loader 0.13.3
+
+INSTALACAO SEM COMANDOS
+
+1. Feche o jogo e faca backup da pasta inteira.
+2. Copie TODO o conteudo deste ZIP para a pasta onde esta bf22-23.exe.
+   Aceite substituir os arquivos do loader/mod se estiver atualizando.
+3. Abra vbrasfoot-patrocinios.cmd com dois cliques. Requer Windows e Java 17+.
+4. Carregue uma carreira existente, abra vbrasfoot > Patrocinios e clique
+   em Vincular esta carreira...; confira o save antes de confirmar.
+
+SOMENTE PATROCINIOS
+
+Nao carrega emprestimos, gerenciador de mods, painel Carreira e diarios,
+restaurar janela ou outros plugins externos. O backend de vinculos, historicos,
+backups e protecoes continua necessario e incluido no loader.
+Carrega apenas vbrasfoot\mods\br.vbrasfoot.sponsor-manager.jar.
+JARs antigos podem permanecer na pasta, mas sao ignorados nesse perfil.
+O arquivo vbrasfoot\distribution-profile.txt tambem seleciona esse perfil nos
+launchers normais/nitidos, mesmo se sobrou loans-only.txt do pacote anterior.
+Use vbrasfoot-patrocinios.cmd, NAO o antigo vbrasfoot-emprestimos.cmd.
+
+ATIVAR
+
+Cadastre nome, credito unico, logo PNG/JPEG e nome opcional do estadio.
+Salvar configuracao NAO paga. Na aba Configuracoes e logos, selecione o contrato,
+clique Ativar e creditar valor base, confira saldo/estadio e confirme.
+Depois, SALVE PELO JOGO.
+
+ENCERRAR E TROCAR
+
+Selecione o contrato pago e clique Encerrar patrocinio. Confirme a restauracao
+do nome original registrado. A logo sai do topo e o dinheiro permanece.
+Depois, SALVE PELO JOGO. Apos encerramento confirmado, pode ativar um NOVO
+contrato distinto; o contrato anterior nunca recebe novamente.
+
+PRESERVE SEUS DADOS
+
+O ZIP nao inclui jogo, Java, saves ou dados pessoais.
+Nao apague sav nem vbrasfoot\data; leve ambos ao transferir a carreira.
+Nao recrie contratos antigos para repetir pagamentos. Fechar sem salvar ou
+restaurar backup nao permite replay/compensacao automatica. Em resultado
+incerto, preserve save e historico e nao tente novamente automaticamente.
+Nao apaga nem reconcilia historicos de emprestimos antigos; pendencias podem
+continuar bloqueando novas operacoes por seguranca.
+Versao experimental, somente perfil Brasfoot22-23 suportado; use copia de teste.

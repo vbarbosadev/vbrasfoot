@@ -5,7 +5,9 @@ $fixture = Join-Path $env:LOCALAPPDATA ('Temp\opencode\vbrasfoot-author-template
 [IO.Directory]::CreateDirectory($fixture) | Out-Null
 $project = Join-Path $fixture 'my-new-mod'
 Copy-Item -LiteralPath (Join-Path $packageRoot 'sdk\template-read-only') -Destination $project -Recurse
-$sdk = Join-Path $packageRoot 'sdk\vbrasfoot-api-0.9.3.jar'
+$sdkCandidates = @(Get-ChildItem -LiteralPath (Join-Path $packageRoot 'sdk') -File -Filter 'vbrasfoot-api-*.jar')
+if ($sdkCandidates.Count -ne 1) { throw 'Pacote deve conter exatamente um JAR de API versionado' }
+$sdk = $sdkCandidates[0].FullName
 # Build from a copied project; it has no paths back to loader source/classes.
 & (Join-Path $project 'build.ps1') -Sdk $sdk
 if ($LASTEXITCODE -ne 0) { throw 'Template independente falhou' }

@@ -38,8 +38,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar validador sem loader/jogo' }
 & jar --create --file (Join-Path $root "tools\vbrasfoot-validator-$version.jar") --main-class br.vbrasfoot.SdkValidator -C $apiClasses . -C $toolClasses . -C $PSScriptRoot LICENSE
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao empacotar validador isolado' }
 Copy-Source (Join-Path $PSScriptRoot 'LICENSE') 'LICENSE'
+Copy-Source (Join-Path $PSScriptRoot 'roadmap\SDK-BETA-016.md') 'docs\SDK-BETA-016.md'
+foreach ($relative in @('README.md','build.ps1','vbrasfoot.mod.properties','src\br\exemplo\loanwindow\LoanWindowMod.java')) {
+    Copy-Source (Join-Path $PSScriptRoot "examples\loan-window-sdk\$relative") "examples\loan-window-sdk\$relative"
+}
 Copy-Source (Join-Path $PSScriptRoot 'sdk-tools\verify-sdk.ps1') 'verify.ps1'
-foreach ($name in @('SDK-QUICKSTART.md','SDK-COMPATIBILITY.md','SDK-DISTRIBUTION.md','SDK-CONTRACT.md','AI-MOD-AUTHORING.md','EMBEDDED-UI.md','CALENDAR-BALANCE.md','THIRD-PARTY-ACCEPTANCE.md','QUERY-PERFORMANCE.md','SCOPED-QUERIES.md','CAREER-OBSERVATIONS.md','CAREER-IO-EVENTS.md','MOD-MANAGEMENT.md','DIAGNOSTIC-EXPORT.md')) { Copy-Source (Join-Path $PSScriptRoot "roadmap\$name") "docs\$name" }
+foreach ($name in @('SDK-QUICKSTART.md','SDK-COMPATIBILITY.md','SDK-DISTRIBUTION.md','SDK-CONTRACT.md','AI-MOD-AUTHORING.md','EMBEDDED-UI.md','CLUB-BANNERS.md','CAREER-MOD-DATA.md','CALENDAR-BALANCE.md','THIRD-PARTY-ACCEPTANCE.md','QUERY-PERFORMANCE.md','SCOPED-QUERIES.md','CAREER-OBSERVATIONS.md','CAREER-IO-EVENTS.md','MOD-MANAGEMENT.md','DIAGNOSTIC-EXPORT.md')) { Copy-Source (Join-Path $PSScriptRoot "roadmap\$name") "docs\$name" }
 foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\careerdashboard\DashboardModel.java','src\br\vbrasfoot\careerdashboard\CareerDashboardMod.java','test\br\vbrasfoot\careerdashboard\DashboardModelTest.java')) { Copy-Source (Join-Path $PSScriptRoot "examples\career-dashboard\$relative") "examples\career-dashboard\$relative" }
 foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src\br\exemplo\consulta\ReadOnlyMod.java','test\br\exemplo\consulta\ReadOnlyModTest.java')) { Copy-Source (Join-Path $PSScriptRoot "templates\read-only-mod\$relative") "template-read-only\$relative" }
 foreach ($relative in @('README.md','LICENSE','build.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\observer\CareerObserverMod.java','test\br\vbrasfoot\observer\CareerObserverModTest.java')) { Copy-Source (Join-Path $PSScriptRoot "examples\career-observer\$relative") "examples\career-observer\$relative" }
@@ -53,6 +57,7 @@ $readme = @"
 
 API major 1; Java 17/21. SDK para compilar/testar mods sem jogo ou checkout do loader.
 Leia [o guia](docs/SDK-QUICKSTART.md) e [a compatibilidade](docs/SDK-COMPATIBILITY.md).
+Contrato atual e limites de gameplay: [SDK Beta 0.16](docs/SDK-BETA-016.md).
 Javadocs: [javadoc/index.html](javadoc/index.html).
 Criar mods com IA: [guia e contrato JSON](docs/AI-MOD-AUTHORING.md).
 
@@ -64,7 +69,9 @@ Criar mods com IA: [guia e contrato JSON](docs/AI-MOD-AUTHORING.md).
 Nao inclui loader completo, jogo, saves, bibliotecas proprietarias ou JRE/JDK.
 Para jogar/instalar e necessario loader portable compativel e copia local conhecida
 do Brasfoot22-23; nao ha bypass de licenca. Nao embuta a API/validador no seu mod.
-Sem identidade persistente/eventos completos/gameplay; observador e opt-in experimental.
+Sem eventos completos/escrita generica de gameplay. Emprestimos humanos e janelas
+LOAN-only experimentais agora tem API publica opt-in; nao alteram data, compras ou IA.
+SponsorAccess e restrito ao sponsor-manager, com confirmacao e hooks; veja docs/SDK-CONTRACT.md.
 MIT aplica-se ao codigo original; Javadocs preservam avisos legais do gerador/JDK.
 Nao e release estavel nem aceite de todos os gates P0-P7. Nao publica nada em rede.
 "@

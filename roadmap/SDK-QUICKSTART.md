@@ -1,4 +1,7 @@
-# Primeiro mod com o SDK independente — 0.9.3 experimental
+# Primeiro mod com o SDK independente — 0.16.0 Beta experimental
+
+Veja também [o contrato atual de empréstimos e janela piloto](SDK-BETA-016.md).
+Para instalar mods externos use a distribuição de autores e `vbrasfoot-mods.cmd`.
 
 Guia para o **ZIP SDK-only**, sem checkout, EXE, saves, Maven, rede ou classes do
 jogo para compilar/testar. Para jogar, voce precisa separadamente do loader portable
@@ -16,8 +19,8 @@ Estrutura do SDK-only:
 
 ```text
 README.md / LICENSE / sdk-package.json / checksums.json / verify.ps1
-api/vbrasfoot-api-0.9.3.jar
-tools/vbrasfoot-validator-0.9.3.jar
+api/vbrasfoot-api-0.16.0.jar
+tools/vbrasfoot-validator-0.16.0.jar
 docs/                 # contratos, compatibilidade e este guia
 javadoc/index.html
 template-read-only/   # copie para seu projeto
@@ -33,7 +36,7 @@ redistribuidos. Avisos legais dos recursos gerados pelo Javadoc sao preservados.
 No PowerShell, ajuste os dois caminhos para pastas suas:
 
 ```powershell
-$SdkRoot = 'C:\Downloads\vbrasfoot-sdk-0.9.3'
+$SdkRoot = 'C:\Downloads\VBrasfoot-SDK-Beta-0.16.0'
 $Project = 'C:\Mods\meu-primeiro-mod'
 if (Test-Path -LiteralPath $Project) { throw 'Escolha projeto novo; nao sobrescrever.' }
 Copy-Item -LiteralPath (Join-Path $SdkRoot 'template-read-only') -Destination $Project -Recurse
@@ -55,8 +58,8 @@ JAR do loader, API ou bibliotecas/classes do jogo para dentro do seu mod.
 ## 3. Compilar, testar e validar sem jogo
 
 ```powershell
-& (Join-Path $Project 'build.ps1') -Sdk (Join-Path $SdkRoot 'api\vbrasfoot-api-0.9.3.jar')
-java -jar (Join-Path $SdkRoot 'tools\vbrasfoot-validator-0.9.3.jar') (Join-Path $Project 'dist\meu-mod.jar')
+& (Join-Path $Project 'build.ps1') -Sdk (Join-Path $SdkRoot 'api\vbrasfoot-api-0.16.0.jar')
+java -jar (Join-Path $SdkRoot 'tools\vbrasfoot-validator-0.16.0.jar') (Join-Path $Project 'dist\meu-mod.jar')
 ```
 
 Build usa apenas a API publica e Java, com --release 17. Teste usa fake SDK proprio,
@@ -103,6 +106,17 @@ O SDK-only nao liga hooks ou instala o exemplo automaticamente.
 [Contrato das observacoes](CAREER-OBSERVATIONS.md): nao e evento completo de unload,
 save duravel, partida, temporada ou identidade permanente. Sem persistencia P3
 ou escrita de gameplay. Nao use fila descartavel como journal de dados por carreira.
+
+Para exibir uma imagem read-only no toolbar do clube, consulte
+[CLUB-BANNERS.md](CLUB-BANNERS.md): requer `ui.banner.club` e `ui.register`, minimo
+0.10.0, correspondencia exata do clube atual e callback rapido na EDT. Isso nao e
+autoridade de gameplay nem indica que um contrato financeiro foi ativado.
+
+Para dados de mod vinculados a uma carreira, consulte
+[CAREER-MOD-DATA.md](CAREER-MOD-DATA.md): requer `career.data.scoped`, `data.read`,
+`data.write` e loader 0.11.0. A associacao deve ser selecionada explicitamente na
+UI de carreira; mudancas de save invalidam o escopo ate nova revisao. Isso grava
+somente sidecars do mod, nunca o save nem o estado financeiro do jogo.
 
 ## 6. Relatar resultado / erros comuns
 

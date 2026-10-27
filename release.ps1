@@ -1,17 +1,32 @@
 param([string]$Output = (Join-Path $PSScriptRoot 'dist\portable'))
 $ErrorActionPreference = 'Stop'
 if (Test-Path -LiteralPath $Output) { throw 'Escolha um destino novo para o pacote.' }
+$sdkSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'src\br\vbrasfoot\api\Sdk.java') -Raw
+if ($sdkSource -notmatch 'String VERSION = "(\d+\.\d+\.\d+)"') { throw 'Versao do SDK nao encontrada' }
+$sdkVersion = $Matches[1]
 & "$PSScriptRoot\build.ps1"
 if ($LASTEXITCODE -ne 0) { throw 'Build falhou' }
 [IO.Directory]::CreateDirectory((Join-Path $Output 'app')) | Out-Null
+ [IO.File]::WriteAllText((Join-Path $Output 'package-version.txt'), $sdkVersion, [Text.UTF8Encoding]::new($false))
 Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot.jar" -Destination (Join-Path $Output 'app\vbrasfoot.jar')
-foreach ($name in @('install.ps1', 'uninstall.ps1', 'recover-update.ps1', 'launch.ps1', 'vbrasfoot.cmd', 'vbrasfoot-safe.cmd')) {
+foreach ($name in @('install.ps1', 'uninstall.ps1', 'recover-update.ps1', 'launch.ps1', 'vbrasfoot.cmd', 'vbrasfoot-safe.cmd', 'vbrasfoot-nitido.cmd')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "packaging\$name") -Destination $Output
 }
 Copy-Item -LiteralPath "$PSScriptRoot\LICENSE" -Destination (Join-Path $Output 'app\LICENSE')
+Copy-Item -LiteralPath "$PSScriptRoot\packaging\LOAN-INSTALL.md" -Destination (Join-Path $Output 'LOAN-INSTALL.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\LOAN-INTEGRATED-VALIDATION.md" -Destination (Join-Path $Output 'LOAN-INTEGRATED-VALIDATION.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\LOAN-RELATIVE-FEE-VALIDATION.md" -Destination (Join-Path $Output 'LOAN-RELATIVE-FEE-VALIDATION.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\NATIVE-LOAN-INTERFACE.md" -Destination (Join-Path $Output 'NATIVE-LOAN-INTERFACE.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\FLAMENGO-CLUB-HISTORY-VALIDATION.md" -Destination (Join-Path $Output 'FLAMENGO-CLUB-HISTORY-VALIDATION.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\UNIQUE-SAVE-ASSOCIATION.md" -Destination (Join-Path $Output 'UNIQUE-SAVE-ASSOCIATION.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\NATIVE-LOAN-PANEL-20261023.md" -Destination (Join-Path $Output 'NATIVE-LOAN-PANEL-20261023.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CURRENT-LOAN-BASELINE-AND-DPI.md" -Destination (Join-Path $Output 'CURRENT-LOAN-BASELINE-AND-DPI.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\LOAN-FLOW-PERFORMANCE-20261023.md" -Destination (Join-Path $Output 'LOAN-FLOW-PERFORMANCE-20261023.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\LOAN-THREE-LIMIT-NATIVE-LISTED.md" -Destination (Join-Path $Output 'LOAN-THREE-LIMIT-NATIVE-LISTED.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\NATIVE-LOAN-RETURN-RECOGNITION.md" -Destination (Join-Path $Output 'NATIVE-LOAN-RETURN-RECOGNITION.md')
 [IO.Directory]::CreateDirectory((Join-Path $Output 'sdk')) | Out-Null
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-api-0.9.3.jar')
-Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output 'sdk\vbrasfoot-validator-0.9.3.jar')
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-api.jar" -Destination (Join-Path $Output "sdk\vbrasfoot-api-$sdkVersion.jar")
+Copy-Item -LiteralPath "$PSScriptRoot\dist\vbrasfoot-validator.jar" -Destination (Join-Path $Output "sdk\vbrasfoot-validator-$sdkVersion.jar")
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-QUICKSTART.md" -Destination (Join-Path $Output 'sdk\SDK-QUICKSTART.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-COMPATIBILITY.md" -Destination (Join-Path $Output 'sdk\SDK-COMPATIBILITY.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\QUERY-PERFORMANCE.md" -Destination (Join-Path $Output 'sdk\QUERY-PERFORMANCE.md')
@@ -19,6 +34,8 @@ Copy-Item -LiteralPath "$PSScriptRoot\roadmap\SDK-CONTRACT.md" -Destination (Joi
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\AI-MOD-AUTHORING.md" -Destination (Join-Path $Output 'sdk\AI-MOD-AUTHORING.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CALENDAR-BALANCE.md" -Destination (Join-Path $Output 'sdk\CALENDAR-BALANCE.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\EMBEDDED-UI.md" -Destination (Join-Path $Output 'sdk\EMBEDDED-UI.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CLUB-BANNERS.md" -Destination (Join-Path $Output 'sdk\CLUB-BANNERS.md')
+Copy-Item -LiteralPath "$PSScriptRoot\roadmap\CAREER-MOD-DATA.md" -Destination (Join-Path $Output 'sdk\CAREER-MOD-DATA.md')
 Copy-Item -LiteralPath "$PSScriptRoot\roadmap\THIRD-PARTY-ACCEPTANCE.md" -Destination (Join-Path $Output 'sdk\THIRD-PARTY-ACCEPTANCE.md')
 foreach ($relative in @('README.md','LICENSE','build.ps1','install.ps1','vbrasfoot.mod.properties','.gitignore','src\br\vbrasfoot\careerdashboard\DashboardModel.java','src\br\vbrasfoot\careerdashboard\CareerDashboardMod.java','test\br\vbrasfoot\careerdashboard\DashboardModelTest.java')) {
     $target = Join-Path $Output "sdk\examples\career-dashboard\$relative"

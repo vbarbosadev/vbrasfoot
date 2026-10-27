@@ -22,8 +22,15 @@ $mapping = [ordered]@{
     'recover-update.ps1' = 'vbrasfoot\app\recover-update.ps1'
     'vbrasfoot.cmd' = 'vbrasfoot.cmd'
     'vbrasfoot-safe.cmd' = 'vbrasfoot-safe.cmd'
+    'vbrasfoot-nitido.cmd' = 'vbrasfoot-nitido.cmd'
 }
 $packageHashes = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'package-hashes.json') -Raw | ConvertFrom-Json
+$versionPath = Join-Path $PSScriptRoot 'package-version.txt'
+if (-not (Test-Path -LiteralPath $versionPath -PathType Leaf)) { throw 'Versao do pacote ausente.' }
+$packageVersion = [IO.File]::ReadAllText($versionPath)
+$versionHash = $packageHashes.PSObject.Properties['package-version.txt']
+if ($packageVersion -notmatch '^\d{1,6}\.\d{1,6}\.\d{1,6}$' -or -not $versionHash -or
+    (Get-FileHash -LiteralPath $versionPath -Algorithm SHA256).Hash -ne $versionHash.Value) { throw 'Versao do pacote invalida ou divergente.' }
 $manifestPath = Join-Path $root 'install-manifest.json'
 $transaction = Join-Path $root '.update-pending'
 Assert-PlainPath $transaction
@@ -79,7 +86,7 @@ try {
         [IO.File]::Copy($manifestPath, (Join-Path $transaction 'manifest.before'), $false)
         $manifestBefore = (Get-FileHash -LiteralPath $manifestPath).Hash
     }
-    $nextManifest = [pscustomobject]@{ Version = '0.9.3'; Experimental = $true; Files = @($records | ForEach-Object { [pscustomobject]@{ Path = $_.Path; SHA256 = $_.After } }) }
+    $nextManifest = [pscustomobject]@{ Version = $packageVersion; Experimental = $true; Files = @($records | ForEach-Object { [pscustomobject]@{ Path = $_.Path; SHA256 = $_.After } }) }
     $nextManifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $transaction 'manifest.after') -Encoding UTF8
     [pscustomobject]@{ Format = 1; Files = $records; ManifestBefore = $manifestBefore; ManifestAfter = (Get-FileHash -LiteralPath (Join-Path $transaction 'manifest.after')).Hash } |
         ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $transaction 'journal.json.tmp') -Encoding UTF8

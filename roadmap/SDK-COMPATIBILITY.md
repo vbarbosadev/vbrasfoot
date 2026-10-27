@@ -1,4 +1,4 @@
-# Compatibilidade do SDK — 0.9.3 experimental
+# Compatibilidade do SDK — 0.11.0 experimental
 
 CareerIoEvents/ModContext.careerIoEvents exige0.8.0, events.career.read e
 requiredCapabilities=events.career.io/--probe-career-hooks. Default preserva
@@ -9,7 +9,7 @@ implementacoes antigas de ModContext; DTOs/kinds antigos inalterados.
 1. **API major**: atualmente 1. Manifesto aceita 1 ou intervalo inteiro `[min,max)`
    contendo 1; nao e range SemVer. Metodos anteriores sao preservados; adicoes
    podem ter default que recusa loader antigo, em vez de inventar capacidade.
-2. **Loader/SDK SemVer**: 0.9.3 nesta entrega. `minLoaderVersion` e minimo explicito
+2. **Loader/SDK SemVer**: 0.11.0 nesta entrega. `minLoaderVersion` e minimo explicito
    com major.minor.patch, nao inferido do Java nem da versao do seu mod.
 3. **Perfil do jogo**: somente `brasfoot22-23` conhecido, fingerprint completo do
    EXE validado pelo loader. Mesmo nome comercial com bytes diferentes e recusado.
@@ -28,6 +28,7 @@ e capacidades no manifesto e trate erros/defaults documentados.
 | Consultas legadas por snapshot | Contrato antigo API 1 | game.read; evitar copia completa |
 | Paginas e registerScopedAction | 0.2.0 | game.read/query.paged ou ui.register |
 | scopedClubs/scopedPlayers e erros tipados | 0.3.0 | game.read + query.scoped |
+| scopedPlayersWithReferences / PlayerRef temporario | 0.9.4 | game.read + query.player.references; handles da sessao, sem identidade persistente |
 | CLI --validate-mod sem jogo | 0.3.1 | Valida so o JAR, nao executa mod |
 | CareerObservations | 0.4.0 | events.career.read + hooks opt-in; capacidade condicional events.career.observed |
 | Selecao proximo inicio | 0.4.1 | UI/CLI do loader; sem hot reload |
@@ -38,6 +39,8 @@ e capacidades no manifesto e trate erros/defaults documentados.
 | scopedCalendar/scopedClubBalance | 0.5.0 | game.read + query.calendar.current/query.club.balance; campos delimitados |
 | registerPanel/UiTheme/ModPanel | 0.6.0 | ui.register + ui.panel.embedded; overlay da janela da carreira, nao injecao arbitraria |
 | UiTheme.Role/style e preservacao de estilos explicitos | 0.7.0 | Componentes do mod somente, EDT; estilo inspirado, sem assets do jogo |
+| registerClubBanner | 0.10.0 | ui.register + ui.banner.club; banner read-only limitado ao toolbar do clube original |
+| careerData / sidecars por associação selecionada | 0.11.0 | career.data.scoped + data.read + data.write; exige probe, associação exata selecionada e não grava o save |
 
 Minimos descrevem disponibilidade dos recursos, nao uma matriz de gameplay
 aprovada em todas as versoes historicas. O template de leitura exige 0.3.1 pelos

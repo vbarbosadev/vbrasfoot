@@ -7,3 +7,10 @@
 /backups/
 /.runtime.lock
 /mods/*.jar
+/Brasfoot22-23/
+**/build/
+**/dist/
+**/*.class
+**/*.s22
+**/*.sbck
+**/.runtime.lock

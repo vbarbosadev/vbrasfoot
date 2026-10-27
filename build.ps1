@@ -3,6 +3,7 @@ Push-Location $PSScriptRoot
 try {
     $classes = Join-Path $PSScriptRoot 'build\classes'
     $tests = Join-Path $PSScriptRoot 'build\tests'
+    & "$PSScriptRoot\test\launcher-display-and-recovery.ps1"
     $example = Join-Path $PSScriptRoot 'build\inspector'
     foreach ($dir in @($classes, $tests, $example, 'dist', 'mods')) {
         New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -40,10 +41,30 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ModSelectionSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de selecao de mods falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LoansOnlyProfileSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de pacote somente emprestimos falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SponsorsOnlyProfileSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de pacote somente patrocinios falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CombinedProfileSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de pacote combinado falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerIdentityResolutionSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de identificacao compartilhada de carreira falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SponsorOffersCoordinatorSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de mensagens pendentes de patrocinio falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SponsorMessagePanelBindingSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do botao de recebimento na central falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SponsorNativeMessageFenceSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de exclusao de I/O das mensagens nativas falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SponsorDialogsSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de estilo das notificacoes de patrocinio falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SdkGameplayBetaSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de API publica e janela de emprestimos falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ModFailuresSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de historico de falhas falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ModContextLifecycleSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de lifecycle do contexto falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ClubBannerSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de banners read-only falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ModJarIsolationSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de isolamento de JARs de mods falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.StorageInventorySelfTest
@@ -52,6 +73,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes do nucleo de sidecar falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerSaveAssociationsSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de associacao explicita de saves falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.PortableCareerPathsSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de portabilidade e preservacao de historico falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerRecoverySelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de recuperacao do diario e exclusao de save falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.DecodedSaveProvenanceSelfTest
@@ -86,6 +109,14 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes da avaliacao por operacao no save falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceExecutionWitnessSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da evidencia duravel de execucao financeira falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SponsorActivationStoreSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do historico interno de ativacao de patrocinios falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SponsorActivationPipelineSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do pipeline interno de ativacao de patrocinios falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SponsorEndPipelineSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de encerramento sem alterar dinheiro falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.SponsorContinuationReviewSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de novo patrocinio apos encerramento falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ProvenNoEffectReconciliationSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da reconciliacao com prova duravel NO_EFFECT falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.FinanceMutationTrackerSelfTest
@@ -140,6 +171,26 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Testes de calendario/saldo falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.PlayerSnapshotsSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes de detalhes de jogadores falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LoanClubAssessmentSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes da regra pura de avaliacao de emprestimos falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LoanRequestQueueSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes da fila de pedidos de emprestimo da sessao falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LoanRequestStoreSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes do contrato duravel e despacho de emprestimos falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LoanDecisionsSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Loan decision tests failed' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LoanReleasePolicySelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes das decisoes duraveis de emprestimos falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.NativeLoanUiSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes da integracao contextual de emprestimos falharam' }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LoanClubHistorySelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de historico de participacao no clube falharam' }
+    foreach ($continuationTest in @('LoanReturnEvidenceSelfTest','NativeListedLoanSelfTest','LoanHistoryBatchSelfTest','NativeLoanDialogSelfTest','CareerAssociationRegistrySelfTest','LoanContinuationStoreSelfTest','LoanBaselineStoreSelfTest','LoanContinuationGateSelfTest','LoanContinuationCoordinatorSelfTest','GroupedLoanHistorySelfTest')) {
+        & java '-Djava.awt.headless=true' -cp "$classes;$tests" "br.vbrasfoot.$continuationTest"
+        if ($LASTEXITCODE -ne 0) { throw "Teste de continuacao falhou: $continuationTest" }
+    }
+    & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.LoanRosterRefreshSelfTest
+    if ($LASTEXITCODE -ne 0) { throw 'Testes de refresh do elenco apos emprestimo falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.ProbeDispatcherSelfTest
     if ($LASTEXITCODE -ne 0) { throw 'Testes da fila da sonda falharam' }
     & java '-Djava.awt.headless=true' -cp "$classes;$tests" br.vbrasfoot.CareerLifecycleSelfTest

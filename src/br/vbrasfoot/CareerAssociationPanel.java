@@ -52,6 +52,17 @@ final class CareerAssociationPanel {
             text.append('\n');
         }
         text.append("Contrato sem receipt exige reconciliacao; nao e seguro repetir nem descartar.\n");
+        text.append("\nContratos de emprestimo: inclui namespaces de mods desabilitados/ausentes.\n");
+        for (var contracts : review.loans()) {
+            text.append(contracts.owner()).append(contracts.configured() ? " [configurado]: " : " [existente, nao selecionado]: ");
+            contracts.recovery().ifPresentOrElse(recovery -> {
+                text.append("contratos: ").append(recovery.snapshot().requests().size()).append(" / revisao alterada: ").append(recovery.revisionChanged());
+                for (var request : recovery.snapshot().requests()) text.append("\n  Decisao ").append(request.key()).append(": ").append(recovery.snapshot().state(request.key()));
+                for (var link : contracts.links()) text.append("\n  ").append(link.key()).append(": ").append(link.status());
+            }, () -> text.append("RECUSADO ").append(contracts.failure().orElseThrow()));
+            text.append('\n');
+        }
+        text.append("Pendentes nao sao reexecutados. APPLIED_SAVE_UNPROVEN nao prova inclusao; UNKNOWN continua bloqueado.\n");
         text.append("LEGACY_NO_EFFECT_WITHOUT_REQUEST preserva apenas recusa antiga sem efeito; nao inventa contrato ou permite replay.\n");
         text.append("\nEvidencias de execucao: inclui namespaces existentes mesmo de mods nao selecionados.\n");
         for (var execution : review.executions()) {
@@ -118,10 +129,13 @@ final class CareerAssociationPanel {
                 new Choice("Preparar contexto INTERNO (nenhuma escrita publica liberada)", CareerAssociationCoordinator.Action.PREPARE_INTERNAL_CONTEXT)
         });
         JComboBox<String> owner = new JComboBox<>(); owner.setToolTipText("Owner explicito para quarentena, reancoragem ou reconciliacao provada do diario revisado");
-        JButton refresh = new JButton("Verificar (somente leitura)"), confirm = new JButton("Revisar e confirmar acao"); confirm.setEnabled(false);
+         JButton refresh = new JButton("Verificar (somente leitura)"), confirm = new JButton("Revisar e confirmar acao"); confirm.setEnabled(false);
+         JButton selectCareerData = new JButton("Vincular dados de mods a esta associacao"), clearCareerData = new JButton("Limpar selecao de dados da sessao");
+         selectCareerData.setEnabled(false); clearCareerData.setEnabled(false);
         JLabel status = new JLabel("Sem comandos de gameplay.");
         JPanel commands = new JPanel(new GridLayout(0, 1, 4, 4)); commands.add(action); commands.add(owner);
-        JPanel buttons = new JPanel(); buttons.add(refresh); buttons.add(confirm); commands.add(buttons); commands.add(status);
+         JPanel buttons = new JPanel(); buttons.add(refresh); buttons.add(confirm); commands.add(buttons);
+         JPanel dataButtons = new JPanel(); dataButtons.add(selectCareerData); dataButtons.add(clearCareerData); commands.add(dataButtons); commands.add(status);
         body.add(commands, BorderLayout.SOUTH); dialog.setContentPane(body);
         var usable = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
         dialog.setSize(Math.max(300, Math.min(1000, usable.width - 80)), Math.max(260, Math.min(700, usable.height - 80))); dialog.setLocationRelativeTo(null);
@@ -158,7 +172,10 @@ final class CareerAssociationPanel {
                             latest[0] = review; details.setText(report(review) + "\nContexto interno: " + coordinator.operationalSnapshot().status()
                                     + "\nNenhuma permissao de comando ou handler concedida a mods.\n"); details.setCaretPosition(0); owner.removeAllItems();
                             for (var row : review.journals()) owner.addItem(row.owner());
-                            confirm.setEnabled(true); status.setText("Snapshot de revisao. Nenhuma escrita no jogo habilitada.");
+                             confirm.setEnabled(true);
+                             boolean selectable = review.status() == CareerAssociationCoordinator.Status.READ_ONLY_LINKED && review.decoded().initializationPathObserved();
+                             selectCareerData.setEnabled(selectable); clearCareerData.setEnabled(coordinator.hasCareerDataSelection());
+                             status.setText("Snapshot de revisao. Nenhuma escrita no jogo habilitada.");
                         } catch (Exception failure) {
                             Throwable cause = failure.getCause() == null ? failure : failure.getCause();
                             if (cause instanceof CareerSaveAssociations.CreationFailure unknown) {
@@ -171,12 +188,29 @@ final class CareerAssociationPanel {
                                 details.setText(cause.getClass().getSimpleName() + ": " + cause.getMessage()
                                         + "\nNenhum comando de gameplay autorizado. Se houve commit, UUIDs foram preservados aqui e no log local.");
                             }
-                        } finally { if (dialog.isDisplayable()) { refresh.setEnabled(true); career.setEnabled(true); binding.setEnabled(true); } }
+                         } finally { if (dialog.isDisplayable()) { refresh.setEnabled(true); career.setEnabled(true); binding.setEnabled(true); } }
                     }
                 }.execute();
             }
         }
         Work work = new Work(); refresh.addActionListener(event -> work.run(null));
+        selectCareerData.addActionListener(event -> {
+            var review = latest[0];
+            if (review == null || review.status() != CareerAssociationCoordinator.Status.READ_ONLY_LINKED || !review.decoded().initializationPathObserved()) return;
+            int answer = JOptionPane.showConfirmDialog(dialog,
+                    "Vincular somente os dados externos dos mods a esta associacao?\n"
+                    + "Career UUID: " + review.association().orElseThrow().handle().career() + "\n"
+                    + "Binding UUID: " + review.association().orElseThrow().handle().binding() + "\n\n"
+                    + "Isto nao autoriza pagamento nem grava no save. Uma nova sessao exige nova selecao explicita.",
+                    "Selecionar carreira para dados dos mods", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (answer == JOptionPane.OK_OPTION) work.run(() -> coordinator.selectCareerData(review));
+        });
+        clearCareerData.addActionListener(event -> {
+            coordinator.clearCareerDataSelection();
+            latest[0] = null; confirm.setEnabled(false); selectCareerData.setEnabled(false); clearCareerData.setEnabled(false);
+            status.setText("Selecao de dados por carreira removida para esta sessao.");
+            work.run(null);
+        });
         confirm.addActionListener(event -> {
             var review = latest[0]; var choice = (Choice) action.getSelectedItem();
             if (review == null || choice == null || choice.action() == null) return;

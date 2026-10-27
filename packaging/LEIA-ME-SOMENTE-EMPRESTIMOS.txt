@@ -1,0 +1,35 @@
+VBrasfoot - SOMENTE EMPRESTIMOS - Loader 0.13.2
+
+1. Feche TODAS as janelas do jogo e faca backup da pasta inteira.
+2. Copie TODO o conteudo deste ZIP para a pasta onde esta bf22-23.exe.
+   Aceite substituir os arquivos do loader se estiver atualizando.
+3. Abra vbrasfoot-emprestimos.cmd com dois cliques. Requer Windows e Java 17+.
+4. Carregue seu save. Abra Times, selecione o clube e jogador e clique no
+   botao Emprestimo (mod) da tela original. Confira a proposta e confirme.
+5. Salve pelo comando original do jogo depois de executar um emprestimo.
+
+O pacote nao inclui jogo, Java, saves, patrocinio ou outros plugins externos.
+O menu vbrasfoot mostra somente Emprestimos (orientacao para o botao nativo).
+Carreira e diarios, gerenciador de mods e restaurar janela nao aparecem nesse perfil.
+O backend de associacoes, historicos, backups e protecoes continua funcionando.
+Sem vinculos antigos, o primeiro emprestimo cria os metadados necessarios.
+Copias/movimentos de instalacoes antigas podem pedir confirmacao da pasta completa.
+Ambiguidades e resultados incertos exigem revisao; nao apague dados para contornar.
+
+SE JA HAVIA OUTROS MODS
+
+O arquivo vbrasfoot\loans-only.txt impede o carregamento de TODOS os plugins
+externos, inclusive JARs antigos que ainda estejam em vbrasfoot\mods.
+Eles nao sao apagados. Nenhuma limpeza automatica de saves ou dados e executada.
+Nao remova loans-only.txt se quiser continuar usando somente emprestimos.
+Os launchers vbrasfoot.cmd e vbrasfoot-nitido.cmd tambem respeitam esse perfil;
+para ativar os hooks necessarios, prefira vbrasfoot-emprestimos.cmd.
+
+NAO APAGUE sav nem vbrasfoot\data. Para transferir a carreira a outro PC,
+leve a pasta completa com os dados. Históricos de patrocinios anteriores nao
+sao apagados nem reconciliados ao desativar o mod: efeitos ja gravados no save
+(dinheiro e nome de estadio) permanecem. Nenhum pagamento sera repetido.
+Pendencias historicas podem continuar bloqueando emprestimos por seguranca.
+
+Sem mensalidades ou bonus; este pacote e exclusivo de emprestimos.
+Use primeiro em copia de teste. Requer o perfil Brasfoot22-23 suportado.

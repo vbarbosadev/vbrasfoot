@@ -18,6 +18,50 @@ public final class CareerCommandGateSelfTest {
     }
     public static void main(String[] args) throws Exception {
         Object primary = new Object(), secondary = new Object(); var effects = new AtomicInteger();
+        try (var gate = new CareerCommandGate()) {
+            var initial = context(gate, primary, secondary);
+            var handle = new CareerSaveAssociations.Handle(initial.career(), initial.binding());
+            var activation = SponsorActivationStoreSelfTest.request(handle, UUID.randomUUID(), initial.save());
+            var owner = gate.owner(activation.owner(), Set.of(Operation.FINANCE_CREDIT));
+            var permit = gate.reserve(owner, new Request(initial.token(), activation.key(), Operation.FINANCE_CREDIT, activation.digest()), primary, secondary).permit().orElseThrow();
+            start(gate, permit, primary, secondary); gate.finish(permit, Status.APPLIED, primary, secondary);
+            var preparation = gate.prepareSponsorEnd(activation);
+            var endContext = gate.installPrepared(preparation, initial.career(), initial.binding(), 1, initial.save(), primary, secondary);
+            check(gate.currentContext(endContext) && gate.receipts().size() == 1, "ending can follow exact applied sponsor without dropping financial receipt");
+            check(gate.reserve(owner, new Request(endContext.token(), activation.key(), Operation.FINANCE_CREDIT, activation.digest()), primary, secondary).permit().isEmpty(),
+                    "ending preparation never reissues credit permit");
+            var endOwner = gate.owner(SponsorEndPipeline.OWNER, Set.of(Operation.SPONSOR_END));
+            var endedIntent = new CareerCommandJournal.Intent("sponsor_end_test", Operation.SPONSOR_END, "c".repeat(64));
+            var endPermit = gate.reserve(endOwner, new Request(endContext.token(), endedIntent.key(), endedIntent.operation(), endedIntent.payloadDigest()), primary, secondary).permit().orElseThrow();
+            start(gate, endPermit, primary, secondary); gate.finish(endPermit, Status.APPLIED, primary, secondary);
+            var nextPreparation = gate.prepareSponsorContinuation(Set.of(), Set.of(activation.intent(), endedIntent));
+            var nextContext = gate.installPrepared(nextPreparation, initial.career(), initial.binding(), 1, initial.save(), primary, secondary);
+            check(gate.currentContext(nextContext) && gate.receipts().size() == 2, "new sponsor preparation accounts for exact completed credit and ending without clearing receipts");
+            var other = gate.owner("br.owned.unknown", Set.of(Operation.FINANCE_CREDIT));
+            var uncertain = gate.reserve(other, request(nextContext, "unknown"), primary, secondary).permit().orElseThrow();
+            start(gate, uncertain, primary, secondary); gate.finish(uncertain, Status.OUTCOME_UNKNOWN, primary, secondary);
+            boolean blocked = false; try { gate.prepareSponsorEnd(activation); } catch (IllegalStateException expected) { blocked = true; }
+            check(blocked, "uncertain operation is never bypassed by ending preparation");
+        }
+        try (var gate = new CareerCommandGate()) {
+            var context = context(gate, primary, secondary);
+            gate.retainCompound(context);
+            for (var kind : IoKind.values()) {
+                boolean blocked = false;
+                try { gate.beginOriginalIo(kind); } catch (IllegalStateException expected) { blocked = true; }
+                check(blocked, "compound claim/commit excludes original I/O " + kind);
+            }
+            var owner = gate.owner("br.owned.compound", Set.of(Operation.FINANCE_CREDIT));
+            var permit = gate.reserve(owner, request(context, "compound"), primary, secondary).permit().orElseThrow();
+            check(start(gate, permit, primary, secondary).invocationGranted(), "compound fence permits its financial dispatch");
+            gate.finish(permit, Status.APPLIED, primary, secondary);
+            boolean blocked = false;
+            try { gate.beginSave(); } catch (IllegalStateException expected) { blocked = true; }
+            check(blocked, "original save remains excluded after handler returns until sponsor terminal commit");
+            gate.invalidate(); gate.releaseCompound(context);
+            var save = gate.beginSave(); gate.endSave(save);
+            check(!gate.contextInstalled(), "compound cleanup allows original save without restoring authority");
+        }
         try (var gate = new CareerCommandGate(); var foreign = new CareerCommandGate()) {
             Owner owner = gate.owner("br.owned.finance", Set.of(Operation.FINANCE_CREDIT));
             Owner denied = gate.owner("br.owned.readonly", Set.of());

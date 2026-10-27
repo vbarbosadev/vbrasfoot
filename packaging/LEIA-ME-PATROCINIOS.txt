@@ -1,0 +1,46 @@
+VBrasfoot - Patrocinios 0.5.0 / Loader 0.13.1
+
+INSTALACAO SEM COMANDOS
+
+1. Feche o jogo e faca backup da pasta do Brasfoot.
+2. Abra este ZIP e copie TODO o conteudo para a pasta onde esta bf22-23.exe.
+   Exemplo: C:\Brasfoot - Copia\Brasfoot22-23
+3. Ao terminar, vbrasfoot-nitido.cmd deve ficar ao lado de bf22-23.exe.
+   Nao deixe os arquivos dentro de outra subpasta criada pelo descompactador.
+4. Abra vbrasfoot-nitido.cmd com dois cliques. Requer Java 17 ou superior.
+5. Carregue uma carreira existente e abra vbrasfoot > Patrocinios.
+6. Clique em Vincular esta carreira... e confirme o save correto.
+
+O ZIP nao inclui o jogo, Java, saves ou dados de carreira.
+Nao altera bf22-23.exe. Compativel somente com o perfil Brasfoot22-23 suportado.
+
+SE JA EXISTIR VBRASFOOT NA PASTA
+
+Faca backup antes de aceitar substituir os arquivos do loader/mod.
+Preserve vbrasfoot\data, vbrasfoot\backups e a pasta sav; nao apague essas pastas.
+Se houver uma atualizacao interrompida (.update-pending), resolva-a antes de extrair.
+
+TRANSFERIR UMA CARREIRA JA MODIFICADA
+
+Leve tambem vbrasfoot\data junto com os saves da mesma instalacao.
+Nao copie somente o save, nao apague historicos e nao repita pagamentos antigos.
+Em vinculos antigos, confirme a mudanca de pasta somente se transferiu os dados completos.
+
+ATIVAR UM PATROCINIO
+
+Preencha nome, credito unico, logo PNG/JPEG e nome opcional do estadio.
+Salvar configuracao NAO paga. Selecione o contrato na aba Configuracoes e logos,
+clique em Ativar e creditar valor base e confira a confirmacao antes de aceitar.
+Depois de aplicar, SALVE PELO JOGO.
+
+ENCERRAR UM PATROCINIO
+
+Selecione o contrato pago e clique em Encerrar patrocinio.
+Confirme o nome original registrado do estadio. A logo sai do topo e o dinheiro
+recebido permanece. O credito nunca pode ser repetido para esse contrato.
+Depois de encerrar, SALVE PELO JOGO.
+
+Se fechar sem salvar ou restaurar backup, os historicos nao repetem operacoes
+para compensar. Em resultado incerto, preserve save/dados e nao tente novamente.
+Versao experimental. Apos ENCERRAR com sucesso, pode ativar um NOVO contrato.
+O contrato antigo nunca pode receber novamente. Resultados incertos bloqueiam.
