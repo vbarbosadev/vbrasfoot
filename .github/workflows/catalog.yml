@@ -1,0 +1,47 @@
+name: catalog
+on:
+  pull_request:
+    branches: [mods]
+  workflow_dispatch:
+    inputs:
+      mod:
+        description: Pasta do mod para empacotar individualmente
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  catalog:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compilar e testar
+        shell: pwsh
+        env:
+          REQUESTED_MOD: ${{ inputs.mod }}
+        run: |
+          $catalog = Get-Content catalog.json -Raw | ConvertFrom-Json
+          $names = @($catalog.mods.folder)
+          if ($env:REQUESTED_MOD) {
+            if ($env:REQUESTED_MOD -notin $names) { throw 'Mod desconhecido' }
+            $names = @($env:REQUESTED_MOD)
+          }
+          foreach ($name in $names) { & ./tools/build-mod.ps1 -Mod $name }
+      - name: ZIP individual (execucao manual)
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          REQUESTED_MOD: ${{ inputs.mod }}
+        run: |
+          if ($env:REQUESTED_MOD -notmatch '^[a-z0-9][a-z0-9-]*$') { throw 'Nome invalido' }
+          Compress-Archive -Path "dist/$env:REQUESTED_MOD/*" -DestinationPath "dist/$env:REQUESTED_MOD.zip"
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: mod-individual
+          path: dist/*.zip
+          if-no-files-found: error

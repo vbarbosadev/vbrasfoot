@@ -1,79 +1,71 @@
-# Contribuindo com o vbrasfoot
+# Criar, testar e publicar mods
 
-Obrigado por contribuir! Leia `README.md`, `roadmap/ROADMAP.md` e `VALIDACAO.md`
-antes de propor mudancas. O projeto e experimental e tem como alvo exclusivamente
-o Brasfoot22-23 identificado pelo perfil SHA-256 documentado.
+## Criar
 
-## Antes de comecar
+1. Use JDK 17 ou 21 no Windows. Obtenha o SDK Beta por canal confiável e execute `verify.ps1`.
+2. Copie `template-read-only` para seu projeto, escolha ID único e altere manifesto/classe.
+3. Consulte [SDK-BETA-016](https://github.com/vbarbosadev/vbrasfoot/blob/main/roadmap/SDK-BETA-016.md) e Javadocs do pacote SDK. Use somente API pública.
+4. Compile contra `vbrasfoot-api-0.16.0.jar` e valide com o JAR validator do SDK.
+5. Teste numa cópia do jogo com `vbrasfoot-mods.cmd`; nunca distribua jogo ou saves.
 
-- Abra uma issue para discutir mudancas grandes, novas capacidades ou API publica.
-- Consulte issues e PRs existentes para evitar trabalho duplicado.
-- Use sua propria copia local do jogo para testes. O repositorio nao fornece o jogo.
-- Nao publique saves, executaveis, classes, recursos proprietarios, credenciais ou
-  logs com dados privados. Nao contribua mecanismos de bypass de registro/licenca.
-- Mods Java sao codigo confiavel, nao uma sandbox.
+## Publicar no catálogo
 
-## Ambiente e fluxo de trabalho
+Faça fork se não tiver acesso de escrita. Num clone limpo:
 
-1. Instale um JDK 17+ com `java`, `javac` e `jar` no PATH e use PowerShell no Windows.
-2. Faca um fork e clone-o. Para testes locais do jogo, mantenha o layout descrito
-   no README; nao copie artefatos proprietarios para arquivos versionados.
-3. Crie uma branch a partir de `main` atualizada, por exemplo:
+```powershell
+git clone --branch mods https://github.com/SEU-USUARIO/vbrasfoot.git
+cd vbrasfoot
+git remote add upstream https://github.com/vbarbosadev/vbrasfoot.git
+git fetch upstream mods
+git switch -c mod/meu-mod upstream/mods
+```
 
-   ```powershell
-   git switch main
-   git pull --ff-only
-   git switch -c fix/descricao-curta
-   ```
+Adicione `mods/meu-mod/` com `src`, `test` opcional, `vbrasfoot.mod.properties`,
+`README.md` e licença do código/recursos próprios. Atualize `catalog.json`.
+No README descreva instalação, permissões, versão mínima, dependências, limitações,
+teste realizado, licença das logos e como remover sem perder dados.
 
-4. Faca alteracoes pequenas, com testes e documentacao proporcionais ao escopo.
-5. Execute:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-mod.ps1 -Mod meu-mod
+git add mods/meu-mod catalog.json
+git diff --cached --stat
+git commit -m "feat(mod): adiciona meu-mod"
+git push -u origin mod/meu-mod
+```
 
-   ```powershell
-   .\build.ps1
-   git diff --check
-   ```
+No GitHub abra PR: **base `vbarbosadev/vbrasfoot:mods`**, compare sua branch
+`mod/meu-mod`. Também pode usar `gh pr create --repo vbarbosadev/vbrasfoot --base mods`.
+Correções seguem `mod/nome-descricao` e o mesmo processo. Não faça merge em `main`.
+O mantenedor revisa código, licenças, permissões e testes antes de aprovar.
 
-6. Quando o ambiente permitir, execute `test.ps1 -IncludeUi`. Testes com saves e
-   jogo real devem seguir `roadmap/P0-VALIDACAO.md`, sempre em copia isolada.
-7. Use commits descritivos, preferencialmente `fix(escopo): descricao`,
-   `feat(escopo): descricao`, `docs: descricao` ou `test: descricao`.
-8. Envie sua branch e abra um PR para `main`, preenchendo o modelo. Informe
-   explicitamente quais testes nao puderam ser executados.
+Proteção recomendada no GitHub: exigir PR, uma aprovação e check `catalog` para
+`mods`; bloquear force-push/deleção. Arquivos locais não configuram essa proteção.
 
-## Regras de compatibilidade
+## Baixar só os mods escolhidos
 
-- Nao modificar `bf22-23.exe` no disco nem alterar schemas de serializacao.
-- Nao restaurar, apagar ou sobrescrever saves automaticamente.
-- Nao assumir que classes/regras do RealBrasfoot26 existem no Brasfoot22-23.
-- Mudancas em hooks exigem identidade do artefato, evidencias estaticas e teste
-  controlado; nomes ofuscados nao devem vazar para a API publica.
-- Round-trip offline e testes Swing sinteticos nao aprovam gameplay ou UI real.
-- Separe observacoes, inferencias e pendencias; nao anuncie capacidades sem provas.
+**Para jogar:** use ZIP individual publicado pelo mantenedor nas Releases. Não há
+release presumida: enquanto não publicada, compile apenas os mods desejados.
+A automação da branch permite gerar um ZIP de UM mod por execução; o artefato de
+Actions não é uma Release assinada e exige acesso conforme as regras do GitHub.
 
-## Revisao e merge
+**Para código de 5 entre 10 mods**, use sparse checkout com clone parcial:
 
-A `main` exige PR, conversas resolvidas e historico linear. Para colaboradores,
-exige uma aprovacao de outro revisor; novos commits invalidam aprovacoes antigas
-e a ultima alteracao precisa de aprovacao por outra pessoa. Administradores tem
-excecao de revisao somente para merge via PR (limitacao do GitHub para repositorio
-pessoal); push direto, force-push e exclusao continuam bloqueados.
-Prefira squash ou rebase ao integrar. Nao use force-push na `main`.
+```powershell
+git clone --filter=blob:none --sparse --branch mods https://github.com/vbarbosadev/vbrasfoot.git vbrasfoot-mods
+cd vbrasfoot-mods
+git sparse-checkout set mods/patrocinio mods/scout mods/comparador mods/painel-carreira mods/observador sdk tools
+```
 
-O workflow `Build and unit tests` compila loader/SDK/exemplo e executa testes
-sinteticos no Windows com Temurin 17/21, sem jogo/saves. Os checks `Windows / Java 17`
-e `Windows / Java 21` sao obrigatorios na main, vinculados ao GitHub Actions, com
-branch atualizada antes do merge. A excecao de revisao nao dispensa esses checks.
-Os comandos locais, resultados e gates reais devem constar no PR; CI nao aprova
-gameplay, interface real ou compatibilidade de saves. Nao declare testes executados
-apenas por existir um checklist preenchido.
+Isso traz as cinco pastas de mods, API e ferramentas necessárias para compilar;
+arquivos da raiz podem continuar aparecendo por funcionamento do modo cone.
+Requer suporte a clone parcial no servidor; não promete zero histórico/metadados.
+Troque a lista por nomes existentes em `catalog.json`. Para acrescentar um:
+`git sparse-checkout add mods/janela-emprestimos`.
 
-## Licenciamento
+Compile cada escolhido com `tools/build-mod.ps1 -Mod NOME`, copie só os JARs em
+`dist/NOME/` para `vbrasfoot/mods` com o jogo fechado e use o loader de autores.
+Se um mod declarar dependência, instale-a também. Não baixe o ZIP da branch inteira
+esperando uma seleção parcial; o botão Download ZIP baixa a árvore inteira.
 
-O codigo e a documentacao originais do projeto sao disponibilizados sob a
-licenca MIT; veja `LICENSE`. Ao contribuir, disponibilize suas contribuicoes
-sob essa mesma licenca. Nao remova avisos existentes nem inclua codigo de
-terceiros sem identificar sua origem e termos compativeis com a licenca MIT.
-Dependencias de terceiros mantem suas proprias licencas.
-A licenca do loader nao concede direitos sobre o jogo proprietario, suas
-classes, recursos, executaveis ou saves, nem autoriza sua redistribuicao.
+**Limites:** patrocínio ainda tem ID reservado; empréstimos/tela internos do loader
+não são JARs independentes. Janela exemplo controla empréstimos, não compras/IA.

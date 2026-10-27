@@ -1,0 +1,14 @@
+{
+  "format": 1,
+  "branch": "mods",
+  "sdk": "0.16.0",
+  "mods": [
+    { "folder": "patrocinio", "id": "br.vbrasfoot.sponsor-manager", "source": "examples/sponsor-manager", "note": "ID reservado; loader 0.16.0; permissao financeira; experimental" },
+    { "folder": "janela-emprestimos", "id": "br.exemplo.loan-window", "source": "examples/loan-window-sdk", "note": "Exemplo; janela somente emprestimos pelo loader; nao controla compras/IA" },
+    { "folder": "scout", "id": "br.vbrasfoot.player-scout", "source": "examples/player-scout", "note": "Somente leitura" },
+    { "folder": "comparador", "id": "br.vbrasfoot.player-comparator", "source": "examples/player-comparator", "note": "Somente leitura" },
+    { "folder": "painel-carreira", "id": "br.vbrasfoot.career-dashboard", "source": "examples/career-dashboard", "note": "Consultas de data e saldo" },
+    { "folder": "observador", "id": "br.vbrasfoot.career-observer", "source": "examples/career-observer", "note": "Eventos experimentais, exige hooks" },
+    { "folder": "inspetor", "id": "br.vbrasfoot.inspector", "source": "examples/inspector", "note": "Inspetor de leitura" }
+  ]
+}
