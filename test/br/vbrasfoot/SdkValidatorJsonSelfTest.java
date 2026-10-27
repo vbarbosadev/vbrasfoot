@@ -29,6 +29,16 @@ public final class SdkValidatorJsonSelfTest {
         check(description.contains("\"unsupported\":[\"gameplay.write\",\"career.identity.persistent\",\"career.sidecars\""), "internal storage/command cores do not silently advertise supported public gameplay or sidecars");
         check(!ModManifest.KNOWN_CAPABILITIES.contains("career.sidecars") && !ModManifest.KNOWN_PERMISSIONS.contains("game.write"), "new internal primitives cannot be requested by a mod manifest yet");
         check(description.contains("GameAccess.scopedCalendar") && description.contains("GameAccess.scopedClubBalance") && description.contains("\"query.club.balance\":\"0.5.0\""), "new read methods and minimums described");
+        check(description.contains("GameAccess.scopedPlayersWithReferences") && description.contains("\"query.player.references\":\"0.9.4\"")
+                && description.contains("\"clubHandles\":4096") && description.contains("\"scopedHandles\":4096"), "temporary player handles and shared cap described");
+        check(description.contains("ModContext.registerClubBanner") && description.contains("\"ui.banner.club\":\"0.10.0\"")
+                && !description.contains("ui.original-screen-injection"), "read-only original toolbar banner is advertised separately from gameplay writes");
+        check(description.contains("ModContext.careerData") && description.contains("\"career.data.scoped\":\"0.11.0\"")
+                && ModManifest.KNOWN_CAPABILITIES.contains("career.data.scoped"), "explicitly selected career sidecars are distinct from game-save writes");
+        check(ModManifest.KNOWN_CAPABILITIES.contains("query.player.references"), "scoped player reference capability is explicit");
+        check(description.contains("\"game.sponsor.activate\":\"0.12.0\"") && description.contains("ModContext.sponsors")
+                && description.contains("\"owner\":\"br.vbrasfoot.sponsor-manager\"")
+                && description.contains("\"saveInclusionGuaranteed\":false"), "sponsor feature describes its narrow authority and durability limits");
         check(run(1, "--json").contains("INVALID_ARGUMENTS"), "structured argument error");
         check(run(1, "--json", "--unsupported").contains("INVALID_ARGUMENTS"), "flag not treated as path");
         Path root = Files.createTempDirectory(Path.of("build"), "json-validator-");

@@ -1,5 +1,9 @@
 # Contribuindo com o vbrasfoot
 
+**PR de mod:** use a branch base `mods`, não `main`. Consulte
+[Criar e publicar mods](docs/CRIAR-E-PUBLICAR-MODS.md). As instruções abaixo são
+para alterações do SDK/loader. Não envie builds, saves, jogo ou históricos pessoais.
+
 Obrigado por contribuir! Leia `README.md`, `roadmap/ROADMAP.md` e `VALIDACAO.md`
 antes de propor mudancas. O projeto e experimental e tem como alvo exclusivamente
 o Brasfoot22-23 identificado pelo perfil SHA-256 documentado.

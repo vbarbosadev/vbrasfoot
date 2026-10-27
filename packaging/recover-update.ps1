@@ -4,7 +4,7 @@ $game = (Resolve-Path -LiteralPath $GameDir).Path
 $root = Join-Path $game 'vbrasfoot'
 $transaction = Join-Path $root '.update-pending'
 $manifestPath = Join-Path $root 'install-manifest.json'
-$allowed = @('vbrasfoot\app\vbrasfoot.jar','vbrasfoot\app\LICENSE','vbrasfoot\app\launch.ps1','vbrasfoot\app\uninstall.ps1','vbrasfoot\app\recover-update.ps1','vbrasfoot.cmd','vbrasfoot-safe.cmd')
+$allowed = @('vbrasfoot\app\vbrasfoot.jar','vbrasfoot\app\LICENSE','vbrasfoot\app\launch.ps1','vbrasfoot\app\uninstall.ps1','vbrasfoot\app\recover-update.ps1','vbrasfoot.cmd','vbrasfoot-safe.cmd','vbrasfoot-nitido.cmd')
 function Assert-PlainPath([string]$Path) {
     for ($p = $Path; $p; $p = Split-Path $p -Parent) {
         if ((Test-Path -LiteralPath $p) -and ((Get-Item -LiteralPath $p -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw "Link/junction recusado: $p" }
@@ -23,11 +23,13 @@ foreach ($entry in Get-ChildItem -LiteralPath $transaction -Force) {
     Assert-PlainPath $entry.FullName
 }
 if ($journal) {
-    if ($journal.Format -ne 1 -or @($journal.Files).Count -ne $allowed.Count) { throw 'Formato de journal desconhecido.' }
+    $recordCount = @($journal.Files).Count
+    if ($journal.Format -ne 1 -or $recordCount -notin @(7,8)) { throw 'Formato de journal desconhecido.' }
+    $generationPaths = if ($recordCount -eq 7) { @($allowed | Where-Object { $_ -ne 'vbrasfoot-nitido.cmd' }) } else { $allowed }
     $seenPaths = @(); $seenIndexes = @()
     foreach ($record in $journal.Files) {
-        if ($record.Path -notin $allowed -or $record.Path -in $seenPaths -or
-            "$($record.Index)" -notmatch '^[0-6]$' -or $record.Index -in $seenIndexes -or
+        if ($record.Path -notin $generationPaths -or $record.Path -in $seenPaths -or
+            "$($record.Index)" -notmatch '^[0-7]$' -or [int]$record.Index -ge $recordCount -or $record.Index -in $seenIndexes -or
             $record.After -notmatch '^[a-fA-F0-9]{64}$' -or ($record.Before -and $record.Before -notmatch '^[a-fA-F0-9]{64}$')) { throw 'Journal invalido; recuperacao recusada.' }
         $seenPaths += $record.Path; $seenIndexes += $record.Index
         $target = Join-Path $game $record.Path

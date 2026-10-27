@@ -1,4 +1,8 @@
-# SDK 0.9.3 — API major 1 (experimental)
+# SDK 0.12.0 — API major 1 (experimental)
+
+> Atualização 0.16.0: leia [o contrato Beta atual](SDK-BETA-016.md). Empréstimos agora
+> têm serviço público experimental; janela LOAN-only não altera o calendário nem compras/IA.
+> As seções antigas abaixo são referência histórica, não uma lista atual completa.
 
 Contrato aditivo0.9.0: query.player.details / scopedPlayerDetails; veja
 PLAYER-DETAILS.md para Optional de habilidades, limites e recuperacao de erros.
@@ -10,17 +14,38 @@ Eventos de I/O qualificados, nao lifecycle completo/durabilidade ou sidecars.
 [Criacao assistida por IA e contrato JSON](AI-MOD-AUTHORING.md).
 [Calendario atual/saldo somente leitura](CALENDAR-BALANCE.md), loader0.5.0+.
 [Paineis dentro da janela do jogo](EMBEDDED-UI.md), loader0.6.0+.
+[Banners read-only no toolbar do clube](CLUB-BANNERS.md), loader0.10.0+.
+[Dados de mod por associação de carreira](CAREER-MOD-DATA.md), loader0.11.0+.
 
-Contrato anterior preservado por compatibilidade. Novas consultas 0.3.0 em
-`SCOPED-QUERIES.md` adicionam handles com escopo; APIs por index abaixo continuam
+## Exceção restrita: patrocínio (0.12.0, experimental)
+
+`ModContext.sponsors()` expõe `SponsorAccess` somente ao ID
+`br.vbrasfoot.sponsor-manager`, com permissão `sponsor.activate`, capability
+`game.sponsor.activate` e hooks `--probe-career-hooks`. Não é uma API genérica de escrita.
+Exige carreira existente carregada operacionalmente, seleção explícita de associação,
+cotação sem efeitos e confirmação separada de clube, valor, saldos e estádio.
+Tokens são efêmeros e consumidos numa única tentativa; troca de seleção invalida a cotação.
+Salvar/importar configurações não paga. O crédito e o setter de nome originais alteram
+memória; o usuário deve salvar pelo jogo. O histórico precede o efeito e não permite
+replay aplicado/incerto, mesmo se o usuário fechar sem salvar ou restaurar backup.
+Não há promessa universal de inclusão no save nem recuperação de cópias sem sidecars.
+O teste original isolado validou crédito/nome/save/reload com autoridade artificial;
+aceitação completa da UI/coordenador ainda está pendente.
+Veja [limites e validação](../examples/sponsor-manager/README.md).
+
+## Contrato geral
+
+Contrato anterior preservado por compatibilidade. Consultas scoped 0.3.0 e referencias
+temporarias de jogadores 0.9.4 estao em `SCOPED-QUERIES.md`; APIs por index continuam
 sem garantia entre carreiras. Observacoes opt-in 0.4.0 em `CAREER-OBSERVATIONS.md`;
 eventos completos/persistencia por carreira ainda indisponiveis.
 
 Compile somente contra `vbrasfoot-api.jar`, com Java 17+. O build do inspetor usa
 somente esse JAR no classpath, sem classes do jogo/loader. API major 1 mantem os
-metodos anteriores; paginas/registro scoped exigem 0.2.0, handles 0.3.0 e observacoes
-0.4.0. Declare minLoaderVersion conforme recursos usados. A identidade
-publica esta em `Sdk`. O loader aceita somente o SHA-256 do perfil documentado.
+metodos anteriores; paginas/registro scoped exigem 0.2.0, handles 0.3.0, observacoes
+0.4.0 e referencias temporarias de jogador 0.9.4. Declare minLoaderVersion conforme
+recursos usados. A identidade publica esta em `Sdk`. O loader aceita somente o SHA-256
+do perfil documentado.
 
 ## Manifesto UTF-8
 
@@ -50,7 +75,9 @@ Dependencias sao IDs, nao ranges de versao de mods; nao compartilham classes pri
 
 Capacidades disponiveis: `game.read`, `ui.register`, `data.read`, `data.write`,
 `ui.panel.embedded`, `query.paged`, `query.scoped`, `query.calendar.current`, `query.club.balance` e,
-somente com hooks opt-in, `events.career.observed`.
+`query.player.references` para handles temporarios de jogadores, e somente com hooks opt-in,
+`events.career.observed`, `ui.banner.club` para imagens read-only vinculadas ao escopo
+de consulta atual, e `career.data.scoped` para sidecars selecionados explicitamente.
 Permissoes sao as quatro primeiras mais `events.career.read`; capacidades de
 consulta nao concedem acesso sem `game.read`. Observacoes nao sao eventos completos,
 escrita de gameplay ou sandbox.

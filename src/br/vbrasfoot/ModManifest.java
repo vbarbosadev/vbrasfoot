@@ -13,8 +13,8 @@ import java.util.jar.JarFile;
 record ModManifest(Path jar, String id, String name, String version, String mainClass,
                    List<String> dependencies, Set<String> permissions, List<String> optionalDependencies,
                     List<String> conflicts, Set<String> requiredCapabilities) {
-    static final Set<String> KNOWN_CAPABILITIES = Set.of("game.read", "ui.register", "ui.panel.embedded", "data.read", "data.write", "query.paged", "query.scoped", "query.player.details", "query.calendar.current", "query.club.balance", "events.career.observed", "events.career.io");
-    static final Set<String> KNOWN_PERMISSIONS = Set.of("game.read", "ui.register", "data.read", "data.write", "events.career.read");
+    static final Set<String> KNOWN_CAPABILITIES = Set.of("game.read", "ui.register", "ui.panel.embedded", "ui.banner.club", "career.data.scoped", "game.sponsor.activate", "data.read", "data.write", "query.paged", "query.scoped", "query.player.details", "query.player.references", "query.calendar.current", "query.club.balance", "events.career.observed", "events.career.io", "game.loan.request", "transfer.windows");
+    static final Set<String> KNOWN_PERMISSIONS = Set.of("game.read", "ui.register", "data.read", "data.write", "events.career.read", "sponsor.activate", "loan.request", "transfer.window.configure");
     ModManifest(Path jar, String id, String name, String version, String mainClass,
                 List<String> dependencies, Set<String> permissions) {
         this(jar, id, name, version, mainClass, dependencies, permissions, List.of(), List.of(), Set.of());

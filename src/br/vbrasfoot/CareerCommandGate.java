@@ -6,7 +6,7 @@ import javax.swing.SwingUtilities;
 
 /** Internal, session-only command reservation. No game handler, persistent ledger or public capability. */
 final class CareerCommandGate implements AutoCloseable {
-    enum Operation { FINANCE_CREDIT, FINANCE_DEBIT, TRANSFER_ACCEPT, TRANSFER_COUNTEROFFER }
+    enum Operation { FINANCE_CREDIT, FINANCE_DEBIT, TRANSFER_ACCEPT, TRANSFER_COUNTEROFFER, LOAN_ACCEPT, SPONSOR_END }
     enum Status { RESERVED, RUNNING, APPLIED, REJECTED, OUTCOME_UNKNOWN }
     enum Reason { NONE, PERMISSION, OWNER_REVOKED, CLOSED, NO_CONTEXT, STALE_CONTEXT, REQUEST_CONFLICT, BUSY, CAPACITY,
         WRONG_THREAD, INVALIDATED, NO_EFFECT_CONFIRMED, EXECUTION_UNCERTAIN, SAVE_IN_PROGRESS, ORIGINAL_IO_IN_PROGRESS }
@@ -62,6 +62,7 @@ final class CareerCommandGate implements AutoCloseable {
     private WeakReference<Object> primary = new WeakReference<>(null), secondary = new WeakReference<>(null);
     private Slot active;
     private SaveFence saveFence;
+    private Context compoundContext;
     private boolean closed;
     private long authorityEpoch;
     synchronized Owner owner(String id, Set<Operation> operations) {
@@ -74,7 +75,7 @@ final class CareerCommandGate implements AutoCloseable {
     synchronized Context installContext(UUID career, UUID binding, long generation, CareerSidecarStore.SaveRevision save, Object primary, Object secondary) {
         if (closed) throw new IllegalStateException("Command gate closed");
         if (!executing.isEmpty()) throw new IllegalStateException("Previous original handler has not returned");
-        if (!dispatching.isEmpty()) throw new IllegalStateException("Previous command persistence has not returned");
+        if (!dispatching.isEmpty() || compoundContext != null) throw new IllegalStateException("Previous command persistence has not returned");
         if (saveFence != null) throw new IllegalStateException("Original save window is still open");
         Objects.requireNonNull(career); Objects.requireNonNull(binding); Objects.requireNonNull(save);
         Objects.requireNonNull(primary); Objects.requireNonNull(secondary);
@@ -89,11 +90,49 @@ final class CareerCommandGate implements AutoCloseable {
     }
     /** Optimistic preparation: does not hold an I/O fence while filesystem checks run. */
     synchronized Preparation prepareContext() {
-        if (closed || saveFence != null || active != null || !executing.isEmpty() || !dispatching.isEmpty()) {
+        if (closed || saveFence != null || compoundContext != null || active != null || !executing.isEmpty() || !dispatching.isEmpty()) {
             invalidate(); throw new IllegalStateException("Context preparation requires an open quiescent gate");
         }
         if (commands.values().stream().anyMatch(slot -> slot.status == Status.APPLIED || slot.status == Status.OUTCOME_UNKNOWN)) {
             invalidate(); throw new IllegalStateException("Session effects require explicit reconciliation before preparing another context");
+        }
+        invalidate(); return new Preparation(session, authorityEpoch);
+    }
+    record AppliedLoan(String owner, String key, String digest) { }
+    /** Narrow coordinator path: exact durable APPLIED loan evidence only; never clears receipts.
+     * This preparation still requires the independently qualified verifier to install authority. */
+    synchronized Preparation prepareLoanContinuation(Set<AppliedLoan> accounted) {
+        Objects.requireNonNull(accounted);
+        if (closed || saveFence != null || compoundContext != null || active != null || !executing.isEmpty() || !dispatching.isEmpty()) {
+            invalidate(); throw new IllegalStateException("Loan preparation requires a quiescent gate");
+        }
+        for (var slot : commands.values()) {
+            if (slot.status == Status.OUTCOME_UNKNOWN || slot.status == Status.RUNNING || slot.status == Status.RESERVED
+                    || slot.status == Status.APPLIED && (slot.request.operation() != Operation.LOAN_ACCEPT
+                    || !accounted.contains(new AppliedLoan(slot.owner.id, slot.request.key(), slot.request.payloadDigest())))) {
+                invalidate(); throw new IllegalStateException("Unaccounted or uncertain session effect blocks continuation");
+            }
+        }
+        invalidate(); return new Preparation(session, authorityEpoch);
+    }
+    /** Narrow non-financial recovery only. Keeps every receipt; never permits finance/loan replay or clears uncertainty. */
+    synchronized Preparation prepareSponsorEnd(FinanceRequest activation) {
+        if (!SponsorActivationStore.OWNER.equals(activation.owner()) || activation.direction() != FinanceDelta.Direction.CREDIT_RAW_6)
+            throw new IllegalArgumentException("Exact recorded sponsor activation required");
+        return prepareSponsorContinuation(null, Set.of(activation.intent()));
+    }
+    /** Only exact durable completed sponsor operations and qualified loans may be accounted; never drops receipts. */
+    synchronized Preparation prepareSponsorContinuation(Set<AppliedLoan> loans, Set<CareerCommandJournal.Intent> sponsors) {
+        if (closed || saveFence != null || compoundContext != null || active != null || !executing.isEmpty() || !dispatching.isEmpty())
+            throw new IllegalStateException("Encerramento exige gate sem operacao em andamento");
+        for (var slot : commands.values()) {
+            if (slot.status == Status.RUNNING || slot.status == Status.RESERVED || slot.status == Status.OUTCOME_UNKNOWN)
+                throw new IllegalStateException("Operacao incerta bloqueia encerramento; nenhum efeito sera ignorado");
+            boolean sponsor = (slot.owner.id.equals(SponsorActivationStore.OWNER) || slot.owner.id.equals(SponsorEndPipeline.OWNER))
+                    && sponsors.contains(new CareerCommandJournal.Intent(slot.request.key(), slot.request.operation(), slot.request.payloadDigest()));
+            if (slot.status == Status.APPLIED && !(slot.request.operation() == Operation.LOAN_ACCEPT
+                    && (loans == null || loans.contains(new AppliedLoan(slot.owner.id, slot.request.key(), slot.request.payloadDigest())))) && !sponsor)
+                throw new IllegalStateException("Outro efeito aplicado exige revisao antes do encerramento");
         }
         invalidate(); return new Preparation(session, authorityEpoch);
     }
@@ -113,6 +152,15 @@ final class CareerCommandGate implements AutoCloseable {
     }
     synchronized boolean currentContext(Context expected) { return !closed && expected != null && context == expected && primary.get() != null && secondary.get() != null; }
     synchronized boolean contextInstalled() { return !closed && context != null; }
+    @FunctionalInterface interface MessageUpdate { void run() throws Exception; }
+    /** Bounded EDT-only native message edit, mutually exclusive with original I/O and financial commands.
+     * No I/O, user callbacks, or financial methods are allowed in this internal callback. */
+    synchronized void updateSponsorMessage(MessageUpdate update) throws Exception {
+        if (!javax.swing.SwingUtilities.isEventDispatchThread() || closed || saveFence != null || compoundContext != null
+                || active != null || !executing.isEmpty() || !dispatching.isEmpty())
+            throw new IllegalStateException("Mensagem recusada: operacao/jogo ocupado");
+        update.run();
+    }
     /** Trusted coordinator must acquire BEFORE invoking the original writer, never from a post-save event.
      * Refuses queued/running work. No waiting on the EDT, no writer invocation and no save-success claim. */
     synchronized SaveFence beginSave() {
@@ -122,7 +170,7 @@ final class CareerCommandGate implements AutoCloseable {
     synchronized SaveFence beginOriginalIo(IoKind kind) {
         Objects.requireNonNull(kind);
         if (closed) throw new IllegalStateException("Command gate closed");
-        if (saveFence != null || active != null || !executing.isEmpty() || !dispatching.isEmpty())
+        if (saveFence != null || compoundContext != null || active != null || !executing.isEmpty() || !dispatching.isEmpty())
             throw new IllegalStateException("Commands or original save window still active");
         invalidate();
         return saveFence = new SaveFence(session, kind);
@@ -201,6 +249,17 @@ final class CareerCommandGate implements AutoCloseable {
         if (slot.status != Status.RESERVED || !dispatching.add(slot)) throw new IllegalStateException("Dispatch reservation is no longer retainable");
     }
     synchronized void releaseDispatch(Permit permit) { dispatching.remove(requirePermit(permit)); }
+    /** Extends original-I/O exclusion across the sponsor claim and terminal sidecar commit. */
+    synchronized void retainCompound(Context expected) {
+        if (!currentContext(expected) || compoundContext != null || saveFence != null || active != null
+                || !executing.isEmpty() || !dispatching.isEmpty())
+            throw new IllegalStateException("Compound operation requires a current quiescent context");
+        compoundContext = expected;
+    }
+    synchronized void releaseCompound(Context expected) {
+        if (compoundContext != expected) throw new IllegalArgumentException("Foreign compound operation");
+        compoundContext = null;
+    }
     private Reservation denied(Owner owner, Request request, Reason reason) {
         return new Reservation(new Receipt(owner.id, request, Status.REJECTED, reason), Optional.empty());
     }

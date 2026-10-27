@@ -13,6 +13,10 @@ final class CareerSaveAssociations {
     record Origin(Handle handle, String token, long revision, SaveRevision save) { }
     record Association(Handle handle, String token, long revision, Path directory, String name, String fileKey, String modified, String created,
                        SaveRevision save, Optional<Origin> parent, Confirmation decision) { }
+    /** Membership is administrative identity only; every member's history still requires reconciliation. */
+    record Group(Path source, Handle primary, List<Association> members, String token) {
+        Group { members = List.copyOf(members); }
+    }
     static final class CreationFailure extends IOException {
         private final Handle attempted;
         CreationFailure(Handle attempted, IOException cause) { super("Association creation may require inspection of the attempted handle before retry", cause); this.attempted = attempted; }
@@ -21,11 +25,51 @@ final class CareerSaveAssociations {
     private static final int MAGIC = 0x56424153, FORMAT = 1, SCHEMA = 1;
     private final CareerSidecarStore store;
     private final SaveFileObserver observer;
+    private final CareerAssociationRegistry registry;
+    private final PortableCareerPaths paths;
     CareerSaveAssociations(Path metadataRoot) { this(new CareerSidecarStore(metadataRoot), new SaveFileObserver()); }
-    CareerSaveAssociations(CareerSidecarStore store, SaveFileObserver observer) { this.store = Objects.requireNonNull(store); this.observer = Objects.requireNonNull(observer); }
+    CareerSaveAssociations(Path metadataRoot, Path saves) { this(new CareerSidecarStore(metadataRoot), new SaveFileObserver(), saves); }
+    CareerSaveAssociations(CareerSidecarStore store, SaveFileObserver observer) {
+        this(store, observer, null);
+    }
+    CareerSaveAssociations(CareerSidecarStore store, SaveFileObserver observer, Path saves) {
+        this.store = Objects.requireNonNull(store); this.observer = Objects.requireNonNull(observer);
+        this.paths = new PortableCareerPaths(store.root(), saves);
+        this.registry = new CareerAssociationRegistry(store, this::inspect, paths);
+    }
+    /** Explicit offline migration, preserving the immutable association records and every history head. */
+    void enablePortable(Path legacyDirectory) throws IOException {
+        registry.locked(() -> {
+            if (paths.legacyRoot().isEmpty()) {
+                var entries = registry.inventoryLocked();
+                if (entries.isEmpty() || entries.stream().anyMatch(a -> !a.directory().equals(legacyDirectory)))
+                    throw new Failure(Reason.RECONCILIATION_REQUIRED, "Select one complete legacy installation; mixed roots cannot be silently merged");
+            }
+            paths.enable(legacyDirectory); return null;
+        });
+    }
+    /** Same-location initialization needs no identity inference; prepares legacy installations for their next move. */
+    void rememberCurrentInstallation(Path currentDirectory) throws IOException {
+        registry.locked(() -> {
+            if (paths.legacyRoot().isPresent()) return null;
+            var entries = registry.inventoryLocked();
+            if (!entries.isEmpty() && entries.stream().allMatch(a -> a.directory().equals(currentDirectory)))
+                paths.enable(currentDirectory);
+            return null;
+        });
+    }
+    List<Association> inventory() throws IOException { return registry.inventory(); }
+    Group group(Path source) throws IOException { return registry.group(source); }
+    Optional<Association> existing(Path source) throws IOException {
+        Group value = group(source);
+        return value.members().stream().filter(a -> a.handle().equals(value.primary())).findFirst();
+    }
+    Group consolidate(SaveFileObserver.Observation observed) throws IOException {
+        return registry.locked(() -> { observer.verify(observed); return registry.consolidate(observed.directory().resolve(observed.name())); });
+    }
     Association create(SaveFileObserver.Observation observed, Confirmation confirmation) throws IOException {
         require(confirmation, Confirmation.CREATE_NEW_CAREER); observer.verify(observed);
-        return createNew(observed, Optional.empty(), confirmation);
+        return registry.locked(() -> createUnique(observed, Optional.empty(), confirmation));
     }
     Association inspect(Handle handle) throws IOException {
         View view = store.inspectAssociation(key(handle));
@@ -45,7 +89,11 @@ final class CareerSaveAssociations {
     }
     Association fork(Handle original, String token, SaveFileObserver.Observation copy, Confirmation confirmation) throws IOException {
         require(confirmation, Confirmation.FORK_COPY_WITH_EMPTY_MOD_DATA);
+        return registry.locked(() -> forkLocked(original, token, copy, confirmation));
+    }
+    private Association forkLocked(Handle original, String token, SaveFileObserver.Observation copy, Confirmation confirmation) throws IOException {
         Association source = current(original, token); observer.verify(copy);
+        registry.requirePrimary(source);
         if (!source.save().equals(copy.revision()) || source.directory().equals(copy.directory()) && source.name().equals(copy.name()))
             throw new Failure(Reason.RECONCILIATION_REQUIRED, "Fork requires explicitly selected different path with matching observed source bytes");
         if (!source.fileKey().isEmpty() && source.fileKey().equals(copy.fileKey()))
@@ -57,12 +105,20 @@ final class CareerSaveAssociations {
                 throw new Failure(Reason.RECONCILIATION_REQUIRED, "Same physical file/hardlink is not an independent copy");
         } catch (NoSuchFileException missing) { /* A user may explicitly choose a fresh fork when the original path is absent. */ }
         current(original, token);
-        return createNew(copy, Optional.of(new Origin(original, source.token(), source.revision(), source.save())), confirmation); // No mod payload or command journal is copied.
+        return createUnique(copy, Optional.of(new Origin(original, source.token(), source.revision(), source.save())), confirmation); // No mod payload or command journal is copied.
     }
     Association rename(Handle handle, String token, SaveFileObserver.Observation renamed, Confirmation confirmation) throws IOException {
         if (confirmation != Confirmation.RENAME_SAME_FILE && confirmation != Confirmation.ASSERT_RENAME_WITHOUT_FILE_IDENTITY)
             throw new IllegalArgumentException("Explicit rename confirmation required");
+        return registry.locked(() -> renameLocked(handle, token, renamed, confirmation));
+    }
+    private Association renameLocked(Handle handle, String token, SaveFileObserver.Observation renamed, Confirmation confirmation) throws IOException {
         Association old = current(handle, token); observer.verify(renamed);
+        Group previousGroup = registry.requirePrimary(old);
+        if (previousGroup.members().size() > 1 || registry.recorded(previousGroup.source()))
+            throw new Failure(Reason.RECONCILIATION_REQUIRED, "Durable group rename requires explicit group migration; aliases must not be stranded");
+        if (!registry.groupLocked(renamed.directory().resolve(renamed.name())).members().isEmpty())
+            throw new Failure(Reason.RECONCILIATION_REQUIRED, "Rename destination already has an association");
         Match expected = confirmation == Confirmation.RENAME_SAME_FILE ? Match.NAME_CHANGED : Match.NAME_CHANGED_IDENTITY_UNAVAILABLE;
         if (assess(old, renamed) != expected) throw new Failure(Reason.RECONCILIATION_REQUIRED, "Rename evidence must match the explicitly selected confirmation strength");
         Path previous = old.directory().resolve(old.name()); CareerSidecarStore.plain(previous);
@@ -73,17 +129,34 @@ final class CareerSaveAssociations {
     }
     Association acceptRevision(Handle handle, String token, SaveFileObserver.Observation revised, Confirmation confirmation) throws IOException {
         require(confirmation, Confirmation.ACCEPT_CHANGED_REVISION);
+        return registry.locked(() -> acceptRevisionLocked(handle, token, revised, confirmation));
+    }
+    private Association acceptRevisionLocked(Handle handle, String token, SaveFileObserver.Observation revised, Confirmation confirmation) throws IOException {
         Association old = current(handle, token); observer.verify(revised); samePath(old, revised);
+        registry.requirePrimary(old);
         if (old.save().equals(revised.revision()) && old.fileKey().equals(revised.fileKey()) && old.modified().equals(revised.modified()) && old.created().equals(revised.created()))
             throw new Failure(Reason.CONFLICT, "No observed metadata changed; confirmation cannot invent stronger file identity");
         return replace(old, revised, confirmation); // User acknowledgment, not proof of a qualified game save.
     }
     Association restorePrevious(Handle handle, String token, SaveFileObserver.Observation restored, Confirmation confirmation) throws IOException {
         require(confirmation, Confirmation.RESTORE_RECORDED_PREVIOUS);
+        return registry.locked(() -> restorePreviousLocked(handle, token, restored, confirmation));
+    }
+    private Association restorePreviousLocked(Handle handle, String token, SaveFileObserver.Observation restored, Confirmation confirmation) throws IOException {
         Association old = current(handle, token); observer.verify(restored); samePath(old, restored);
+        registry.requirePrimary(old);
         Value previous = store.readPrevious(key(handle), restored.revision(), token);
         decode(handle, new View(token, Optional.of(previous), false)); // Validate previous metadata/schema, not just a matching digest.
         return replace(old, restored, confirmation); // Does not roll back mod data or command receipts.
+    }
+    private Association createUnique(SaveFileObserver.Observation observed, Optional<Origin> parent, Confirmation confirmation) throws IOException {
+        observer.verify(observed);
+        Group group = registry.groupLocked(observed.directory().resolve(observed.name()));
+        if (!group.members().isEmpty()) return group.members().stream().filter(a -> a.handle().equals(group.primary())).findFirst().orElseThrow();
+        registry.beginCreation(observed.directory().resolve(observed.name()));
+        Association created = createNew(observed, parent, confirmation);
+        registry.finishCreation();
+        return created;
     }
     private Association createNew(SaveFileObserver.Observation observed, Optional<Origin> parent, Confirmation confirmation) throws IOException {
         var handle = new Handle(UUID.randomUUID(), UUID.randomUUID());
@@ -108,13 +181,13 @@ final class CareerSaveAssociations {
     private static void require(Confirmation actual, Confirmation expected) {
         if (actual != expected) throw new IllegalArgumentException("Explicit confirmation required: " + expected);
     }
-    private static byte[] encode(SaveFileObserver.Observation observation, Optional<Origin> parent, Confirmation confirmation) throws IOException {
+    private byte[] encode(SaveFileObserver.Observation observation, Optional<Origin> parent, Confirmation confirmation) throws IOException {
         if (observation.directory().toString().length() > 4096 || observation.fileKey().length() > 1024
                 || observation.modified().length() > 128 || observation.created().length() > 128)
             throw new IllegalArgumentException("Observed metadata exceeds association format bounds");
         var bytes = new ByteArrayOutputStream();
         try (var output = new DataOutputStream(bytes)) {
-            output.writeInt(MAGIC); output.writeInt(FORMAT); output.writeUTF(observation.directory().toString()); output.writeUTF(observation.name());
+            output.writeInt(MAGIC); output.writeInt(paths.relative() ? 2 : FORMAT); output.writeUTF(paths.directoryReference(observation.directory())); output.writeUTF(observation.name());
             output.writeUTF(observation.fileKey()); output.writeUTF(observation.modified()); output.writeUTF(observation.created()); output.writeUTF(confirmation.name()); output.writeBoolean(parent.isPresent());
             if (parent.isPresent()) {
                 var value = parent.orElseThrow(); uuid(output, value.handle().career()); uuid(output, value.handle().binding());
@@ -123,12 +196,13 @@ final class CareerSaveAssociations {
         }
         return bytes.toByteArray();
     }
-    private static Association decode(Handle handle, View view) throws IOException {
+    private Association decode(Handle handle, View view) throws IOException {
         Value value = view.value().orElseThrow();
         if (value.schema() != SCHEMA) throw new Failure(Reason.CORRUPT, "Unknown association schema; no migration performed");
         try (var input = new DataInputStream(new ByteArrayInputStream(value.payload()))) {
-            if (input.readInt() != MAGIC || input.readInt() != FORMAT) throw new IOException("Unknown association format");
-            Path directory = Path.of(input.readUTF()); String name = input.readUTF(), fileKey = input.readUTF(), modified = input.readUTF(), created = input.readUTF();
+            if (input.readInt() != MAGIC) throw new IOException("Unknown association format");
+            int format = input.readInt(); if (format != 1 && format != 2) throw new IOException("Unknown association format");
+            Path directory = paths.directory(input.readUTF(), format); String name = input.readUTF(), fileKey = input.readUTF(), modified = input.readUTF(), created = input.readUTF();
             if (!directory.isAbsolute() || !directory.equals(directory.normalize()) || directory.toString().length() > 4096
                     || fileKey.length() > 1024 || modified.length() > 128 || modified.isBlank() || created.length() > 128 || created.isBlank()) throw new IOException("Invalid association fields");
             SaveFileObserver.validateName(name); Confirmation decision = Confirmation.valueOf(input.readUTF());

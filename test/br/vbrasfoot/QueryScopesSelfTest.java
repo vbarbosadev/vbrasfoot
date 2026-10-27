@@ -42,6 +42,20 @@ public final class QueryScopesSelfTest {
         rejects(() -> otherBridge.resolve(old, clubs), Reason.STALE_SCOPE);
         var now = registry.observe(primary, auxiliary, clubs, humans);
         rejects(() -> registry.resolve(new GameAccess.ClubRef(now, "forged-token"), clubs), Reason.EXPIRED_REFERENCE);
+        Object playerA = new Object(), playerB = new Object();
+        List<Object> roster = new ArrayList<>(List.of(playerA, playerB));
+        var playerRef = registry.issuePlayer(now, 0, 0, first, playerA);
+        check(registry.resolvePlayer(playerRef, 0, clubs, roster) == 0, "opaque player handle resolves exact object in queried club");
+        Collections.swap(roster, 0, 1);
+        rejects(() -> registry.resolvePlayer(playerRef, 0, clubs, roster), Reason.PLAYER_MOVED);
+        Collections.swap(roster, 0, 1);
+        var movedClub = registry.issuePlayer(now, 0, 0, first, playerA);
+        rejects(() -> registry.resolvePlayer(movedClub, 1, clubs, roster), Reason.PLAYER_MOVED);
+        var expiredPlayer = registry.issuePlayer(now, 0, 1, first, playerB);
+        registry.issue(now, 1, second);
+        registry.issuePlayer(now, 0, 0, first, playerA);
+        check(registry.retained() == 2, "club and player handles share one bounded registry capacity");
+        rejects(() -> registry.resolvePlayer(expiredPlayer, 0, clubs, roster), Reason.EXPIRED_REFERENCE);
         var beforeReset = registry.issue(now, 0, first);
         registry.observe(null, null, null, null);
         rejects(() -> registry.resolve(beforeReset, clubs), Reason.STALE_SCOPE);
@@ -51,6 +65,8 @@ public final class QueryScopesSelfTest {
         GameAccess oldApi = () -> new GameAccess.Snapshot(false, List.of());
         try { oldApi.scopedClubs("", 0, 10); throw new AssertionError("unsupported scope fabricated"); }
         catch (UnsupportedOperationException expected) { check(true, "old API does not invent scoped guarantees"); }
-        System.out.println("PASS: " + checks + " query scope tests (synthetic; no persistent career identity).");
+        try { oldApi.scopedPlayersWithReferences(new GameAccess.ClubRef(now, "fixture"), 0, 10); throw new AssertionError("unsupported player reference fabricated"); }
+        catch (UnsupportedOperationException expected) { check(true, "old API does not fabricate player handles"); }
+        System.out.println("PASS: " + checks + " query scope tests (synthetic; no persistent player identity).");
     }
 }

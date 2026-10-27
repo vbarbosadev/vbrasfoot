@@ -1,0 +1,85 @@
+VBrasfoot - Patrocinios + Emprestimos + Ajuste de tela
+Loader 0.15.1 / Patrocinios 0.6.1
+
+Atualizacao visual: confirmacoes, resultados e erros de patrocinio seguem
+o estilo das caixas de emprestimo. Regras financeiras e save permanecem iguais.
+
+1. Feche todos os jogos/launchers e faca backup da pasta inteira.
+2. Extraia TODO o conteudo do ZIP na pasta onde esta bf22-23.exe.
+   Exemplo: C:\Brasfoot - Copia\Brasfoot22-23
+   Aceite substituir arquivos do loader e do mod.
+3. Abra vbrasfoot-completo.cmd. Requer Windows, Java 17+ e o jogo suportado.
+   NAO use os launchers antigos exclusivos de emprestimos ou patrocinios.
+
+PATROCINIOS: carregue a carreira e abra vbrasfoot > Patrocinios.
+Ao abrir o painel, o loader identifica o save efetivamente carregado.
+Save conhecido reutiliza o vinculo. Save desconhecido pergunta uma vez:
+Nova carreira independente / Copia ou continuacao / Cancelar.
+Para De sola - save, escolha NOVA CARREIRA se foi criada separadamente no jogo.
+NAO escolha nova carreira para um Salvar como, copia ou rename de Flamengo.
+Copias detectadas nao recebem historico vazio; revise em Carreira e diarios.
+Patrocinios e emprestimos compartilham a mesma identidade de carreira.
+Revisoes alteradas ainda podem exigir confirmacao, sem repetir pagamentos.
+LOGO OPCIONAL: pode salvar sem imagem; use Sem logo para limpar uma escolha.
+MENSAGEM EDITAVEL: escreva o texto antes de salvar a configuracao.
+Marcadores opcionais: {patrocinador}, {clube}, {valor}. Texto simples, ate 2000 caracteres.
+Cadastrar nao paga. Na aba Configuracoes e logos, selecione e clique em
+Ativar e enviar mensagem (sem credito). Isso publica a mensagem e pode exibir
+a logo, mas NAO muda dinheiro nem nome do estadio.
+
+RECEBER: feche o painel e abra a Central de Mensagens ORIGINAL pelo balao
+ao lado do saldo. Se ja estava aberta, feche/reabra para atualizar.
+Selecione Patrocinio: NOME na lista e clique Receber patrocinio, a direita.
+Confira saldo e estadio e confirme. SOMENTE aqui entram o valor unico e o
+nome opcional do estadio. Depois, SALVE PELO JOGO.
+A mensagem passa a Patrocinio recebido, com botao bloqueado.
+Ao voltar ao painel de patrocinio, use Recarregar dados antes de encerrar.
+
+ANTES de receber, Encerrar patrocinio cancela a oferta sem pagamento.
+DEPOIS de receber, Encerrar restaura o nome original e tira a logo sem tirar dinheiro.
+Depois de encerramento/cancelamento confirmado, pode ativar outro contrato distinto.
+MENSAGEM NO SAVE (novo no loader 0.15.0): novas ativacoes adicionam uma mensagem
+nativa a carreira EM MEMORIA. SALVE PELO JOGO antes de fechar. Depois de salvar,
+ela aparece inclusive abrindo bf22-23.exe diretamente, SEM alterar o executavel.
+Sem mod, a mensagem e INFORMATIVA: mostra o texto e pede abrir pelo mod para
+receber. Nao ha botao de recebimento sem mod. O assunto original comeca com
+Agradecimento - Patrocinio: NOME, por compatibilidade com o tipo nativo reutilizado.
+Com mod, a mesma linha recebe o botao Receber, sem duplicar a mensagem.
+Receber atualiza o texto nativo e dinheiro na mesma etapa; SALVE PELO JOGO depois.
+Fechar sem salvar descarta a mensagem nova e os efeitos nao gravados no save.
+O mod NAO recria mensagens ausentes a partir dos sidecars. Historicos e contratos
+externos continuam retidos por seguranca; essa versao nao reverte configuracoes
+nem apaga tentativas financeiras ao fechar sem salvar. Se uma oferta nao salva
+ficou pendente no painel, encerre/cancele pelo painel antes de outra; se houve
+tentativa de pagamento, preserve o historico e nao recrie para repetir credito.
+Mensagens de versoes anteriores NAO sao convertidas automaticamente, pois nao
+ha prova de que foram salvas. Ofertas antigas nao pagas podem ser canceladas
+no painel; depois crie/ative uma nova oferta. Nao faca isso para repetir pagamento.
+Leve vbrasfoot/data junto ao save para manter as protecoes de recebimento.
+Contratos antigos ja pagos continuam pagos; nao sao convertidos em novas ofertas.
+Nunca recrie um contrato pago para repetir o credito. Fechar sem salvar ou
+restaurar backup nao autoriza novo pagamento. Resultado incerto bloqueia replay.
+
+EMPRESTIMOS: em Times, selecione clube/jogador e use o botao Emprestimos.
+Jogador JA NA LISTA DE EMPRESTIMO: o clique solicita a ida direta ao seu clube,
+sem proposta intermediaria e sem taxa. Confira o jogador ANTES de clicar.
+Jogador FORA DA LISTA: avalia a proposta/taxa e exige sua confirmacao.
+As duas funcoes usam o mesmo botao. Limites de elenco/emprestados, elegibilidade,
+vinculo da carreira e historico continuam obrigatorios. A primeira utilizacao
+pode pedir identificacao da carreira. Salve pelo jogo apos o emprestimo.
+
+TELA: o launcher aplica escala Java 1:1 para evitar ampliacao por DPI.
+Na carreira, vbrasfoot > Restaurar janela na area do monitor ajusta a janela
+a area util do monitor atual. Nao muda a resolucao do Windows.
+Nao promete redimensionar todos os paineis internos fixos do jogo.
+
+O perfil combinado ignora outros plugins antigos sem apaga-los. Apenas o
+JAR de patrocinios e selecionado; emprestimos e ajuste de tela sao do loader.
+O marcador distribution-profile.txt prevalece sobre loans-only.txt antigo.
+
+PRESERVE sav e vbrasfoot\data. Leve a pasta completa ao mudar de PC/pasta.
+Nao apaga historicos, nao repete pagamentos nem reconcilia saves restaurados.
+As protecoes financeiras continuam: patrocinios aplicados/incertos e outras
+pendencias podem bloquear emprestimos. Habilitar os dois recursos NAO remove
+esses bloqueios; nao apague metadados para contorna-los.
+Use primeiro numa copia de teste. O ZIP nao inclui jogo, Java ou saves.

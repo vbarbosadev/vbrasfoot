@@ -20,8 +20,61 @@ final class CareerBridge implements GameAccess {
     private final QueryScopes scopes = new QueryScopes(4096);
     CareerBridge(ClassLoader runtime) { this.runtime = runtime; }
 
+    /** Loader-internal resolution only; not a public bypass or durable identity. */
+    record LoanSelection(Object origin, Object destination, Object player) { }
+    record LoanReferences(PlayerRef player, ClubRef origin, ClubRef destination) { }
+    /** Loader-only conversion from the exact selected native objects. No name-based lookup or public object exposure. */
+    LoanReferences loanReferences(Object player, Object origin, Object destination) throws Exception {
+        if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Native selection requires EDT");
+        var state = readState();
+        if (!state.loaded() || state.clubs().size() > 16384 || state.humans().stream().filter(value -> value == destination).count() != 1)
+            throw new IllegalStateException("Destino humano atual obrigatorio");
+        int sourceIndex = identityIndex(state.clubs(), origin), targetIndex = identityIndex(state.clubs(), destination);
+        if (sourceIndex < 0 || targetIndex < 0 || sourceIndex == targetIndex) throw new IllegalStateException("Origem e destino distintos obrigatorios");
+        var roster = (List<?>) call(origin, "kc");
+        if (roster.size() > 500) throw new IllegalStateException("Elenco fora do limite");
+        int playerIndex = identityIndex(roster, player);
+        if (playerIndex < 0) throw new IllegalStateException("Jogador selecionado nao pertence mais ao clube");
+        var references = new LoanReferences(scopes.issuePlayer(state.scope(), sourceIndex, playerIndex, origin, player),
+                scopes.issue(state.scope(), sourceIndex, origin), scopes.issue(state.scope(), targetIndex, destination));
+        unchanged(state); return references;
+    }
+    private static int identityIndex(List<?> values, Object selected) {
+        int result = -1;
+        for (int i = 0; i < values.size(); i++) if (values.get(i) == selected) {
+            if (result >= 0) throw new IllegalStateException("Identidade nativa duplicada");
+            result = i;
+        }
+        return result;
+    }
+    LoanSelection loanSelection(PlayerRef player, ClubRef origin, ClubRef destination) throws Exception {
+        if (!javax.swing.SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Loan reference resolution requires EDT");
+        ReadState state = readState();
+        if (!state.loaded()) throw new GameQueryException(GameQueryException.Reason.NO_CAREER, "Nenhuma carreira ativa");
+        int originIndex = scopes.resolve(origin, state.clubs()), destinationIndex = scopes.resolve(destination, state.clubs());
+        Object originClub = state.clubs().get(originIndex), destinationClub = state.clubs().get(destinationIndex);
+        List<?> roster = (List<?>) call(originClub, "kc");
+        Object selected = roster.get(scopes.resolvePlayer(player, originIndex, state.clubs(), roster));
+        unchanged(state);
+        return new LoanSelection(originClub, destinationClub, selected);
+    }
+
     private record ReadState(Object primary, Object secondary, List<?> clubs, List<?> humans, CareerScope scope) {
         boolean loaded() { return primary != null && secondary != null && !clubs.isEmpty() && !humans.isEmpty(); }
+    }
+    record HumanClub(GameAccess.ClubSummary summary, GameAccess.CareerScope scope) { }
+    /** Exact current human-club summary and query generation for the read-only original-screen banner integration. */
+    HumanClub currentHumanClub() throws Exception {
+        if (!SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Current club lookup requires EDT");
+        ReadState state = readState();
+        if (!state.loaded() || state.humans().size() != 1) { unchanged(state); return null; }
+        Object human = state.humans().get(0);
+        int index = identityIndex(state.clubs(), human);
+        if (index < 0) { unchanged(state); return null; }
+        GameAccess.ClubSummary summary = new GameAccess.ClubSummary(index, number(human, "gD"),
+                (String) call(human, "getNome"), true, ((List<?>) call(human, "kc")).size());
+        unchanged(state);
+        return new HumanClub(summary, state.scope());
     }
     private ReadState readState() throws Exception {
         Class<?> type = Class.forName("c.a", false, runtime);
@@ -86,6 +139,36 @@ final class CareerBridge implements GameAccess {
             scopes.resolve(reference, state.clubs());
             if (call(club, "kc") != players || players.size() != count) throw new GameQueryException(GameQueryException.Reason.STATE_CHANGED, "Lista de jogadores mudou durante leitura");
             return new ScopedPlayerPage(state.scope(), result, offset, count);
+        });
+    }
+
+    @Override public ScopedPlayersWithReferencesPage scopedPlayersWithReferences(ClubRef reference, int offset, int limit) {
+        GameAccess.validatePage(offset, limit);
+        java.util.Objects.requireNonNull(reference, "club reference");
+        return scopedRead(() -> {
+            ReadState state = readState();
+            scopes.requireScope(reference.scope());
+            if (!state.loaded()) throw new GameQueryException(GameQueryException.Reason.NO_CAREER, "Nenhuma carreira ativa identificada pelo bridge");
+            int clubIndex = scopes.resolve(reference, state.clubs());
+            Object club = state.clubs().get(clubIndex);
+            List<?> players = (List<?>) call(club, "kc");
+            int count = players.size();
+            List<ScopedPlayerView> result = new ArrayList<>();
+            List<Object> observedPlayers = new ArrayList<>();
+            for (int i = offset; i < count && result.size() < limit; i++) {
+                Object player = players.get(i);
+                Player snapshot = new Player(number(player, "gD"), (String) call(player, "getNome"), number(player, "getIdade"),
+                        number(player, "getPosicao"), number(player, "fi"), number(player, "fk"));
+                observedPlayers.add(player);
+                result.add(new ScopedPlayerView(scopes.issuePlayer(state.scope(), clubIndex, i, club, player), snapshot));
+            }
+            unchanged(state);
+            scopes.resolve(reference, state.clubs());
+            if (call(club, "kc") != players || players.size() != count)
+                throw new GameQueryException(GameQueryException.Reason.STATE_CHANGED, "Lista de jogadores mudou durante leitura");
+            for (int i = 0; i < observedPlayers.size(); i++) if (players.get(offset + i) != observedPlayers.get(i))
+                throw new GameQueryException(GameQueryException.Reason.STATE_CHANGED, "Ordem/identidade dos jogadores mudou durante leitura");
+            return new ScopedPlayersWithReferencesPage(state.scope(), reference, result, offset, count);
         });
     }
 

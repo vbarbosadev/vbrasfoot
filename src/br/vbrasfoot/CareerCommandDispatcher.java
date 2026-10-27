@@ -9,10 +9,13 @@ import javax.swing.SwingUtilities;
 /** Internal journal-before-effect pipeline. No public ModContext exposure or automatic career qualification. */
 final class CareerCommandDispatcher {
     enum Kind { EXECUTED, NO_EFFECT, RECORDED_ONLY, DENIED, UNCERTAIN }
-    enum Detail { NONE, BINDING_MISMATCH, HANDLER_MISMATCH, REQUEST_REQUIRED, GATE_REFUSED, QUEUE_TIMEOUT, EXECUTION_TIMEOUT, HANDLER_FAILURE, JOURNAL_FAILURE, WITNESS_FAILURE }
+    enum Detail { NONE, BINDING_MISMATCH, HANDLER_MISMATCH, REQUEST_REQUIRED, GATE_REFUSED, QUEUE_TIMEOUT, EXECUTION_TIMEOUT, HANDLER_FAILURE, JOURNAL_FAILURE, WITNESS_FAILURE, REQUEST_STATE_FAILURE }
     record Roots(Object primary, Object secondary) { }
     record Result(Kind kind, Detail detail, CareerCommandGate.Receipt receipt, Optional<CareerCommandJournal.Snapshot> journal) { }
     record StoredResult(Result dispatch, FinanceRequestStore.Snapshot requests) { }
+    record StoredLoanResult(Result dispatch, LoanRequestStore.Snapshot requests, String diagnostic) {
+        StoredLoanResult(Result dispatch, LoanRequestStore.Snapshot requests) { this(dispatch, requests, LoanDiagnostics.historical()); }
+    }
     interface RootsSource { Roots current() throws Exception; }
     /** Trusted adapter only. REJECTED means the adapter can prove that no mutation occurred. */
     interface Handler {
@@ -21,6 +24,7 @@ final class CareerCommandDispatcher {
         /** Payload-level scope check in addition to gate/journal checks; legacy handlers remain compatible. */
         default boolean acceptsContext(CareerCommandGate.Context context, String owner) { return true; }
         default Optional<FinanceRequest> persistentRequest() { return Optional.empty(); }
+        default Optional<LoanRequest> persistentLoanRequest() { return Optional.empty(); }
         default boolean supportsExecutionWitness() { return false; }
         /** Internal diagnostic only; never grants authority, changes receipt status or declares save inclusion. */
         default void observeSerialization(CareerCommandJournal.ExecutionPermit prepared) { }
@@ -53,6 +57,42 @@ final class CareerCommandDispatcher {
         return executeFinance(owner, context, request, expectedJournalToken, requests, expectedRequestToken, handler, new WitnessTarget(witnesses, expectedWitnessToken));
     }
     private record WitnessTarget(FinanceExecutionWitnessStore store, String token) { }
+    StoredLoanResult executeStoredLoan(CareerCommandGate.Owner owner, CareerCommandGate.Context context, LoanRequest request,
+                                      String journalToken, LoanRequestStore requests, String requestToken, Handler handler) throws Exception {
+        if (SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Persist loan requests off EDT");
+        Objects.requireNonNull(request); Objects.requireNonNull(requests); Objects.requireNonNull(handler);
+        String ownerId = gate.ownerId(owner);
+        if (request.assessment().decision() != LoanClubAssessment.Decision.APPROVE)
+            throw new IllegalArgumentException("Loan policy did not approve this request");
+        if (!requests.matches(context, ownerId) || !journal.matches(context, ownerId) || !request.matches(context, ownerId)
+                || !handler.persistentLoanRequest().equals(Optional.of(request)) || handler.persistentRequest().isPresent()
+                || !handler.accepts(request.intent()) || !handler.acceptsContext(context, ownerId))
+            throw new IllegalArgumentException("Stored loan request/handler/context mismatch");
+        journal.reviewStoredRequest(context.save(), journalToken, request.intent());
+        var committed = requests.persist(request, requestToken);
+        committed = requests.evaluate(context.save(), request.key(), committed.token());
+        var claim = requests.claim(context.save(), request.key(), committed.token());
+        if (claim.lease().isEmpty()) {
+            var state = claim.snapshot().state(request.key());
+            Kind kind = state == LoanRequestStore.State.EXECUTING || state == LoanRequestStore.State.UNKNOWN ? Kind.UNCERTAIN
+                    : state == LoanRequestStore.State.APPLIED || state == LoanRequestStore.State.NO_EFFECT ? Kind.RECORDED_ONLY : Kind.DENIED;
+            if (kind != Kind.DENIED) gate.invalidate();
+            return new StoredLoanResult(new Result(kind, Detail.REQUEST_REQUIRED, null, Optional.empty()), claim.snapshot());
+        }
+        journal.reviewStoredRequest(context.save(), journalToken, request.intent());
+        var result = executeInternal(owner, context, request.intent(), journalToken, handler, request);
+        var outcome = switch (result.kind()) {
+            case EXECUTED -> LoanRequestStore.State.APPLIED;
+            case NO_EFFECT, DENIED -> LoanRequestStore.State.NO_EFFECT;
+            default -> LoanRequestStore.State.UNKNOWN;
+        };
+        try {
+            return new StoredLoanResult(result, requests.complete(context.save(), claim.lease().orElseThrow(), outcome, claim.snapshot().token()));
+        } catch (IOException | RuntimeException stateFailure) {
+            gate.invalidate();
+            return new StoredLoanResult(new Result(Kind.UNCERTAIN, Detail.REQUEST_STATE_FAILURE, result.receipt(), result.journal()), claim.snapshot());
+        }
+    }
     private StoredResult executeFinance(CareerCommandGate.Owner owner, CareerCommandGate.Context context, FinanceRequest request,
                                        String expectedJournalToken, FinanceRequestStore requests, String expectedRequestToken, Handler handler, WitnessTarget witness) throws Exception {
         if (SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Persist requests off EDT");
@@ -67,18 +107,19 @@ final class CareerCommandDispatcher {
         return new StoredResult(executeInternal(owner, context, request.intent(), expectedJournalToken, handler, request, witness), committed);
     }
     private Result executeInternal(CareerCommandGate.Owner owner, CareerCommandGate.Context context, CareerCommandJournal.Intent intent,
-                                   String expectedJournalToken, Handler handler, FinanceRequest stored) throws Exception {
+                                    String expectedJournalToken, Handler handler, Object stored) throws Exception {
         return executeInternal(owner, context, intent, expectedJournalToken, handler, stored, null);
     }
     private Result executeInternal(CareerCommandGate.Owner owner, CareerCommandGate.Context context, CareerCommandJournal.Intent intent,
-                                   String expectedJournalToken, Handler handler, FinanceRequest stored, WitnessTarget witness) throws Exception {
+                                    String expectedJournalToken, Handler handler, Object stored, WitnessTarget witness) throws Exception {
         if (SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Journal dispatch must start off EDT");
         Objects.requireNonNull(context); Objects.requireNonNull(intent); Objects.requireNonNull(handler);
         if (!journal.matches(context, gate.ownerId(owner)))
             return new Result(Kind.DENIED, Detail.BINDING_MISMATCH, null, Optional.empty());
         if (!handler.accepts(intent) || !handler.acceptsContext(context, gate.ownerId(owner)))
             return new Result(Kind.DENIED, Detail.HANDLER_MISMATCH, null, Optional.empty());
-        if (handler.persistentRequest().isPresent() && !handler.persistentRequest().equals(Optional.ofNullable(stored)))
+        if ((handler.persistentRequest().isPresent() && !handler.persistentRequest().equals(Optional.ofNullable(stored)))
+                || (handler.persistentLoanRequest().isPresent() && !handler.persistentLoanRequest().equals(Optional.ofNullable(stored))))
             return new Result(Kind.DENIED, Detail.REQUEST_REQUIRED, null, Optional.empty());
         boolean interrupted = Thread.interrupted();
         CareerCommandGate.Permit permit = null;

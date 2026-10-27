@@ -18,13 +18,16 @@ public final class SdkValidator {
                     + ",\"apiMajor\":" + Sdk.API_VERSION + ",\"gameProfile\":" + quote(Sdk.GAME_PROFILE)
                     + ",\"experimental\":true,\"permissions\":" + strings(ModManifest.KNOWN_PERMISSIONS.stream().sorted().toList())
                     + ",\"capabilities\":" + strings(ModManifest.KNOWN_CAPABILITIES.stream().sorted().toList())
-                    + ",\"conditionalCapabilities\":[\"events.career.observed\",\"events.career.io\"],\"observationFlag\":\"--probe-career-hooks\""
-                    + ",\"featureMinimums\":{\"query.scoped\":\"0.3.0\",\"query.player.details\":\"0.9.0\",\"query.calendar.current\":\"0.5.0\",\"query.club.balance\":\"0.5.0\",\"events.career.io\":\"0.8.0\"}"
-                    + ",\"uiFeatures\":{\"ui.panel.embedded\":{\"minimumLoader\":\"0.6.0\",\"method\":\"ModContext.registerPanel\",\"placement\":\"career-window-overlay\",\"originalContentPreserved\":true}}"
+                    + ",\"conditionalCapabilities\":[\"events.career.observed\",\"events.career.io\",\"game.sponsor.activate\",\"game.loan.request\",\"transfer.windows\"],\"observationFlag\":\"--probe-career-hooks\""
+                      + ",\"featureMinimums\":{\"query.scoped\":\"0.3.0\",\"query.player.details\":\"0.9.0\",\"query.player.references\":\"0.9.4\",\"query.calendar.current\":\"0.5.0\",\"query.club.balance\":\"0.5.0\",\"events.career.io\":\"0.8.0\",\"ui.banner.club\":\"0.10.0\",\"career.data.scoped\":\"0.11.0\",\"game.sponsor.activate\":\"0.12.0\",\"game.loan.request\":\"0.16.0\",\"transfer.windows\":\"0.16.0\"}"
+                     + ",\"uiFeatures\":{\"ui.panel.embedded\":{\"minimumLoader\":\"0.6.0\",\"method\":\"ModContext.registerPanel\",\"placement\":\"career-window-overlay\",\"originalContentPreserved\":true},\"ui.banner.club\":{\"minimumLoader\":\"0.10.0\",\"method\":\"ModContext.registerClubBanner\",\"placement\":\"original-club-toolbar\",\"readOnly\":true}}"
+                     + ",\"dataFeatures\":{\"career.data.scoped\":{\"minimumLoader\":\"0.11.0\",\"method\":\"ModContext.careerData\",\"binding\":\"explicit-career-association\",\"writesGameSave\":false}}"
+                     + ",\"gameplayFeatures\":{\"game.sponsor.activate\":{\"minimumLoader\":\"0.12.0\",\"method\":\"ModContext.sponsors\",\"owner\":\"br.vbrasfoot.sponsor-manager\",\"permission\":\"sponsor.activate\",\"explicitConfirmation\":true,\"automaticReplay\":false,\"saveInclusionGuaranteed\":false}}"
                     + ",\"themeRolesMinimumLoader\":\"0.7.0\""
-                    + ",\"readMethods\":{\"query.player.details\":\"GameAccess.scopedPlayerDetails\",\"query.calendar.current\":\"GameAccess.scopedCalendar\",\"query.club.balance\":\"GameAccess.scopedClubBalance\"}"
-                    + ",\"unsupported\":[\"gameplay.write\",\"career.identity.persistent\",\"career.sidecars\",\"events.career.complete\",\"events.match\",\"ui.original-screen-injection\",\"hot-reload\"]"
-                    + ",\"limits\":{\"queryPageMax\":500,\"clubHandles\":4096,\"subscriptionsPerMod\":4},\"sandbox\":false}");
+                    + ",\"sponsorEnding\":{\"minimumLoader\":\"0.13.0\",\"quoteMethod\":\"SponsorAccess.quoteEnd\",\"executeMethod\":\"SponsorAccess.end\",\"changesMoney\":false,\"restoresRecordedOriginalStadium\":true,\"automaticReplay\":false}"
+                     + ",\"readMethods\":{\"query.player.details\":\"GameAccess.scopedPlayerDetails\",\"query.player.references\":\"GameAccess.scopedPlayersWithReferences\",\"query.calendar.current\":\"GameAccess.scopedCalendar\",\"query.club.balance\":\"GameAccess.scopedClubBalance\"}"
+                     + ",\"unsupported\":[\"gameplay.write\",\"career.identity.persistent\",\"career.sidecars\",\"events.career.complete\",\"events.match\",\"hot-reload\"]"
+                     + ",\"limits\":{\"queryPageMax\":500,\"clubHandles\":4096,\"scopedHandles\":4096,\"subscriptionsPerMod\":4},\"sandbox\":false}");
             return 0;
         }
         if (args.length > 0 && args[0].equals("--json")) {
@@ -46,7 +49,9 @@ public final class SdkValidator {
                         + ",\"optionalDependencies\":" + strings(manifest.optionalDependencies())
                         + ",\"conflicts\":" + strings(manifest.conflicts())
                         + ",\"requiredCapabilities\":" + strings(manifest.requiredCapabilities().stream().sorted().toList()) + "}"
-                        + ",\"observationModeRequired\":" + (manifest.requiredCapabilities().contains("events.career.observed") || manifest.requiredCapabilities().contains("events.career.io"))
+                        + ",\"observationModeRequired\":" + (manifest.requiredCapabilities().contains("events.career.observed")
+                                || manifest.requiredCapabilities().contains("events.career.io") || manifest.requiredCapabilities().contains("game.sponsor.activate")
+                                || manifest.requiredCapabilities().contains("game.loan.request") || manifest.requiredCapabilities().contains("transfer.windows"))
                         + ",\"codeInitialized\":false,\"scope\":\"single-jar\",\"installedSetValidated\":false,\"sandbox\":false}");
                 return 0;
             } catch (Exception | LinkageError failure) {

@@ -1,4 +1,5 @@
 package br.vbrasfoot;
+import java.io.IOException;
 
 import java.awt.Frame;
 import java.nio.channels.FileChannel;
@@ -54,6 +55,7 @@ public final class Main {
     }
 
     private static void launch(Options options, Path game, Path home, Logger logger, Path sessionDirectory) throws Exception {
+        applyDistributionProfile(options, home);
         logger.info("stage=profile-verification");
         Path executable = Profile.verify(game);
         logger.info("stage=profile-verified sha256=" + Profile.SHA256);
@@ -78,7 +80,7 @@ public final class Main {
             if (lock == null) throw new IllegalStateException("Outra instancia do vbrasfoot esta usando este diretorio");
             // Selection is read while owning the same lock as CLI writes.
             // Safe mode and offline save checks deliberately ignore malformed mod JARs/config.
-            List<ModManifest> manifests = options.safe || options.checkSave != null ? List.of() : ModSelection.read(home).selected();
+            List<ModManifest> manifests = selectedManifests(options, home);
             for (ModManifest manifest : manifests) {
                 System.out.println("Mod: " + manifest.id() + " " + manifest.version());
                 if (options.validate) System.out.println("  dependencias=" + manifest.dependencies()
@@ -103,19 +105,49 @@ public final class Main {
                 Path backup = backup(game, home);
                 System.out.println("Backup antes de iniciar: " + backup);
                 logger.info("stage=backup-verified directory=" + backup);
-                try (ModUi ui = new ModUi(runtime, logger); ModLoader mods = new ModLoader(logger, probe == null ? null : probe.observations(), probe == null ? null : probe.ioEvents())) {
-                    if (!options.safe) {
-                        mods.load(manifests, new CareerBridge(runtime), ui, home.resolve("data"));
-                        ModManagerPanel.register(ui, home, sessionDirectory, mods::fileStates, mods::failures,
+                 CareerAssociationCoordinator coordinator = null;
+                 if (!options.safe && options.probe) {
+                     var associationOwners = java.util.stream.Stream.concat(manifests.stream().map(ModManifest::id),
+                             java.util.stream.Stream.of(LoanManagerPanel.OWNER)).distinct().toList();
+                     if (associationOwners.size() <= 64) {
+                         coordinator = new CareerAssociationCoordinator(game.resolve("sav"), home.resolve("data").resolve(".career-state"), runtime, associationOwners)
+                                 .operational(probe.operational());
+                     } else logger.warning("career-association-panel=unavailable reason=configured-owner-capacity; no partial inventory or write authority");
+                 }
+                 try (ModUi ui = new ModUi(runtime, logger); ModLoader mods = new ModLoader(logger,
+                         probe == null ? null : probe.observations(), probe == null ? null : probe.ioEvents(), coordinator)) {
+                     if (!options.safe) {
+                         var bridge = ui.bridge();
+                         if (coordinator != null && !options.sponsorsOnly) {
+                             var windows = new TransferWindowService(new CareerSidecarStore(home.resolve("data/.career-state/transfer-windows")), coordinator, bridge);
+                             coordinator.transferWindows(windows);
+                             var commands = coordinator;
+                             mods.gameplay((owner, active) -> new LoanService(commands, runtime, bridge, active), windows);
+                         }
+                           if (coordinator != null && !options.loansOnly) {
+                               var sponsors = new SponsorService(coordinator, runtime);
+                               mods.sponsors(sponsors);
+                               ui.own(new NativeSponsorMessages(runtime, sponsors, logger));
+                           }
+                        mods.load(manifests, bridge, ui, home.resolve("data"));
+                          if (!options.loansOnly && !options.sponsorsOnly && !options.combined) ModManagerPanel.register(ui, home, sessionDirectory, mods::fileStates, mods::failures,
                                 DiagnosticExport.Environment.current(options.safe, options.probe));
-                        if (options.probe) {
-                            var associationOwners = manifests.stream().map(ModManifest::id).distinct().toList();
-                            if (associationOwners.size() <= 64) CareerAssociationPanel.register(ui,
-                                    new CareerAssociationCoordinator(game.resolve("sav"), home.resolve("data").resolve(".career-state"), runtime, associationOwners)
-                                            .operational(probe.operational()), logger);
-                            else logger.warning("career-association-panel=unavailable reason=configured-owner-capacity; no partial inventory or write authority");
-                        }
-                        ui.start();
+                          if (coordinator != null) {
+                                if (!options.loansOnly && !options.sponsorsOnly) CareerAssociationPanel.register(ui, coordinator, logger);
+                              var sessionCoordinator = coordinator;
+                              ui.own(probe.ioEvents().subscribe(update -> sessionCoordinator.clearCareerDataSelection()));
+                              if (!options.sponsorsOnly && manifests.stream().noneMatch(manifest -> manifest.id().equals(LoanManagerPanel.OWNER))) {
+                                    if (!options.loansOnly && !options.combined) LoanManagerPanel.register(ui, coordinator, bridge, () -> new LegacyLoanAdapter(runtime), logger);
+                                   else ui.register("vbrasfoot:loans", "Emprestimos", () -> javax.swing.JOptionPane.showMessageDialog(null,
+                                            "Abra Times, selecione o clube e o jogador e clique em Emprestimos na tela original.\n"
+                                            + "Ja listado: transferencia direta, sem taxa. Fora da lista: revise e confirme a proposta. Depois, salve pelo jogo.",
+                                           "Emprestimos", javax.swing.JOptionPane.INFORMATION_MESSAGE));
+                                 ui.own(new NativeLoanUi(runtime, bridge, coordinator, home.resolve("data").resolve(".career-state"),
+                                         home.resolve("data").resolve("native-loan-association.properties"), logger));
+                             }
+                              else if (!options.sponsorsOnly) logger.warning("loan-manager unavailable: reserved built-in owner conflicts with selected mod ID");
+                         }
+                         ui.start(!options.loansOnly && !options.sponsorsOnly);
                     }
                     Thread current = Thread.currentThread();
                     ClassLoader previous = current.getContextClassLoader();
@@ -130,6 +162,45 @@ public final class Main {
                 }
             }
         }
+    }
+    /** Distribution profile disables external plugins without deleting any existing JAR, setting or history. */
+    static boolean loansOnlyProfile(Path home) throws IOException {
+        Path marker = home.resolve("loans-only.txt"); CareerSidecarStore.plain(marker);
+        if (!Files.exists(marker)) return false;
+        if (!Files.isRegularFile(marker) || Files.size(marker) > 64 || !Files.readString(marker).trim().equals("vbrasfoot-loans-only-v1"))
+            throw new IOException("Perfil de emprestimos invalido; arquivo loans-only.txt preservado");
+        return true;
+    }
+    static List<ModManifest> selectedManifests(Options options, Path home) throws IOException {
+        if (options.safe || options.loansOnly || options.checkSave != null) return List.of();
+        if (options.sponsorsOnly || options.combined) {
+            Path jar = home.resolve("mods/br.vbrasfoot.sponsor-manager.jar"); CareerSidecarStore.plain(jar);
+            var manifest = ModManifest.read(jar);
+            if (!SponsorActivationStore.OWNER.equals(manifest.id())) throw new IOException("Pacote de patrocinio com ID incorreto; nenhum outro plugin sera carregado");
+            return List.of(manifest);
+        }
+        return ModSelection.read(home).selected();
+    }
+    static boolean sponsorsOnlyProfile(Path home) throws IOException {
+        return distributionProfile(home).equals("vbrasfoot-sponsors-only-v1");
+    }
+    static void applyDistributionProfile(Options options, Path home) throws IOException {
+        if (options.loansOnly || options.sponsorsOnly || options.combined || options.developer) return;
+        String profile = distributionProfile(home);
+        if (profile.equals("vbrasfoot-developer-v1")) options.developer = true;
+        else if (profile.equals("vbrasfoot-combined-v1")) options.combined = true;
+        else if (profile.equals("vbrasfoot-sponsors-only-v1")) options.sponsorsOnly = true;
+        else options.loansOnly = loansOnlyProfile(home);
+    }
+    private static String distributionProfile(Path home) throws IOException {
+        Path marker = home.resolve("distribution-profile.txt"); CareerSidecarStore.plain(marker);
+        if (!Files.exists(marker)) return "";
+        if (!Files.isRegularFile(marker) || Files.size(marker) > 64)
+            throw new IOException("Perfil de distribuicao invalido; nenhum plugin extra sera carregado");
+        String value = Files.readString(marker).trim();
+        if (!value.equals("vbrasfoot-sponsors-only-v1") && !value.equals("vbrasfoot-combined-v1") && !value.equals("vbrasfoot-developer-v1"))
+            throw new IOException("Perfil de distribuicao invalido; nenhum plugin extra sera carregado");
+        return value;
     }
 
     private static void validateMods(List<ModManifest> manifests) throws Exception {
@@ -195,7 +266,7 @@ public final class Main {
 
     static final class Options {
         Path home = Path.of("vbrasfoot"), game = Path.of("Brasfoot22-23"), checkSave, validateMod, inspectLoadValidation;
-        boolean validate, list, safe, help, probe, storageStatus;
+        boolean validate, list, safe, help, probe, storageStatus, loansOnly, sponsorsOnly, combined, developer;
         String manageMod;
         boolean enableMod;
         List<String> gameArguments = new ArrayList<>();
@@ -216,12 +287,18 @@ public final class Main {
                     case "--enable-mod" -> { result.manageMod = value(args, ++i); result.enableMod = true; modes++; }
                     case "--safe-mode" -> result.safe = true;
                     case "--probe-career-hooks" -> result.probe = true;
+                    case "--loans-only" -> result.loansOnly = true;
+                    case "--sponsors-only" -> result.sponsorsOnly = true;
+                    case "--combined" -> result.combined = true;
+                    case "--developer-mods" -> result.developer = true;
                     case "--help" -> result.help = true;
                     case "--" -> { result.gameArguments.addAll(List.of(args).subList(i + 1, args.length)); i = args.length; }
                     default -> throw new IllegalArgumentException("Opcao desconhecida: " + args[i]);
                 }
             }
             if (modes > 1) throw new IllegalArgumentException("Escolha somente um modo de verificacao/listagem");
+            if ((result.loansOnly ? 1 : 0) + (result.sponsorsOnly ? 1 : 0) + (result.combined ? 1 : 0) + (result.developer ? 1 : 0) > 1)
+                throw new IllegalArgumentException("Escolha somente um perfil: emprestimos, patrocinios ou combinado");
             if (result.probe && (result.safe || result.list || result.checkSave != null)) throw new IllegalArgumentException("Sonda nao combina com modo seguro, listagem ou verificacao offline");
             if (result.validateMod != null && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Validacao individual de mod nao aceita modo seguro/sonda/argumentos do jogo");
             if (result.manageMod != null && (result.safe || result.probe || !result.gameArguments.isEmpty())) throw new IllegalArgumentException("Selecao de mods nao aceita modo seguro/sonda/argumentos do jogo");

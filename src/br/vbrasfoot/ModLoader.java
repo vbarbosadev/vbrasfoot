@@ -45,11 +45,22 @@ final class ModLoader implements AutoCloseable {
     private final Map<Mod, ResourceOwner> subscriptions = new java.util.IdentityHashMap<>();
     private final br.vbrasfoot.api.CareerObservations observations;
     private final br.vbrasfoot.api.CareerIoEvents ioEvents;
+    private final CareerAssociationCoordinator careerCoordinator;
+    private br.vbrasfoot.api.SponsorAccess sponsorService;
+    ModLoader sponsors(br.vbrasfoot.api.SponsorAccess service) { this.sponsorService = service; return this; }
+    interface LoanFactory { br.vbrasfoot.api.LoanAccess create(String owner, java.util.function.BooleanSupplier active); }
+    private LoanFactory loanFactory;
+    private TransferWindowService windowService;
+    ModLoader gameplay(LoanFactory loans, TransferWindowService windows) { loanFactory = loans; windowService = windows; return this; }
     private boolean closed;
-    ModLoader(Logger logger) { this(logger, null); }
-    ModLoader(Logger logger, br.vbrasfoot.api.CareerObservations observations) { this(logger, observations, null); }
+    ModLoader(Logger logger) { this(logger, null, null, null); }
+    ModLoader(Logger logger, br.vbrasfoot.api.CareerObservations observations) { this(logger, observations, null, null); }
     ModLoader(Logger logger, br.vbrasfoot.api.CareerObservations observations, br.vbrasfoot.api.CareerIoEvents ioEvents) {
-        this.logger = logger; this.observations = observations; this.ioEvents = ioEvents;
+        this(logger, observations, ioEvents, null);
+    }
+    ModLoader(Logger logger, br.vbrasfoot.api.CareerObservations observations, br.vbrasfoot.api.CareerIoEvents ioEvents,
+              CareerAssociationCoordinator careerCoordinator) {
+        this.logger = logger; this.observations = observations; this.ioEvents = ioEvents; this.careerCoordinator = careerCoordinator;
     }
     private synchronized void state(String id, br.vbrasfoot.api.ModState state) {
         states.put(id, state);
@@ -87,7 +98,8 @@ final class ModLoader implements AutoCloseable {
     }
     static void requireObservationMode(List<ModManifest> manifests, boolean enabled) throws IOException {
         for (ModManifest manifest : manifests) if (!enabled && (manifest.requiredCapabilities().contains("events.career.observed")
-                || manifest.requiredCapabilities().contains("events.career.io"))) {
+                || manifest.requiredCapabilities().contains("events.career.io") || manifest.requiredCapabilities().contains("game.sponsor.activate")
+                || manifest.requiredCapabilities().contains("game.loan.request") || manifest.requiredCapabilities().contains("transfer.windows"))) {
             throw new IOException("Mod " + manifest.id() + " requer --probe-career-hooks; observacoes experimentais indisponiveis neste modo");
         }
     }
@@ -134,6 +146,8 @@ final class ModLoader implements AutoCloseable {
             loaded.add(mod);
             identities.put(mod, manifest.id());
             synchronized (subscriptions) { subscriptions.put(mod, owned); }
+            var careerData = new CareerModDataAccess(careerCoordinator,
+                    new CareerSidecarStore(data.resolve(".career-state").resolve("career-mod-data")), manifest.id());
             mod.initialize(new ModContext() {
                 private void require(String permission) {
                     if (owned.disposed) throw new IllegalStateException("Contexto de mod encerrado: " + manifest.id());
@@ -157,6 +171,12 @@ final class ModLoader implements AutoCloseable {
                         }
                         public ScopedPlayerPage scopedPlayers(ClubRef club, int offset, int limit) {
                             require("game.read"); return game.scopedPlayers(club, offset, limit);
+                        }
+                        public ScopedPlayersWithReferencesPage scopedPlayersWithReferences(ClubRef club, int offset, int limit) {
+                            require("game.read");
+                            if (!manifest.requiredCapabilities().contains("query.player.references"))
+                                throw new SecurityException("Declare requiredCapabilities=query.player.references");
+                            return game.scopedPlayersWithReferences(club, offset, limit);
                         }
                         public ScopedCalendar scopedCalendar() { require("game.read"); return game.scopedCalendar(); }
                         public ScopedPlayerDetailsPage scopedPlayerDetails(ClubRef club, int offset, int limit) {
@@ -255,6 +275,103 @@ final class ModLoader implements AutoCloseable {
                     AutoCloseable combined = () -> { if (disposed.compareAndSet(false, true)) { registration.close(); ui.closePanel(panelOwner); } };
                     synchronized (owned) { owned.actions.put(key, combined); }
                     return combined;
+                }
+                public AutoCloseable registerClubBanner(String id, br.vbrasfoot.api.ClubBannerProvider provider) {
+                    require("ui.register"); java.util.Objects.requireNonNull(provider);
+                    if (!manifest.requiredCapabilities().contains("ui.banner.club")) throw new SecurityException("Declare requiredCapabilities=ui.banner.club");
+                    String key = manifest.id() + ":" + id;
+                    synchronized (owned) {
+                        if (owned.closed) throw new IllegalStateException("Mod encerrando");
+                        if (owned.actions.containsKey(key)) throw new IllegalArgumentException("Recurso duplicado: " + id);
+                        var failureReported = new java.util.concurrent.atomic.AtomicBoolean();
+                        AutoCloseable registration = ui.registerClubBanner(key, (club, scope) -> {
+                            synchronized (owned) { if (owned.closed) return java.util.Optional.empty(); }
+                            try {
+                                var result = provider.banner(club, scope);
+                                return result == null ? java.util.Optional.empty() : result;
+                            } catch (RuntimeException | Error failure) {
+                                if (failureReported.compareAndSet(false, true)) failures.record(manifest.jar().getFileName().toString(),
+                                        manifest.id(), ModFailures.Stage.UI_ACTION, failure);
+                                return java.util.Optional.empty();
+                            }
+                        });
+                        owned.actions.put(key, registration);
+                        return () -> {
+                            synchronized (owned) {
+                                registration.close();
+                                owned.actions.remove(key, registration);
+                            }
+                        };
+                    }
+                }
+                public br.vbrasfoot.api.CareerDataAccess careerData() {
+                    require("data.read"); require("data.write");
+                    if (!manifest.requiredCapabilities().contains("career.data.scoped"))
+                        throw new SecurityException("Declare requiredCapabilities=career.data.scoped");
+                    return new br.vbrasfoot.api.CareerDataAccess() {
+                        public java.util.Optional<Scope> current() throws IOException { require("data.read"); return careerData.current(); }
+                        public boolean isSelected(Scope scope) { require("data.read"); return careerCoordinator != null && careerCoordinator.careerDataSelected(scope); }
+                        public byte[] read(Scope scope, String file) throws IOException { require("data.read"); return careerData.read(scope, file); }
+                        public void write(Scope scope, String file, byte[] bytes) throws IOException { require("data.write"); careerData.write(scope, file, bytes); }
+                    };
+                }
+                public br.vbrasfoot.api.LoanAccess loans() {
+                    require("loan.request");
+                    if (!manifest.requiredCapabilities().contains("game.loan.request")) throw new SecurityException("Declare game.loan.request");
+                    if (loanFactory == null) throw new UnsupportedOperationException("Inicie com hooks de carreira");
+                    // One provider per facade, isolated from other mods; every invocation remains revocable.
+                    var provider = loanFactory.create(manifest.id(), () -> { synchronized (owned) { return !owned.closed; } });
+                    return new br.vbrasfoot.api.LoanAccess() {
+                        private void active() { require("loan.request"); synchronized (owned) { if (owned.closed) throw new IllegalStateException("Mod encerrado"); } }
+                        public br.vbrasfoot.api.CareerDataAccess.Scope bindCareer() throws IOException { active(); return provider.bindCareer(); }
+                        public Quote quote(br.vbrasfoot.api.CareerDataAccess.Scope scope, br.vbrasfoot.api.GameAccess.PlayerRef player,
+                                           br.vbrasfoot.api.GameAccess.ClubRef origin, br.vbrasfoot.api.GameAccess.ClubRef destination) throws IOException {
+                            active(); return provider.quote(scope, player, origin, destination);
+                        }
+                        public Result accept(Quote quote) throws IOException { active(); return provider.accept(quote); }
+                    };
+                }
+                public br.vbrasfoot.api.TransferWindows transferWindows() {
+                    require("game.read");
+                    if (!manifest.requiredCapabilities().contains("transfer.windows")) throw new SecurityException("Declare transfer.windows");
+                    if (windowService == null) throw new UnsupportedOperationException("Inicie com hooks de carreira");
+                    var provider = windowService.forMod(manifest.id());
+                    return new br.vbrasfoot.api.TransferWindows() {
+                        public Snapshot current(br.vbrasfoot.api.CareerDataAccess.Scope scope) throws IOException { require("game.read"); return provider.current(scope); }
+                        public Snapshot configure(br.vbrasfoot.api.CareerDataAccess.Scope scope, String revision, Rules rules) throws IOException {
+                            require("transfer.window.configure"); synchronized (owned) { if (owned.closed) throw new IllegalStateException("Mod encerrado"); }
+                            return provider.configure(scope, revision, rules);
+                        }
+                    };
+                }
+                public br.vbrasfoot.api.SponsorAccess sponsors() {
+                    require("sponsor.activate");
+                    if (!SponsorActivationStore.OWNER.equals(manifest.id()) || !manifest.requiredCapabilities().contains("game.sponsor.activate"))
+                        throw new SecurityException("Ativacao limitada ao sponsor-manager com game.sponsor.activate");
+                    if (sponsorService == null) throw new UnsupportedOperationException("Inicie por vbrasfoot-nitido.cmd ou --probe-career-hooks");
+                    return new br.vbrasfoot.api.SponsorAccess() {
+                        private void active() { require("sponsor.activate"); synchronized (owned) { if (owned.closed) throw new IllegalStateException("Mod encerrando; ativacao revogada"); } }
+                        public br.vbrasfoot.api.CareerDataAccess.Scope bindCareer() throws IOException { active(); return sponsorService.bindCareer(); }
+                        public Quote quote(br.vbrasfoot.api.CareerDataAccess.Scope scope, java.util.UUID id, int clubId, String clubName,
+                                           String name, int credit, String stadium) throws IOException {
+                            active(); return sponsorService.quote(scope, id, clubId, clubName, name, credit, stadium);
+                        }
+                         public Result activate(Quote quote) throws IOException { active(); return sponsorService.activate(quote); }
+                         public Result publish(br.vbrasfoot.api.CareerDataAccess.Scope scope, java.util.UUID id, int clubId, String clubName,
+                                               String name, int credit, String stadium, String message) throws IOException {
+                             active(); return sponsorService.publish(scope, id, clubId, clubName, name, credit, stadium, message);
+                         }
+                         public Result cancelPending(br.vbrasfoot.api.CareerDataAccess.Scope scope, java.util.UUID id) throws IOException {
+                             active(); return sponsorService.cancelPending(scope, id);
+                         }
+                        public EndQuote quoteEnd(br.vbrasfoot.api.CareerDataAccess.Scope scope, java.util.UUID id) throws IOException {
+                            active(); return sponsorService.quoteEnd(scope, id);
+                        }
+                        public Result end(EndQuote quote) throws IOException { active(); return sponsorService.end(quote); }
+                        public State state(br.vbrasfoot.api.CareerDataAccess.Scope scope, java.util.UUID id) throws IOException {
+                            active(); return sponsorService.state(scope, id);
+                        }
+                    };
                 }
                 public byte[] readData(String file) throws IOException {
                     require("data.read");

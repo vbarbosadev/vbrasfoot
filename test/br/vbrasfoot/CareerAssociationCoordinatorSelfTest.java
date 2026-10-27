@@ -27,6 +27,12 @@ public final class CareerAssociationCoordinatorSelfTest {
         var trace = HookProbe.traceLoadInput(new ByteArrayInputStream(Files.readAllBytes(path))); trace.readAllBytes(); trace.close();
         HookProbe.rootAssigned(); HookProbe.rootAssigned(); HookProbe.decodedLoad(primary, secondary); HookProbe.exitLoad(true);
     }
+    private static void loadInitialized(Path path, Object primary, Object secondary) throws Exception {
+        HookProbe.enterLoad(path.getFileName().toString(), false); HookProbe.loadSource(path.toString());
+        var trace = HookProbe.traceLoadInput(new ByteArrayInputStream(Files.readAllBytes(path))); trace.readAllBytes(); trace.close();
+        HookProbe.rootAssigned(); HookProbe.rootAssigned(); HookProbe.decodedLoad(primary, secondary);
+        HookProbe.loadInitializationPathFinished(); HookProbe.exitLoad(true);
+    }
     private static long heads(Path root) throws IOException {
         if (!Files.exists(root)) return 0;
         try (var files = Files.walk(root)) { return files.filter(path -> path.getFileName().toString().equals("HEAD")).count(); }
@@ -40,10 +46,11 @@ public final class CareerAssociationCoordinatorSelfTest {
         var observer = new SaveFileObserver(); var associations = new CareerSaveAssociations(metadata); var journalStore = new CareerSidecarStore(journals);
         var requestStore = new CareerSidecarStore(root.resolve("finance-requests"));
         var executionStore = new CareerSidecarStore(root.resolve("finance-execution-witnesses"));
+        var loanStore = new CareerSidecarStore(root.resolve("loan-requests"));
         Object primary = new Object(), secondary = new Object();
         var verifier = new LoadedSaveVerifier(observer, () -> new CareerCommandDispatcher.Roots(primary, secondary), Duration.ofSeconds(2));
         var owners = List.of("br.owned.second", "br.owned.first");
-        var coordinator = new CareerAssociationCoordinator(saves, associations, journalStore, requestStore, executionStore, observer, verifier, owners);
+        var coordinator = new CareerAssociationCoordinator(saves, associations, journalStore, requestStore, executionStore, loanStore, observer, verifier, owners);
         var foreign = new CareerAssociationCoordinator(saves, associations, journalStore, requestStore, executionStore, observer, verifier, owners);
         check(!Files.exists(metadata) && !Files.exists(journals) && !Files.exists(root.resolve("finance-requests")) && !Files.exists(root.resolve("finance-execution-witnesses")), "constructing coordinator creates none of the four metadata roots");
         invalid(() -> new CareerAssociationCoordinator(saves, associations, journalStore, requestStore, executionStore, observer, verifier, List.of("a", "a")));
@@ -75,6 +82,38 @@ public final class CareerAssociationCoordinatorSelfTest {
                      "rendering multi-root review does not materialize missing roots");
             rejects(Reason.CONFLICT, () -> coordinator.confirm(selected, Action.CREATE_NEW, Optional.empty()));
             var known = associations.inspect(handle); var key = new Key(handle.career(), handle.binding(), owners.get(0));
+            var beforeLoan = coordinator.review(Optional.of(handle));
+            var loanKey = new Key(handle.career(), handle.binding(), LoanManagerPanel.OWNER);
+            var loan = new LoanRequest(handle.career(), handle.binding(), known.save(), loanKey.mod(), "pending-loan",
+                    new FinanceRequest.Club(0, 1, "Origin"), new FinanceRequest.Club(1, 2, "Destination"), 0,
+                    List.of(new br.vbrasfoot.api.GameAccess.Player(1, "Player", 20, 1, 10, 100)),
+                    List.of(new br.vbrasfoot.api.GameAccess.Player(2, "Other", 20, 1, 20, 100)), 1000);
+            new LoanRequestStore(loanStore, loanKey).persist(loan, EMPTY);
+            rejects(Reason.CONFLICT, () -> coordinator.confirm(beforeLoan, Action.ACCEPT_REVISION, Optional.empty()));
+            var loanReview = coordinator.review(Optional.of(handle));
+            check(!LoanManagerPanel.canTransfer(loanReview, loan.key()) && !LoanManagerPanel.canTransfer(loanReview, "absent"), "pending or missing key cannot enable transfer");
+            var loanRow = loanReview.loans().stream().filter(row -> row.owner().equals(loanKey.mod())).findFirst().orElseThrow();
+            check(!loanRow.configured() && loanRow.links().get(0).status() == LoanContractReview.Status.PENDING_WITHOUT_RECEIPT,
+                    "loan-only disabled owner included without inventing effect or permission");
+            check(CareerAssociationPanel.report(loanReview).contains("PENDING_WITHOUT_RECEIPT"), "panel exposes pending loan contracts");
+            check(LoanManagerPanel.report(loanReview).contains("Player") && LoanManagerPanel.report(loanReview).contains("CONFIRMACAO SEPARADA"),
+                    "loan manager shows request and never claims gameplay execution");
+            var evaluatedLoan = coordinator.decideLoan(loanReview, loanKey.mod(), loan.key(), false);
+            check(evaluatedLoan.state(loan.key()) == LoanRequestStore.State.APPROVED, "reviewed coordinator persists automatic policy decision");
+            check(LoanManagerPanel.canTransfer(coordinator.review(Optional.of(handle)), loan.key()), "exact reviewed approved request enables UI hint only");
+            rejects(Reason.CONFLICT, () -> coordinator.decideLoan(loanReview, loanKey.mod(), loan.key(), true));
+            var cancelledLoan = coordinator.decideLoan(coordinator.review(Optional.of(handle)), loanKey.mod(), loan.key(), true);
+            check(cancelledLoan.state(loan.key()) == LoanRequestStore.State.CANCELLED && Arrays.equals(Files.readAllBytes(source), first),
+                     "explicit cancellation alters only metadata, no save bytes");
+            check(!LoanManagerPanel.canTransfer(coordinator.review(Optional.of(handle)), loan.key()), "cancelled request disables transfer");
+            var sponsorLedger = new SponsorActivationStore(new CareerSidecarStore(root.resolve("sponsor-activations")), handle);
+            UUID sponsorId = UUID.randomUUID();
+            var sponsorClaim = sponsorLedger.claim(sponsorId, "f".repeat(64),
+                    SponsorActivationStoreSelfTest.request(handle, sponsorId, known.save()), EMPTY);
+            rejects(Reason.RECONCILIATION_REQUIRED, () -> coordinator.confirm(coordinator.review(Optional.of(handle)), Action.PREPARE_INTERNAL_CONTEXT, Optional.empty()));
+            rejects(Reason.RECONCILIATION_REQUIRED, () -> coordinator.decideLoan(coordinator.review(Optional.of(handle)), loanKey.mod(), loan.key(), true));
+            check(sponsorLedger.read().equals(sponsorClaim.snapshot()), "existing coordinator paths cannot consume or erase pending sponsor activation");
+            sponsorLedger.complete(sponsorClaim.lease(), sponsorClaim.snapshot().token(), SponsorActivationStore.State.NO_EFFECT);
             var journal = new CareerCommandJournal(journalStore, key);
             var intent = new CareerCommandJournal.Intent("pending", CareerCommandGate.Operation.FINANCE_CREDIT, "c".repeat(64));
             var beforePending = coordinator.review(Optional.of(handle));
@@ -110,6 +149,8 @@ public final class CareerAssociationCoordinatorSelfTest {
             check(revised.status() == Status.REVISION_REVIEW_REQUIRED && revised.journals().stream().anyMatch(row -> row.recovery().orElseThrow().revisionChanged()), "changed source keeps committed old anchors separate from actual decoder bytes");
             coordinator.confirm(revised, Action.ACCEPT_REVISION, Optional.empty());
             var afterRevision = coordinator.review(Optional.of(handle));
+            check(afterRevision.loans().stream().filter(row -> row.owner().equals(loanKey.mod())).findFirst().orElseThrow()
+                    .recovery().orElseThrow().revisionChanged(), "loan old revision is reviewed, never silently migrated");
              check(afterRevision.journals().stream().anyMatch(row -> row.recovery().orElseThrow().revisionChanged()), "administrative review exposes actual committed old anchor without migrating journal");
              check(CareerAssociationPanel.report(afterRevision).contains("JOURNAL_ANCHOR_DIFFERS"), "panel exposes old journal anchor after association-only revision acceptance without inventing coordinated recovery");
             coordinator.confirm(afterRevision, Action.QUARANTINE_PENDING, Optional.of(owners.get(0)));
@@ -145,7 +186,7 @@ public final class CareerAssociationCoordinatorSelfTest {
                     catch (Failure expected) { if (expected.reason() != Reason.BUSY && expected.reason() != Reason.CONFLICT) throw expected; return false; }
                 }));
                 start.countDown(); int winners = 0; for (var result : results) if (result.get(10, TimeUnit.SECONDS)) winners++;
-                check(winners == 1 && heads(metadata) == beforeHeads + 1, "one reviewed confirmation cannot allocate twice under concurrent clicks");
+                check(winners == 1 && heads(metadata) == beforeHeads, "one reviewed confirmation reuses the existing identity without allocating a duplicate");
             } finally { executor.shutdownNow(); }
             var edtFailure = new AtomicReference<Throwable>();
             SwingUtilities.invokeAndWait(() -> { try { coordinator.review(Optional.of(fork)); } catch (Throwable expected) { edtFailure.set(expected); } });
@@ -162,8 +203,41 @@ public final class CareerAssociationCoordinatorSelfTest {
             var atCapacity = new ArrayList<String>();
             for (int i = 0; i < MAX_BINDING_NAMESPACES; i++) atCapacity.add("br.owned.configured" + i);
             var unionOverflow = new CareerAssociationCoordinator(saves, associations, journalStore, requestStore, executionStore, observer, verifier, atCapacity);
-            rejects(Reason.QUOTA, () -> unionOverflow.review(Optional.of(fork)));
-            check(Arrays.equals(Files.readAllBytes(source), first) && Arrays.equals(Files.readAllBytes(renamed), first), "all coordinated actions preserve owned save bytes");
+             rejects(Reason.QUOTA, () -> unionOverflow.review(Optional.of(fork)));
+             check(Arrays.equals(Files.readAllBytes(source), first) && Arrays.equals(Files.readAllBytes(renamed), first), "all coordinated actions preserve owned save bytes");
+             loadInitialized(renamed, primary, secondary);
+             var data = new CareerModDataAccess(coordinator, new CareerSidecarStore(root.resolve("career-mod-data")), "br.owned.consumer");
+             check(data.current().isEmpty(), "career mod data is unavailable until an association is explicitly selected");
+             var dataReview = coordinator.review(Optional.of(fork));
+             check(dataReview.status() == Status.READ_ONLY_LINKED && dataReview.decoded().initializationPathObserved(), "career data binding requires initialized path and exact selected save");
+             coordinator.selectCareerData(dataReview);
+             var scope = data.current().orElseThrow();
+             check(scope.career().equals(fork.career()) && scope.binding().equals(fork.binding()), "mod receives only the explicitly selected career/binding scope");
+             check(data.read(scope, "sponsor-config.bin").length == 0, "new fork starts with empty mod data; no implicit source copy");
+             byte[] settings = {9, 8, 7}; data.write(scope, "sponsor-config.bin", settings);
+             check(Arrays.equals(data.read(scope, "sponsor-config.bin"), settings), "career sidecar settings roundtrip without changing save bytes");
+             var otherMod = new CareerModDataAccess(coordinator, new CareerSidecarStore(root.resolve("career-mod-data")), "br.owned.other");
+             check(otherMod.read(scope, "sponsor-config.bin").length == 0, "one mod cannot read another mod's career sidecar namespace");
+             coordinator.clearCareerDataSelection();
+             check(data.current().isEmpty(), "clearing the explicit session selection revokes scope acquisition");
+             boolean staleDenied = false;
+             try { data.read(scope, "sponsor-config.bin"); } catch (Failure expected) { staleDenied = expected.reason() == Reason.CONFLICT; }
+             check(staleDenied, "cached scope cannot read after selection is cleared");
+             var reopenedCoordinator = new CareerAssociationCoordinator(saves, associations, journalStore, requestStore,
+                     executionStore, loanStore, observer, verifier, owners);
+             loadInitialized(renamed, primary, secondary);
+             reopenedCoordinator.selectCareerData(reopenedCoordinator.review(Optional.of(fork)));
+             var afterRestart = new CareerModDataAccess(reopenedCoordinator, new CareerSidecarStore(root.resolve("career-mod-data")), "br.owned.consumer");
+             var reopenedScope = afterRestart.current().orElseThrow();
+             check(!reopenedScope.selection().equals(scope.selection())
+                     && Arrays.equals(afterRestart.read(reopenedScope, "sponsor-config.bin"), settings),
+                     "reselection after coordinator restart reopens same binding data with a fresh session token");
+             loadInitialized(source, primary, secondary);
+             reopenedCoordinator.selectCareerData(reopenedCoordinator.review(Optional.of(handle)));
+             var originalScope = afterRestart.current().orElseThrow();
+             check(!originalScope.binding().equals(reopenedScope.binding())
+                     && afterRestart.read(originalScope, "sponsor-config.bin").length == 0,
+                     "another associated career cannot read this career's sidecar even with the same mod ID");
         } finally { state.close(); }
         System.out.println("PASS: " + checks + " association coordinator checks; owned fixture " + root + "; no command context installed or original initialized UI qualified.");
     }

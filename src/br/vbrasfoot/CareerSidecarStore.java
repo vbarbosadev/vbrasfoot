@@ -54,6 +54,7 @@ final class CareerSidecarStore {
     private record Head(Pointer current, Pointer previous, String token) { }
     private static final int RECORD_MAGIC = 0x56424352, HEAD_MAGIC = 0x56424348, FORMAT = 1;
     private final Path root;
+    Path root() { return root; }
     private final FaultProbe probe;
     CareerSidecarStore(Path root) { this(root, stage -> { }); }
     CareerSidecarStore(Path root, FaultProbe probe) {
@@ -116,6 +117,8 @@ final class CareerSidecarStore {
     View inspectJournalRecord(Key key) throws IOException { offEdt(); return inspect(Objects.requireNonNull(key)); }
     /** Internal administrative read on a dedicated financial-contract root, never a public revision bypass. */
     View inspectFinanceRequests(Key key) throws IOException { offEdt(); return inspect(Objects.requireNonNull(key)); }
+    /** Internal administrative read on the dedicated loan-contract root, never a public revision bypass. */
+    View inspectLoanRequests(Key key) throws IOException { offEdt(); return inspect(Objects.requireNonNull(key)); }
     /** Administrative read on a dedicated execution-witness root only; never a public revision bypass. */
     View inspectFinanceExecution(Key key) throws IOException { offEdt(); return inspect(Objects.requireNonNull(key)); }
     /** Opaque proof can only be created after journal decode proves every receipt NO_EFFECT_CONFIRMED. */
